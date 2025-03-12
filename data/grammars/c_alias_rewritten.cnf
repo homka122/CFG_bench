@@ -1,0 +1,14 @@
+S
+
+N1 -> d_r
+N2 -> d
+N1 -> N1 NON_TERMINAL#a_r
+N1_S -> N1 S
+N1 -> N1_S NON_TERMINAL#a_r
+N2 -> NON_TERMINAL#a N2
+A_S -> NON_TERMINAL#a S
+N2 -> A_S N2
+S -> N1_S N2
+S -> N1 N2
+NON_TERMINAL#a_r -> a_r
+NON_TERMINAL#a -> a

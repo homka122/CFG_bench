@@ -1,0 +1,12 @@
+S
+
+S -> H1 NON_TERMINAL#subClassOf
+S -> NON_TERMINAL#subClassOf_r NON_TERMINAL#subClassOf
+S -> H4 NON_TERMINAL#type
+S -> NON_TERMINAL#type_r NON_TERMINAL#type
+H1 -> NON_TERMINAL#subClassOf_r S
+H4 -> NON_TERMINAL#type_r S
+NON_TERMINAL#type -> type
+NON_TERMINAL#subClassOf_r -> subClassOf_r
+NON_TERMINAL#type_r -> type_r
+NON_TERMINAL#subClassOf -> subClassOf

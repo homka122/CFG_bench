@@ -1,0 +1,23 @@
+V
+
+V ->
+A ->
+A_r ->
+V -> M NON_TERMINAL#EPS
+A -> a
+A_r -> abar
+M -> DV NON_TERMINAL#d
+DV -> NON_TERMINAL#dbar V
+V -> A_r V
+V -> V A
+V -> FV_i_0 NON_TERMINAL#f_i_0
+FV_i_0 -> NON_TERMINAL#fbar_i_0 V
+A -> NON_TERMINAL#a M
+A_r -> M NON_TERMINAL#abar
+NON_TERMINAL#d -> d
+NON_TERMINAL#a -> a
+NON_TERMINAL#fbar_i_0 -> fbar_i_0
+NON_TERMINAL#dbar -> dbar
+NON_TERMINAL#f_i_0 -> f_i_0
+NON_TERMINAL#abar -> abar
+NON_TERMINAL#EPS ->
