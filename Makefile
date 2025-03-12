@@ -1,8 +1,7 @@
 COUNT=10
 
-LIB_FLAGS = -lgraphblas -llagraph
-ALGO = ../LAGraph/experimental/algorithm/LAGraph_CFL_reachability.c
-INCLUDE_FLAGS = -I./ -I../LAGraph/include -I../LAGraph/src/test/include -I../LAGraph/experimental/test/include -I/usr/local/include/suitesparse -I../LAGraph/src/utility
+LIB_FLAGS = -lgraphblas -llagraph -llagraphx
+INCLUDE_FLAGS = -I/usr/local/include/suitesparse -I./
 
 build: test.c parser.c
 	gcc test.c parser.c ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} \

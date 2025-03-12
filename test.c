@@ -1,6 +1,6 @@
-#include "../LAGraph/include/LAGraphX.h"
 #include <GraphBLAS.h>
 #include <LAGraph.h>
+#include <LAGraphX.h>
 #include <parser.h>
 #include <time.h>
 
@@ -329,12 +329,11 @@ char *configs_vf[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf",
                       "data/graphs/vf/nab.g,data/grammars/vf.cnf",
                       "data/graphs/vf/leela.g,data/grammars/vf.cnf", NULL};
 
-char *configs_my[] = {
-    "data/graphs/java/luindex.g,data/grammars/java_points_to.cnf", NULL};
+char *configs_my[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf", NULL};
 
 #define COUNT 10
 #define HOT true
-#define configs configs_rdf
+#define configs configs_my
 
 int main(int argc, char **argv) {
     setup();

@@ -1,5 +1,5 @@
-#include "../LAGraph/include/LAGraphX.h"
 #include <LAGraph.h>
+#include <LAGraphX.h>
 #include <ctype.h>
 #include <parser.h>
 #include <stdbool.h>
