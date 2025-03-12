@@ -16,13 +16,13 @@ jobs:
             - name: Install depends
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y gcc make git
+                  sudo apt-get install -y gcc make git ccache
 
             - name: Build and install graphblas
               run: |
                   git clone https://github.com/DrTimothyAldenDavis/GraphBLAS.git
                   cd GraphBLAS
-                  make
+                  cmake -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -G Ninja -S . -B build
                   sudo make install
 
             - name: Build and install LAGraph v1.2
