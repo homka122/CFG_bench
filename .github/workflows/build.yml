@@ -22,8 +22,9 @@ jobs:
               run: |
                   git clone https://github.com/DrTimothyAldenDavis/GraphBLAS.git
                   cd GraphBLAS
-                  cmake -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -G Ninja -S . -B build
+                  make compact
                   sudo make install
+                  cd ..
 
             - name: Build and install LAGraph v1.2
               run: |
@@ -32,6 +33,7 @@ jobs:
                   git checkout v1.2
                   make
                   sudo make install
+                  cd ..
 
             - name: Launch benchmark
               run: make bench
