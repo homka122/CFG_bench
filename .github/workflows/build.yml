@@ -1,0 +1,30 @@
+name: Build
+
+on:
+    push:
+        branches: ["*"]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            - name: Install depends
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y gcc make git
+
+            - name: Build and install LAGraph v1.2
+              run: |
+                  git clone https://github.com/GraphBLAS/LAGraph.git
+                  cd LAGraph
+                  git checkout v1.2
+                  make
+                  sudo make install
+
+            - name: Launch benchmark
+              run: make bench
