@@ -1,0 +1,8 @@
+data/grammars/*
+data/graphs/*
+.vscode
+*.out
+convert
+test
+*.csv
+log.txt
