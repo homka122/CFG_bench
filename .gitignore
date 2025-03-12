@@ -6,3 +6,4 @@ convert
 test
 *.csv
 log.txt
+convert.c
