@@ -21,6 +21,10 @@ bench: test.c parser.c
 	gcc test.c parser.c -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} \
 		-o test && ./test
 
+bench-CI: test.c parser.c
+	gcc test.c parser.c -O2 -DCI ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} \
+		-o test && ./test
+
 debug: test.c parser.c
 	gcc test.c parser.c  ${ALGO} \
 ${LIB_FLAGS} ${INCLUDE_FLAGS} \

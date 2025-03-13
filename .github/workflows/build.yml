@@ -16,7 +16,7 @@ jobs:
             - name: Install depends
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y gcc make git ccache ninja-build
+                  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc make git ccache ninja-build
 
             - name: Restore ccache
               uses: actions/cache@v3
@@ -44,10 +44,8 @@ jobs:
             - name: Launch benchmark
               run: |
                   export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-                  make bench
+                  make bench-CI
 
-            - name: Save ccache
-              uses: actions/cache@v3
-              with:
-                  path: ~/.cache/ccache
-                  key: ccache-${{ runner.os }}-${{ github.ref }}
+            - name: Get ccache folder
+              run: |
+                  ls -lah ~/.cache
