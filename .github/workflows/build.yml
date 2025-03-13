@@ -16,13 +16,19 @@ jobs:
             - name: Install depends
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y gcc make git ccache
+                  sudo apt-get install -y gcc make git ccache ninja-build
+
+            - name: Restore ccache
+              uses: actions/cache@v3
+              with:
+                  path: ~/.cache/ccache
+                  key: ccache-${{ runner.os }}-${{ github.ref }}
 
             - name: Build and install graphblas
               run: |
                   git clone https://github.com/DrTimothyAldenDavis/GraphBLAS.git
                   cd GraphBLAS
-                  make compact
+                  CMAKE_OPTIONS="-G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache" make compact
                   sudo make install
                   cd ..
 
@@ -31,7 +37,7 @@ jobs:
                   git clone https://github.com/GraphBLAS/LAGraph.git
                   cd LAGraph
                   git checkout v1.2
-                  make
+                  CMAKE_OPTIONS="-G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache" make
                   sudo make install
                   cd ..
 
@@ -39,3 +45,9 @@ jobs:
               run: |
                   export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
                   make bench
+
+            - name: Save ccache
+              uses: actions/cache@v3
+              with:
+                  path: ~/.cache/ccache
+                  key: ccache-${{ runner.os }}-${{ github.ref }}
