@@ -1,0 +1,51 @@
+name: Build
+
+on:
+    push:
+        branches: ["*"]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            - name: Install depends
+              run: |
+                  sudo apt-get update
+                  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc make git ccache ninja-build
+
+            - name: Restore ccache
+              uses: actions/cache@v3
+              with:
+                  path: ~/.cache/ccache
+                  key: ccache-${{ runner.os }}-${{ github.ref }}
+
+            - name: Build and install graphblas
+              run: |
+                  git clone https://github.com/DrTimothyAldenDavis/GraphBLAS.git
+                  cd GraphBLAS
+                  CMAKE_OPTIONS="-G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache" make compact
+                  sudo make install
+                  cd ..
+
+            - name: Build and install LAGraph v1.2
+              run: |
+                  git clone https://github.com/GraphBLAS/LAGraph.git
+                  cd LAGraph
+                  git checkout v1.2
+                  CMAKE_OPTIONS="-G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache" make
+                  sudo make install
+                  cd ..
+
+            - name: Launch benchmark
+              run: |
+                  export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+                  make bench-CI
+
+            - name: Get ccache folder
+              run: |
+                  ls -lah ~/.cache

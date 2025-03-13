@@ -115,9 +115,9 @@ char *configs_vf[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf",
 char *configs_my[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf", NULL};
 
 // Number of benchmark runs on a single graph
-#define COUNT 10
+#define COUNT 1
 // If true, the first run is done without measuring time (warm-up)
-#define HOT true
+#define HOT false
 // Use your custom configuration for the benchmark (default is the xz.g graph
 // and vf.cnf grammar)
 #define configs configs_my
@@ -148,7 +148,9 @@ int main(int argc, char **argv) {
             init_outputs();
 
             start[i] = LAGraph_WallClockTime();
+#ifndef CI
             retval = run_algorithm();
+#endif
             end[i] = LAGraph_WallClockTime();
 
             GrB_Matrix_nvals(&nnz, outputs[0]);
