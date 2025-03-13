@@ -36,4 +36,6 @@ jobs:
                   cd ..
 
             - name: Launch benchmark
-              run: make bench
+              run: |
+                  export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+                  make bench
