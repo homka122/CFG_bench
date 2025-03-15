@@ -122,11 +122,24 @@ bool is_number(const char *s) {
 char *read_entire_file(char *path) {
 
     FILE *file = fopen(path, "rb");
+    if (file == NULL) {
+        fprintf(stderr,
+                "\x1B[31m[ERROR]\033[0m Problem with opening file by %s path\n",
+                path);
+        exit(-1);
+    }
+
     fseek(file, 0, SEEK_END);
     long file_size = ftell(file);
     fseek(file, 0, SEEK_SET);
+
     char *buffer = (char *)malloc(file_size + 1);
-    fread(buffer, 1, file_size, file);
+    if (fread(buffer, 1, file_size, file) == 0) {
+        fprintf(stderr,
+                "\x1B[31m[ERROR]\033[0m Problem with reading file by %s path\n",
+                path);
+        exit(-1);
+    };
     buffer[file_size] = '\0';
     fclose(file);
 
