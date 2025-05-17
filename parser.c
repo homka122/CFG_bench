@@ -332,25 +332,25 @@ void parser(char *config_i, grammar_t *grammar, GrB_Matrix **adj_matrices) {
     for (int i = 0; i < non_terms.count; ++i)
         printf("%d: %s\n", i, non_terms.symbols[i]);
 
-    // printf("\nTerminals:\n");
-    // for (int i = 0; i < terms.count; ++i)
-    //     printf("%d: %s\n", i, terms.symbols[i]);
+    printf("\nTerminals:\n");
+    for (int i = 0; i < terms.count; ++i)
+        printf("%d: %s\n", i, terms.symbols[i]);
 
-    // printf("\nProductions:\n");
-    // for (int i = 0; i < rule_count; ++i) {
-    //     ProductionRule r = rules[i];
-    //     printf("[%d, %d, %d, %d]\n", r.lhs, r.rhs1, r.rhs2, r.index);
-    // }
+    printf("\nProductions:\n");
+    for (int i = 0; i < rule_count; ++i) {
+        ProductionRule r = rules[i];
+        printf("[%d, %d, %d, %d]\n", r.lhs, r.rhs1, r.rhs2, r.index);
+    }
 
-    // printf("\nProductions (With names):\n");
-    // for (int i = 0; i < rule_count; ++i) {
-    //     ProductionRule r = rules[i];
-    //     printf("[%d] %s -> %s %s\n", r.index, non_terms.symbols[r.lhs],
-    //            r.rhs1 == -1   ? ""
-    //            : r.rhs2 == -1 ? terms.symbols[r.rhs1]
-    //                           : non_terms.symbols[r.rhs1],
-    //            r.rhs2 == -1 ? "" : non_terms.symbols[r.rhs2]);
-    // }
+    printf("\nProductions (With names):\n");
+    for (int i = 0; i < rule_count; ++i) {
+        ProductionRule r = rules[i];
+        printf("[%d] %s -> %s %s\n", r.index, non_terms.symbols[r.lhs],
+               r.rhs1 == -1   ? ""
+               : r.rhs2 == -1 ? terms.symbols[r.rhs1]
+                              : non_terms.symbols[r.rhs1],
+               r.rhs2 == -1 ? "" : non_terms.symbols[r.rhs2]);
+    }
 
     printf("\nGraph Info:\n");
     printf("Number of nodes: %d\n", max_node + 1);
