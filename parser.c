@@ -8,9 +8,16 @@
 #include <string.h>
 
 #define MAX_LINE_LEN 256
+#define MAX_CHAR_LEN 32
+#define MAX_SYMBOLS_LEN 1024
 
 typedef struct {
-    char **symbols;
+    char label[MAX_CHAR_LEN];
+    bool is_indexed;
+} Symbol;
+
+typedef struct {
+    Symbol symbols[MAX_SYMBOLS_LEN];
     int count;
 } SymbolList;
 
@@ -25,38 +32,37 @@ typedef struct {
     int u;
     int term_index;
     int v;
+    int index;
 } GraphEdge;
 
+Symbol symbol_create(char *str) {
+    Symbol result;
+
+    result.is_indexed = false;
+    strcpy(result.label, str);
+
+    return result;
+}
+
 void init_symbol_list(SymbolList *list) {
-    list->symbols = NULL;
+    memset(list->symbols, 0, sizeof(list->symbols));
     list->count = 0;
 }
 
-int add_symbol(SymbolList *list, const char *symbol) {
+int add_symbol(SymbolList *list, const Symbol symbol) {
     for (int i = 0; i < list->count; ++i) {
-        if (strcmp(list->symbols[i], symbol) == 0) {
+        if (strcmp(list->symbols[i].label, symbol.label) == 0) {
             return i;
         }
     }
 
-    list->symbols = realloc(list->symbols, sizeof(char *) * (list->count + 1));
-    list->symbols[list->count] = strdup(symbol);
-
+    strcpy(list->symbols[list->count].label, symbol.label);
     return list->count++;
 }
 
-void free_symbol_list(SymbolList *list) {
-    for (int i = 0; i < list->count; ++i) {
-        free(list->symbols[i]);
-    }
-
-    free(list->symbols);
-    init_symbol_list(list);
-}
-
-bool is_non_terminal(const char *symbol, SymbolList non_terms) {
+bool is_non_terminal(const Symbol symbol, SymbolList non_terms) {
     for (int i = 0; i < non_terms.count; ++i) {
-        if (strcmp(non_terms.symbols[i], symbol) == 0) {
+        if (strcmp(non_terms.symbols[i].label, symbol.label) == 0) {
             return true;
         }
     }
@@ -73,7 +79,7 @@ void process_rule(const char *line, SymbolList *non_terms, SymbolList *terms,
     char lhs[MAX_LINE_LEN] = {0};
     strncpy(lhs, line, arrow - line);
     lhs[strcspn(lhs, " \t\n")] = '\0';
-    int lhs_id = add_symbol(non_terms, lhs);
+    int lhs_id = add_symbol(non_terms, symbol_create(lhs));
 
     char *rhs = arrow + 2;
     while (*rhs == ' ' || *rhs == '\t')
@@ -96,9 +102,10 @@ void process_rule(const char *line, SymbolList *non_terms, SymbolList *terms,
     }
 
     for (int i = 0; i < count; ++i) {
-        SymbolList *arr =
-            is_non_terminal(symbols[i], *non_terms) ? non_terms : terms;
-        int id = add_symbol(arr, symbols[i]);
+        SymbolList *arr = is_non_terminal(symbol_create(symbols[i]), *non_terms)
+                              ? non_terms
+                              : terms;
+        int id = add_symbol(arr, symbol_create(symbols[i]));
         if (i == 0)
             rule.rhs1 = id;
         else
@@ -174,7 +181,7 @@ void parser(char *config_i, grammar_t *grammar, GrB_Matrix **adj_matrices) {
             *end = '\0';
 
         if (first) {
-            add_symbol(&non_terms, line);
+            add_symbol(&non_terms, symbol_create(line));
             first = false;
             line = end ? end + 1 : line + strlen(line);
             continue;
@@ -203,7 +210,7 @@ void parser(char *config_i, grammar_t *grammar, GrB_Matrix **adj_matrices) {
         char lhs[MAX_LINE_LEN] = {0};
         strncpy(lhs, line, arrow - line);
         lhs[strcspn(lhs, " \t\n")] = '\0';
-        int lhs_id = add_symbol(&non_terms, lhs);
+        int lhs_id = add_symbol(&non_terms, symbol_create(lhs));
 
         line = end ? end + 1 : line + strlen(line);
     }
@@ -259,7 +266,7 @@ void parser(char *config_i, grammar_t *grammar, GrB_Matrix **adj_matrices) {
 
         int term_index = -1;
         for (int j = 0; j < terms.count; ++j) {
-            if (strcmp(terms.symbols[j], a_str) == 0) {
+            if (strcmp(terms.symbols[j].label, a_str) == 0) {
                 term_index = j;
                 break;
             }
@@ -358,8 +365,6 @@ void parser(char *config_i, grammar_t *grammar, GrB_Matrix **adj_matrices) {
     printf("Graph lines: %d\n", graph_line_count);
 #endif
 
-    free_symbol_list(&non_terms);
-    free_symbol_list(&terms);
     free(rules);
 
     free(edges);
