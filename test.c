@@ -108,6 +108,18 @@ char *configs_c_alias[] = {
     "data/graphs/c_alias/apache.g,data/grammars/c_alias.cnf",
     NULL};
 
+char *configs_aa[] = {"data/graphs/aa/xz.g,data/grammars/aa.cnf",
+                      "data/graphs/aa/nab.g,data/grammars/aa.cnf",
+                      "data/graphs/aa/leela.g,data/grammars/aa.cnf",
+                      "data/graphs/aa/x264.g,data/grammars/aa.cnf",
+                      "data/graphs/aa/povray.g,data/grammars/aa.cnf",
+                      "data/graphs/aa/cactus.g,data/grammars/aa.cnf",
+                      "data/graphs/aa/parest.g,data/grammars/aa.cnf",
+                      "data/graphs/aa/imagick.g,data/grammars/aa.cnf",
+                      "data/graphs/aa/perlbench.g,data/grammars/aa.cnf",
+                      "data/graphs/aa/omnetpp.g,data/grammars/aa.cnf",
+                      NULL};
+
 char *configs_vf[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf",
                       "data/graphs/vf/nab.g,data/grammars/vf.cnf",
                       "data/graphs/vf/leela.g,data/grammars/vf.cnf", NULL};
