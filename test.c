@@ -139,12 +139,13 @@ char *configs_my[] = {
 #define OPT_EMPTY (1 << 0)
 #define OPT_FORMAT (1 << 1)
 #define OPT_LAZY (1 << 2)
+#define OPT_BLOCK (1 << 3)
 
 int main(int argc, char **argv) {
     int8_t optimizations = 0;
     int opt;
 
-    while ((opt = getopt(argc, argv, "efl")) != -1) {
+    while ((opt = getopt(argc, argv, "eflb")) != -1) {
         switch (opt) {
         case 'e':
             optimizations |= OPT_EMPTY;
@@ -154,6 +155,9 @@ int main(int argc, char **argv) {
             break;
         case 'l':
             optimizations |= OPT_LAZY;
+            break;
+        case 'b':
+            optimizations |= OPT_BLOCK;
             break;
         default:
             fprintf(stderr, "Usage: %s [-e] [-f] [-l]\n", argv[0]);
