@@ -2,12 +2,13 @@
 #include <LAGraph.h>
 #include <LAGraphX.h>
 #include <parser.h>
-#include <time.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define run_algorithm()                                                        \
-    LAGraph_CFL_reachability(outputs, adj_matrices, grammar.terms_count,       \
-                             grammar.nonterms_count, grammar.rules,            \
-                             grammar.rules_count, msg)
+    LAGraph_CFL_reachability_adv(outputs, adj_matrices, nonterms_count,        \
+                                 grammar.rules, grammar.rules_count, msg,      \
+                                 optimizations)
 
 #define check_error(error)                                                     \
     {                                                                          \
@@ -25,7 +26,7 @@
 
 GrB_Matrix *adj_matrices = NULL;
 GrB_Matrix *outputs = NULL;
-grammar_t grammar = {0, 0, 0, NULL};
+grammar_t grammar = {0, 0, NULL};
 char msg[LAGRAPH_MSG_LEN];
 
 void setup() { LAGr_Init(GrB_NONBLOCKING, malloc, NULL, NULL, free, msg); }
@@ -52,22 +53,22 @@ void free_outputs() {
 
 void free_workspace() {
 
-    for (size_t i = 0; i < grammar.terms_count; i++) {
-        if (adj_matrices == NULL)
-            break;
+    // for (size_t i = 0; i < grammar.terms_count; i++) {
+    //     if (adj_matrices == NULL)
+    //         break;
 
-        if (adj_matrices[i] == NULL)
-            continue;
+    //     if (adj_matrices[i] == NULL)
+    //         continue;
 
-        GrB_free(&adj_matrices[i]);
-    }
-    free(adj_matrices);
-    adj_matrices = NULL;
+    //     GrB_free(&adj_matrices[i]);
+    // }
+    // free(adj_matrices);
+    // adj_matrices = NULL;
 
-    free_outputs();
+    // free_outputs();
 
-    free(grammar.rules);
-    grammar = (grammar_t){0, 0, 0, NULL};
+    // free(grammar.rules);
+    // grammar = (grammar_t){0, 0, 0, NULL};
 }
 
 char *configs_rdf[] = {"data/graphs/rdf/go_hierarchy.g,data/grammars/"
@@ -124,7 +125,8 @@ char *configs_vf[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf",
                       "data/graphs/vf/nab.g,data/grammars/vf.cnf",
                       "data/graphs/vf/leela.g,data/grammars/vf.cnf", NULL};
 
-char *configs_my[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf", NULL};
+char *configs_my[] = {
+    "data/graphs/c_alias/init_new.g,data/grammars/c_alias_new.cnf", NULL};
 
 // Number of benchmark runs on a single graph
 #define COUNT 1
@@ -134,7 +136,31 @@ char *configs_my[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf", NULL};
 // and vf.cnf grammar)
 #define configs configs_my
 
+#define OPT_EMPTY (1 << 0)
+#define OPT_FORMAT (1 << 1)
+#define OPT_LAZY (1 << 2)
+
 int main(int argc, char **argv) {
+    int8_t optimizations = 0;
+    int opt;
+
+    while ((opt = getopt(argc, argv, "efl")) != -1) {
+        switch (opt) {
+        case 'e':
+            optimizations |= OPT_EMPTY;
+            break;
+        case 'f':
+            optimizations |= OPT_FORMAT;
+            break;
+        case 'l':
+            optimizations |= OPT_LAZY;
+            break;
+        default:
+            fprintf(stderr, "Usage: %s [-e] [-f] [-l]\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
+    }
+
     setup();
     GrB_Info retval;
 
@@ -146,7 +172,30 @@ int main(int argc, char **argv) {
     while (config) {
         printf("CONFIG: %s\n", config);
         fflush(stdout);
-        parser(config, &grammar, &adj_matrices);
+        ParserResult parser_result = parser(config);
+        Grammar _grammar = parser_result.grammar;
+
+        LAGraph_rule_WCNF *rules_WCNF =
+            calloc(_grammar.rules_count, sizeof(LAGraph_rule_WCNF));
+
+        for (size_t i = 0; i < _grammar.rules_count; i++) {
+            Rule rule = _grammar.rules[i];
+            rules_WCNF[i] = (LAGraph_rule_WCNF){
+                rule.first, rule.second, rule.third,
+                parser_result.symbols.symbols[rule.second].is_nonterm};
+        }
+
+        int32_t nonterms_count = 0;
+        for (size_t i = 0; i < parser_result.symbols.count; i++) {
+            if (parser_result.symbols.symbols[i].is_nonterm)
+                nonterms_count++;
+        }
+
+        grammar = (grammar_t){.nonterms_count = nonterms_count,
+                              .rules_count = _grammar.rules_count,
+                              .rules = rules_WCNF};
+
+        adj_matrices = parser_result.matrices;
 
         double start[COUNT];
         double end[COUNT];
@@ -166,6 +215,7 @@ int main(int argc, char **argv) {
             end[i] = LAGraph_WallClockTime();
 
             GrB_Matrix_nvals(&nnz, outputs[0]);
+            // GxB_print(outputs[0], 1);
             printf("\t%.3fs", end[i] - start[i]);
             fflush(stdout);
             free_outputs();
