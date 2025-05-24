@@ -10,45 +10,12 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-#define LG_ERROR_MSG(...)                                                      \
-    {                                                                          \
-        if (msg != NULL && msg[0] == '\0') {                                   \
-            snprintf(msg, LAGRAPH_MSG_LEN, __VA_ARGS__);                       \
-        }                                                                      \
-    }
-
-#ifndef GRB_CATCH
-#define GRB_CATCH(info)                                                        \
-    {                                                                          \
-        LG_ERROR_MSG("GraphBLAS failure (file %s, line %d): info: %d",         \
-                     __FILE__, __LINE__, info);                                \
-        fprintf(stderr, "%s\n", msg);                                          \
-        fflush(stderr);                                                        \
-        exit(info);                                                            \
-    }
-#endif
-
-#define GRB_TRY(GrB_method)                                                    \
-    {                                                                          \
-        GrB_Info LG_GrB_Info = GrB_method;                                     \
-        if (LG_GrB_Info < GrB_SUCCESS) {                                       \
-            GRB_CATCH(LG_GrB_Info);                                            \
-        }                                                                      \
-    }
-
 typedef struct {
     int lhs;
     int rhs1;
     int rhs2;
     int index;
 } ProductionRule;
-
-typedef struct {
-    size_t u;
-    size_t v;
-    size_t term_index;
-    size_t index;
-} GraphEdge;
 
 Symbol symbol_create(char *str) {
     Symbol result;
@@ -229,13 +196,6 @@ char *read_entire_file(char *path) {
     return buffer;
 }
 
-typedef struct {
-    GraphEdge *edges;
-    size_t edge_count;
-    size_t node_count;
-    size_t block_count;
-} Graph;
-
 void grammar_print(Grammar grammar, SymbolList list) {
     printf("Grammar:\n");
 
@@ -383,30 +343,6 @@ Graph process_graph(char *graph_text, SymbolList *symbol_list) {
     return result;
 }
 
-typedef struct {
-    size_t *rows;
-    size_t *cols;
-    size_t *indeces;
-    size_t size;
-    size_t capacity;
-} SymbolData;
-
-void symbol_data_init(SymbolData *data) {
-    data->rows = NULL;
-    data->cols = NULL;
-    data->indeces = NULL;
-    data->size = 0;
-    data->capacity = 0;
-}
-
-void symbol_data_expand(SymbolData *data) {
-    size_t new_capacity = data->capacity == 0 ? 10 : data->capacity * 2;
-    data->rows = realloc(data->rows, new_capacity * sizeof(size_t));
-    data->cols = realloc(data->cols, new_capacity * sizeof(size_t));
-    data->indeces = realloc(data->indeces, new_capacity * sizeof(size_t));
-    data->capacity = new_capacity;
-}
-
 ParserResult parser(char *config_i) {
     char *config = strdup(config_i);
     char *graph_buf = read_entire_file(strtok(config, ","));
@@ -415,54 +351,6 @@ ParserResult parser(char *config_i) {
 
     Grammar _grammar = process_grammar(grammar_buf, &list);
     Graph graph = process_graph(graph_buf, &list);
-
-    SymbolData *symbol_datas = calloc(list.count, sizeof(SymbolData));
-    for (size_t i = 0; i < list.count; i++) {
-        symbol_data_init(&symbol_datas[i]);
-    }
-
-    for (size_t i = 0; i < graph.edge_count; i++) {
-        GraphEdge edge = graph.edges[i];
-        SymbolData *data = &symbol_datas[edge.term_index];
-
-        if (data->size == data->capacity) {
-            symbol_data_expand(data);
-        }
-
-        data->rows[data->size] = edge.u;
-        data->cols[data->size] = edge.v;
-        data->indeces[data->size] = edge.index;
-        data->size++;
-    }
-
-    for (size_t i = 0; i < list.count; i++) {
-        SymbolData *data = &symbol_datas[i];
-        for (size_t j = 0; j < data->size; j++) {
-            data->rows[j] += data->indeces[j] * graph.node_count;
-            // printf("%ld %ld\n", data->rows[j], data->cols[j]);
-        }
-    }
-
-    GrB_Matrix *matrices = malloc(sizeof(GrB_Matrix) * list.count);
-    for (size_t i = 0; i < list.count; i++) {
-        SymbolData data = symbol_datas[i];
-        GrB_Index nrows = graph.node_count;
-        nrows *= list.symbols[i].is_indexed ? graph.block_count : 1;
-
-        char msg[LAGRAPH_MSG_LEN];
-        GRB_TRY(
-            GrB_Matrix_new(&matrices[i], GrB_BOOL, nrows, graph.node_count));
-
-        if (data.size == 0) {
-            continue;
-        }
-
-        GrB_Scalar true_scalar;
-        GRB_TRY(GrB_Scalar_new(&true_scalar, GrB_BOOL));
-        GRB_TRY(GrB_Scalar_setElement_BOOL(true_scalar, true));
-        GRB_TRY(GxB_Matrix_build_Scalar(matrices[i], data.rows, data.cols,
-                                        true_scalar, data.size));
-    }
 
     // LAGraph_rule_WCNF *rules_WCNF =
     //     calloc(rule_count, sizeof(LAGraph_rule_WCNF));
@@ -555,5 +443,5 @@ ParserResult parser(char *config_i) {
                           .node_count = graph.node_count,
                           .grammar = _grammar,
                           .symbols = list,
-                          .matrices = matrices};
+                          .graph = graph};
 }

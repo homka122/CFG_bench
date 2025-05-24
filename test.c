@@ -71,6 +71,86 @@ void free_workspace() {
     // grammar = (grammar_t){0, 0, 0, NULL};
 }
 
+void explode_indices(Grammar *grammar, Graph *Graph, SymbolList *list) {
+    return;
+}
+
+typedef struct {
+    size_t *rows;
+    size_t *cols;
+    size_t *indeces;
+    size_t size;
+    size_t capacity;
+} SymbolData;
+
+void symbol_data_init(SymbolData *data) {
+    data->rows = NULL;
+    data->cols = NULL;
+    data->indeces = NULL;
+    data->size = 0;
+    data->capacity = 0;
+}
+
+void symbol_data_expand(SymbolData *data) {
+    size_t new_capacity = data->capacity == 0 ? 10 : data->capacity * 2;
+    data->rows = realloc(data->rows, new_capacity * sizeof(size_t));
+    data->cols = realloc(data->cols, new_capacity * sizeof(size_t));
+    data->indeces = realloc(data->indeces, new_capacity * sizeof(size_t));
+    data->capacity = new_capacity;
+}
+
+GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list) {
+    SymbolData *symbol_datas = calloc(list.count, sizeof(SymbolData));
+    for (size_t i = 0; i < list.count; i++) {
+        symbol_data_init(&symbol_datas[i]);
+    }
+
+    for (size_t i = 0; i < graph.edge_count; i++) {
+        GraphEdge edge = graph.edges[i];
+        SymbolData *data = &symbol_datas[edge.term_index];
+
+        if (data->size == data->capacity) {
+            symbol_data_expand(data);
+        }
+
+        data->rows[data->size] = edge.u;
+        data->cols[data->size] = edge.v;
+        data->indeces[data->size] = edge.index;
+        data->size++;
+    }
+
+    for (size_t i = 0; i < list.count; i++) {
+        SymbolData *data = &symbol_datas[i];
+        for (size_t j = 0; j < data->size; j++) {
+            data->rows[j] += data->indeces[j] * graph.node_count;
+            // printf("%ld %ld\n", data->rows[j], data->cols[j]);
+        }
+    }
+
+    GrB_Matrix *matrices = malloc(sizeof(GrB_Matrix) * list.count);
+    for (size_t i = 0; i < list.count; i++) {
+        SymbolData data = symbol_datas[i];
+        GrB_Index nrows = graph.node_count;
+        nrows *= list.symbols[i].is_indexed ? graph.block_count : 1;
+
+        char msg[LAGRAPH_MSG_LEN];
+        MY_GRB_TRY(
+            GrB_Matrix_new(&matrices[i], GrB_BOOL, nrows, graph.node_count));
+
+        if (data.size == 0) {
+            continue;
+        }
+
+        GrB_Scalar true_scalar;
+        MY_GRB_TRY(GrB_Scalar_new(&true_scalar, GrB_BOOL));
+        MY_GRB_TRY(GrB_Scalar_setElement_BOOL(true_scalar, true));
+        MY_GRB_TRY(GxB_Matrix_build_Scalar(matrices[i], data.rows, data.cols,
+                                           true_scalar, data.size));
+    }
+
+    return matrices;
+}
+
 char *configs_rdf[] = {"data/graphs/rdf/go_hierarchy.g,data/grammars/"
                        "nested_parentheses_subClassOf_type.cnf",
                        "data/graphs/rdf/taxonomy.g,data/grammars/"
@@ -126,7 +206,8 @@ char *configs_vf[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf",
                       "data/graphs/vf/leela.g,data/grammars/vf.cnf", NULL};
 
 char *configs_my[] = {
-    "data/graphs/c_alias/init_new.g,data/grammars/c_alias_new.cnf", NULL};
+    "data/graphs/java/lusearch_new.g,data/grammars/java_points_to_new.cnf",
+    NULL};
 
 // Number of benchmark runs on a single graph
 #define COUNT 1
@@ -178,20 +259,29 @@ int main(int argc, char **argv) {
         fflush(stdout);
         ParserResult parser_result = parser(config);
         Grammar _grammar = parser_result.grammar;
+        Graph graph = parser_result.graph;
+        SymbolList list = parser_result.symbols;
+
+        GrB_Matrix *matrices = get_matrices_from_graph(graph, list);
+
+        // expolode indecies
+        if (!(optimizations & OPT_BLOCK)) {
+            explode_indices(&_grammar, &graph, &list);
+        }
 
         LAGraph_rule_WCNF *rules_WCNF =
             calloc(_grammar.rules_count, sizeof(LAGraph_rule_WCNF));
 
         for (size_t i = 0; i < _grammar.rules_count; i++) {
             Rule rule = _grammar.rules[i];
-            rules_WCNF[i] = (LAGraph_rule_WCNF){
-                rule.first, rule.second, rule.third,
-                parser_result.symbols.symbols[rule.second].is_nonterm};
+            rules_WCNF[i] =
+                (LAGraph_rule_WCNF){rule.first, rule.second, rule.third,
+                                    list.symbols[rule.second].is_nonterm};
         }
 
         int32_t nonterms_count = 0;
-        for (size_t i = 0; i < parser_result.symbols.count; i++) {
-            if (parser_result.symbols.symbols[i].is_nonterm)
+        for (size_t i = 0; i < list.count; i++) {
+            if (list.symbols[i].is_nonterm)
                 nonterms_count++;
         }
 
@@ -199,7 +289,7 @@ int main(int argc, char **argv) {
                               .rules_count = _grammar.rules_count,
                               .rules = rules_WCNF};
 
-        adj_matrices = parser_result.matrices;
+        adj_matrices = matrices;
 
         double start[COUNT];
         double end[COUNT];
