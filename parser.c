@@ -56,8 +56,10 @@ void symbol_list_print(SymbolList list) {
     printf("Symbols list:\n");
 
     for (size_t i = 0; i < list.count; i++) {
-        printf("%ld: %s%s\n", i, list.symbols[i].label,
-               list.symbols[i].is_indexed ? " [indexed]" : "");
+        Symbol *sym = &list.symbols[i];
+        char *indexed_str = sym->is_indexed ? " [I]" : "";
+        char *nonterm_str = sym->is_nonterm ? " [N]" : " [T]";
+        printf("%s%ld:\t%s\n", nonterm_str, i, sym->label, indexed_str);
     }
 }
 
