@@ -10,6 +10,32 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
+#define LG_ERROR_MSG(...)                                                      \
+    {                                                                          \
+        if (msg != NULL && msg[0] == '\0') {                                   \
+            snprintf(msg, LAGRAPH_MSG_LEN, __VA_ARGS__);                       \
+        }                                                                      \
+    }
+
+#ifndef GRB_CATCH
+#define GRB_CATCH(info)                                                        \
+    {                                                                          \
+        LG_ERROR_MSG("GraphBLAS failure (file %s, line %d): info: %d",         \
+                     __FILE__, __LINE__, info);                                \
+        fprintf(stderr, "%s\n", msg);                                          \
+        fflush(stderr);                                                        \
+        exit(info);                                                            \
+    }
+#endif
+
+#define GRB_TRY(GrB_method)                                                    \
+    {                                                                          \
+        GrB_Info LG_GrB_Info = GrB_method;                                     \
+        if (LG_GrB_Info < GrB_SUCCESS) {                                       \
+            GRB_CATCH(LG_GrB_Info);                                            \
+        }                                                                      \
+    }
+
 typedef struct {
     int lhs;
     int rhs1;
@@ -59,7 +85,7 @@ void symbol_list_print(SymbolList list) {
         Symbol *sym = &list.symbols[i];
         char *indexed_str = sym->is_indexed ? " [I]" : "";
         char *nonterm_str = sym->is_nonterm ? " [N]" : " [T]";
-        printf("%s%ld:\t%s\n", nonterm_str, i, sym->label, indexed_str);
+        printf("%s%ld:\t%s\t%s\n", nonterm_str, i, sym->label, indexed_str);
     }
 }
 
@@ -423,13 +449,19 @@ ParserResult parser(char *config_i) {
         GrB_Index nrows = graph.node_count;
         nrows *= list.symbols[i].is_indexed ? graph.block_count : 1;
 
-        GrB_Matrix_new(&matrices[i], GrB_BOOL, nrows, graph.node_count);
+        char msg[LAGRAPH_MSG_LEN];
+        GRB_TRY(
+            GrB_Matrix_new(&matrices[i], GrB_BOOL, nrows, graph.node_count));
+
+        if (data.size == 0) {
+            continue;
+        }
 
         GrB_Scalar true_scalar;
-        GrB_Scalar_new(&true_scalar, GrB_BOOL);
-        GrB_Scalar_setElement_BOOL(true_scalar, true);
-        GxB_Matrix_build_Scalar(matrices[i], data.rows, data.cols, true_scalar,
-                                data.size);
+        GRB_TRY(GrB_Scalar_new(&true_scalar, GrB_BOOL));
+        GRB_TRY(GrB_Scalar_setElement_BOOL(true_scalar, true));
+        GRB_TRY(GxB_Matrix_build_Scalar(matrices[i], data.rows, data.cols,
+                                        true_scalar, data.size));
     }
 
     // LAGraph_rule_WCNF *rules_WCNF =
