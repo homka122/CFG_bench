@@ -36,7 +36,6 @@ Symbol symbol_create(char *str) {
 
     result.label = malloc((len + 1) * sizeof(char));
     strcpy(result.label, str);
-    result.is_indexed = false;
     result.is_nonterm = false;
 
     return result;
