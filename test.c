@@ -187,6 +187,8 @@ void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list) {
     }
     graph->block_count = 1;
 
+    free(map);
+
     return;
 }
 
@@ -212,6 +214,12 @@ void symbol_data_expand(SymbolData *data) {
     data->cols = realloc(data->cols, new_capacity * sizeof(size_t));
     data->indeces = realloc(data->indeces, new_capacity * sizeof(size_t));
     data->capacity = new_capacity;
+}
+
+void symbol_data_free(SymbolData *data) {
+    free(data->rows);
+    free(data->cols);
+    free(data->indeces);
 }
 
 GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list) {
@@ -261,7 +269,14 @@ GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list) {
         MY_GRB_TRY(GrB_Scalar_setElement_BOOL(true_scalar, true));
         MY_GRB_TRY(GxB_Matrix_build_Scalar(matrices[i], data.rows, data.cols,
                                            true_scalar, data.size));
+        GrB_free(&true_scalar);
     }
+
+    for (size_t i = 0; i < list.count; i++) {
+        symbol_data_free(&symbol_datas[i]);
+    }
+
+    free(symbol_datas);
 
     return matrices;
 }
