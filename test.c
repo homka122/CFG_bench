@@ -291,11 +291,27 @@ char *configs_rdf[] = {"data/graphs/rdf/go_hierarchy.g,data/grammars/"
                        NULL};
 
 char *configs_java[] = {
-    "data/graphs/java/eclipse.g,data/grammars/java_points_to.cnf",
     "data/graphs/java/lusearch.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/luindex.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/commons_io.g,data/grammars/java_points_to.cnf",
     "data/graphs/java/sunflow.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/gson.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/commons_io.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/luindex.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/eclipse.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/avrora.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/batik.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/commons_lang3.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/h2.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/mockito.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/fop.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/tomcat.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/xalan.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/pmd.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/junit5.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/jython.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/tradesoap.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/tradebeans.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/jackson.g,data/grammars/java_points_to.cnf",
+    "data/graphs/java/guava.g,data/grammars/java_points_to.cnf",
     NULL};
 
 char *configs_c_alias[] = {
