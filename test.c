@@ -316,20 +316,20 @@ char *configs_java[] = {
 
 char *configs_c_alias[] = {
     "data/graphs/c_alias/init.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/block.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/fs.g,data/grammars/c_alias.cnf",
+    "data/graphs/c_alias/mm.g,data/grammars/c_alias.cnf",
     "data/graphs/c_alias/ipc.g,data/grammars/c_alias.cnf",
     "data/graphs/c_alias/lib.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/mm.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/net.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/security.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/sound.g,data/grammars/c_alias.cnf",
+    "data/graphs/c_alias/block.g,data/grammars/c_alias.cnf",
     "data/graphs/c_alias/arch.g,data/grammars/c_alias.cnf",
     "data/graphs/c_alias/crypto.g,data/grammars/c_alias.cnf",
+    "data/graphs/c_alias/security.g,data/grammars/c_alias.cnf",
+    "data/graphs/c_alias/sound.g,data/grammars/c_alias.cnf",
+    "data/graphs/c_alias/fs.g,data/grammars/c_alias.cnf",
+    "data/graphs/c_alias/net.g,data/grammars/c_alias.cnf",
     "data/graphs/c_alias/drivers.g,data/grammars/c_alias.cnf",
     "data/graphs/c_alias/kernel.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/postgre.g,data/grammars/c_alias.cnf",
     "data/graphs/c_alias/apache.g,data/grammars/c_alias.cnf",
+    "data/graphs/c_alias/postgre.g,data/grammars/c_alias.cnf",
     NULL};
 
 char *configs_aa[] = {"data/graphs/aa/xz.g,data/grammars/aa.cnf",
