@@ -226,7 +226,6 @@ void grammar_print(Grammar grammar, SymbolList list) {
 
 // TODO: if there is no Count line
 Grammar process_grammar(char *grammar_text, SymbolList *symbol_list) {
-    int start_nonterm = 0;
     Rule *rules = NULL;
     size_t rules_count = 0;
 
@@ -398,7 +397,7 @@ ParserResult parser(char *config_i) {
     // free(col);
     // GrB_free(&true_scalar);
 
-#if true
+#if false
     symbol_list_print(list);
     printf("\n");
     grammar_print(_grammar, list);
