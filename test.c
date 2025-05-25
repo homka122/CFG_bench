@@ -117,7 +117,7 @@ void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list) {
     size_t *map = NULL;
     size_t map_size = 0;
     SymbolList new_list = symbol_list_create();
-    SymbolList *old_list = list;
+    SymbolList old_list = *list;
 
     for (size_t i = 0; i < list->count; i++) {
         Symbol sym = list->symbols[i];
@@ -152,13 +152,11 @@ void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list) {
         }
 
         Rule rule = grammar->rules[i];
-        Symbol *first =
-            rule.first == -1 ? NULL : &old_list->symbols[rule.first];
+        Symbol *first = rule.first == -1 ? NULL : &old_list.symbols[rule.first];
         Symbol *second =
-            rule.second == -1 ? NULL : &old_list->symbols[rule.second];
-        Symbol *third =
-            rule.third == -1 ? NULL : &old_list->symbols[rule.third];
-        if (!is_rule_has_indexed_symb(rule, *old_list)) {
+            rule.second == -1 ? NULL : &old_list.symbols[rule.second];
+        Symbol *third = rule.third == -1 ? NULL : &old_list.symbols[rule.third];
+        if (!is_rule_has_indexed_symb(rule, old_list)) {
             new_rules[rules_count] =
                 (Rule){rule_new_index(map, first, rule.first, 0),
                        rule_new_index(map, second, rule.second, 0),
