@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #define run_algorithm()                                                        \
-    LAGraph_CFL_reachability_adv(outputs, adj_matrices, nonterms_count,        \
+    LAGraph_CFL_reachability_adv(outputs, adj_matrices, symbols_amount,        \
                                  grammar.rules, grammar.rules_count, msg,      \
                                  optimizations)
 
@@ -28,14 +28,13 @@ GrB_Matrix *adj_matrices = NULL;
 GrB_Matrix *outputs = NULL;
 grammar_t grammar = {0, 0, NULL};
 char msg[LAGRAPH_MSG_LEN];
+size_t symbols_amount = 0;
 
 void setup() { LAGr_Init(GrB_NONBLOCKING, malloc, NULL, NULL, free, msg); }
 
 void teardown(void) { LAGraph_Finalize(msg); }
 
-void init_outputs() {
-    outputs = calloc(grammar.nonterms_count, sizeof(GrB_Matrix));
-}
+void init_outputs() { outputs = calloc(symbols_amount, sizeof(GrB_Matrix)); }
 
 void free_outputs() {
     for (size_t i = 0; i < grammar.nonterms_count; i++) {
@@ -423,6 +422,8 @@ int main(int argc, char **argv) {
 
         double start[COUNT];
         double end[COUNT];
+
+        symbols_amount = list.count;
 
         if (HOT) {
             run_algorithm();
