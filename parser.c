@@ -113,51 +113,6 @@ bool is_non_terminal(const Symbol symbol, SymbolList non_terms) {
     return false;
 }
 
-// void process_rule(const char *line, SymbolList *non_terms, SymbolList *terms,
-//                   ProductionRule *rules, int *rule_idx) {
-//     char *arrow = strstr(line, "->");
-//     if (!arrow)
-//         return;
-
-//     char lhs[4] = {0};
-//     strncpy(lhs, line, arrow - line);
-//     lhs[strcspn(lhs, " \t\n")] = '\0';
-
-//     char *rhs = arrow + 2;
-//     while (*rhs == ' ' || *rhs == '\t')
-//         rhs++;
-//     rhs[strcspn(rhs, "\n")] = '\0';
-
-//     ProductionRule rule = {lhs_id, -1, -1, 0};
-
-//     if (strlen(rhs) == 0) {
-//         rules[(*rule_idx)++] = rule;
-//         return;
-//     }
-
-//     char *symbols[2] = {NULL, NULL};
-//     int count = 0;
-//     char *token = strtok(rhs, " ");
-//     while (token && count < 2) {
-//         symbols[count++] = token;
-//         token = strtok(NULL, " ");
-//     }
-
-//     for (int i = 0; i < count; ++i) {
-//         SymbolList *arr = is_non_terminal(symbol_create(symbols[i]),
-//         *non_terms)
-//                               ? non_terms
-//                               : terms;
-//         int id = add_symbol(arr, symbol_create(symbols[i]));
-//         if (i == 0)
-//             rule.rhs1 = id;
-//         else
-//             rule.rhs2 = id;
-//     }
-
-//     rules[(*rule_idx)++] = rule;
-// }
-
 bool is_number(const char *s) {
     if (s == NULL || *s == '\0')
         return false;
@@ -351,89 +306,16 @@ ParserResult parser(char *config_i) {
     Grammar _grammar = process_grammar(grammar_buf, &list);
     Graph graph = process_graph(graph_buf, &list);
 
-    // LAGraph_rule_WCNF *rules_WCNF =
-    //     calloc(rule_count, sizeof(LAGraph_rule_WCNF));
-
-    // for (int i = 0; i < rule_count; ++i) {
-    //     ProductionRule r = rules[i];
-    //     rules_WCNF[i] = (LAGraph_rule_WCNF){r.lhs, r.rhs1, r.rhs2, r.index};
-    // }
-    // *grammar = (grammar_t){.nonterms_count = non_terms.count,
-    //                        .terms_count = terms.count,
-    //                        .rules_count = rule_count,
-    //                        .rules = rules_WCNF};
-
-    // *adj_matrices = calloc(grammar->terms_count, sizeof(GrB_Matrix));
-    // for (size_t i = 0; i < terms.count; i++) {
-    //     GrB_Matrix_new((*adj_matrices) + i, GrB_BOOL, max_node + 1,
-    //                    max_node + 1);
-    // }
-
-    // GrB_Scalar true_scalar;
-    // GrB_Scalar_new(&true_scalar, GrB_BOOL);
-    // GrB_Scalar_setElement_BOOL(true_scalar, true);
-
-    // GrB_Index *row = malloc(sizeof(GrB_Index) * edge_count);
-    // GrB_Index *col = malloc(sizeof(GrB_Index) * edge_count);
-    // for (size_t i = 0; i < terms.count; i++) {
-    //     int count = 0;
-
-    //     for (int j = 0; j < edge_count; ++j) {
-    //         // if (i == edges[j].term_index) {
-    //         //     row[count] = edges[j].u;
-    //         //     col[count] = edges[j].v;
-    //         //     count++;
-    //         // }
-    //     }
-
-    //     GxB_Matrix_build_Scalar((*adj_matrices)[i], row, col, true_scalar,
-    //                             count);
-    // #ifdef DEBUG_parser
-    //     GxB_print((*adj_matrices)[i], 1);
-    // #endif
-    // }
-
-    // free(row);
-    // free(col);
-    // GrB_free(&true_scalar);
-
 #if false
     symbol_list_print(list);
     printf("\n");
     grammar_print(_grammar, list);
-    // printf("Non-terminals:\n");
-    // for (int i = 0; i < non_terms.count; ++i)
-    //     printf("%d: %s\n", i, non_terms.symbols[i]);
-
-    // printf("\nTerminals:\n");
-    // for (int i = 0; i < terms.count; ++i)
-    //     printf("%d: %s\n", i, terms.symbols[i]);
-
-    // printf("\nProductions:\n");
-    // for (int i = 0; i < rule_count; ++i) {
-    //     ProductionRule r = rules[i];
-    //     printf("[%d, %d, %d, %d]\n", r.lhs, r.rhs1, r.rhs2, r.index);
-    // }
-
-    // printf("\nProductions (With names):\n");
-    // for (int i = 0; i < rule_count; ++i) {
-    //     ProductionRule r = rules[i];
-    //     printf("[%d] %s -> %s %s\n", r.index, non_terms.symbols[r.lhs],
-    //            r.rhs1 == -1   ? ""
-    //            : r.rhs2 == -1 ? terms.symbols[r.rhs1]
-    //                           : non_terms.symbols[r.rhs1],
-    //            r.rhs2 == -1 ? "" : non_terms.symbols[r.rhs2]);
-    // }
 
     printf("\nGraph Info:\n");
-    // printf("Number of nodes: %d\n", max_node + 1);
-    // printf("Edges: %d\n", edge_count);
-    // printf("Graph lines: %d\n", graph_line_count);
+    printf("Number of nodes: %d\n", graph.node_count);
+    printf("Edges: %d\n", graph.edge_count);
 #endif
 
-    // free(rules);
-
-    // free(edges);
     free(graph_buf);
     free(grammar_buf);
     free(config);
