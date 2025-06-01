@@ -179,6 +179,32 @@ void grammar_print(Grammar grammar, SymbolList list) {
     printf("\n");
 }
 
+size_t get_text_lines(char *text, char ***lines_arg) {
+    size_t lines_count = 0;
+    size_t capacity = 1024;
+    char **lines = calloc(capacity, sizeof(char *));
+    lines[lines_count++] = text;
+    size_t text_len = strlen(text);
+
+    for (size_t i = 0; i < text_len; i++) {
+        if (text[i] == '\n' && i + 1 < text_len) {
+            if (i > 0 && text[i - 1] == '\n') {
+                continue;
+            }
+
+            if (lines_count == capacity) {
+                capacity *= 2;
+                lines = realloc(lines, capacity * sizeof(char *));
+            }
+
+            lines[lines_count++] = &text[i + 1];
+        }
+    }
+
+    *lines_arg = lines;
+    return lines_count;
+}
+
 // TODO: if there is no Count line
 Grammar process_grammar(char *grammar_text, SymbolList *symbol_list) {
     Rule *rules = NULL;
