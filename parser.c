@@ -299,12 +299,28 @@ Graph process_graph(char *graph_text, SymbolList *symbol_list) {
 
 ParserResult parser(char *config_i) {
     char *config = strdup(config_i);
+
+    printf("Reading graph file...");
     char *graph_buf = read_entire_file(strtok(config, ","));
+    printf("OK\n");
+    fflush(stdout);
+
+    printf("Reading grammar file...");
     char *grammar_buf = read_entire_file(strtok(NULL, ","));
+    printf("OK\n");
+    fflush(stdout);
+
     SymbolList list = symbol_list_create();
 
+    printf("Process grammar...");
     Grammar _grammar = process_grammar(grammar_buf, &list);
+    printf("OK\n");
+    fflush(stdout);
+
+    printf("Process graph...");
     Graph graph = process_graph(graph_buf, &list);
+    printf("OK\n");
+    fflush(stdout);
 
 #if false
     symbol_list_print(list);
