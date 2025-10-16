@@ -1,20 +1,15 @@
-PT
+PT	alloc
+FT	alloc_r
+PT	ld_PT_FT_st_i	PT
+FT	FT	st_r_PT_FT_ld_r_i
+ld_PT_FT_st_i	ld_PT_i	FT_st_i
+FT_st_i	FT	store_i
+FT_ld_r_i	FT	load_r_i
+ld_PT_i	load_i	PT
+st_r_PT_FT_ld_r_i	st_r_PT_i	FT_ld_r_i
+st_r_PT_i	store_r_i	PT
+PT	assign	PT
+FT	FT	assign_r
 
-PT -> alloc
-FT -> alloc_r
-PT -> Ld_PT_FT_st_i_0 PT
-FT -> FT St_r_PT_FT_ld_r_i_0
-Ld_PT_FT_st_i_0 -> Ld_PT_i_0 FT_st_i_0
-FT_st_i_0 -> FT NON_TERMINAL#store_i_0
-FT_ld_r_i_0 -> FT NON_TERMINAL#load_r_i_0
-Ld_PT_i_0 -> NON_TERMINAL#load_i_0 PT
-St_r_PT_FT_ld_r_i_0 -> St_r_PT_i_0 FT_ld_r_i_0
-St_r_PT_i_0 -> NON_TERMINAL#store_r_i_0 PT
-PT -> NON_TERMINAL#assign PT
-FT -> FT NON_TERMINAL#assign_r
-NON_TERMINAL#store_r_i_0 -> store_r_i_0
-NON_TERMINAL#store_i_0 -> store_i_0
-NON_TERMINAL#load_i_0 -> load_i_0
-NON_TERMINAL#assign -> assign
-NON_TERMINAL#load_r_i_0 -> load_r_i_0
-NON_TERMINAL#assign_r -> assign_r
+Count:
+PT
