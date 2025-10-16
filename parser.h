@@ -1,4 +1,5 @@
 #include <LAGraph.h>
+#include <LAGraphX.h>
 
 #define LG_ERROR_MSG(...)                                                      \
     {                                                                          \
