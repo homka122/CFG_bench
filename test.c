@@ -368,8 +368,9 @@ char *configs_my[] = {
 int main(int argc, char **argv) {
     int8_t optimizations = 0;
     int opt;
+    bool is_test = false;
 
-    while ((opt = getopt(argc, argv, "eflb")) != -1) {
+    while ((opt = getopt(argc, argv, "eflbt")) != -1) {
         switch (opt) {
         case 'e':
             optimizations |= OPT_EMPTY;
@@ -382,6 +383,9 @@ int main(int argc, char **argv) {
             break;
         case 'b':
             optimizations |= OPT_BLOCK;
+            break;
+        case 't':
+            is_test = true;
             break;
         default:
             fprintf(stderr, "Usage: %s [-e] [-f] [-l]\n", argv[0]);
@@ -409,6 +413,8 @@ int main(int argc, char **argv) {
         if (!(optimizations & OPT_BLOCK)) {
             explode_indices(&_grammar, &graph, &list);
         }
+        // symbol_list_print(list);
+        // grammar_print(_grammar, list);
 
         GrB_Matrix *matrices = get_matrices_from_graph(graph, list);
 
@@ -439,11 +445,26 @@ int main(int argc, char **argv) {
 
         symbols_amount = list.count;
 
+        GrB_Index nnz = 0;
+        if (is_test) {
+            init_outputs();
+            retval = run_algorithm();
+            GrB_Matrix_nvals(&nnz, outputs[0]);
+            printf("\tResult: %ld (Return code: %d)", nnz, retval);
+            if (retval != 0) {
+                printf("\t(MSG: %s)", msg);
+            }
+            printf("\n");
+            fflush(stdout);
+            free_outputs();
+            config = configs[++config_index];
+            continue;
+        }
+
         if (HOT) {
             run_algorithm();
         }
 
-        GrB_Index nnz = 0;
         for (size_t i = 0; i < COUNT; i++) {
             init_outputs();
 
@@ -477,4 +498,5 @@ int main(int argc, char **argv) {
     }
 
     teardown();
+    return 0;
 }
