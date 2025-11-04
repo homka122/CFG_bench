@@ -5,23 +5,22 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define run_algorithm()                                                        \
-    LAGraph_CFL_reachability_adv(outputs, adj_matrices, symbols_amount,        \
-                                 grammar.rules, grammar.rules_count, msg,      \
+#define run_algorithm()                                                                                                \
+    LAGraph_CFL_reachability_adv(outputs, adj_matrices, symbols_amount, grammar.rules, grammar.rules_count, msg,       \
                                  optimizations)
 
-#define check_error(error)                                                     \
-    {                                                                          \
-        retval = run_algorithm();                                              \
-        TEST_CHECK(retval == error);                                           \
-        TEST_MSG("retval = %d (%s)", retval, msg);                             \
+#define check_error(error)                                                                                             \
+    {                                                                                                                  \
+        retval = run_algorithm();                                                                                      \
+        TEST_CHECK(retval == error);                                                                                   \
+        TEST_MSG("retval = %d (%s)", retval, msg);                                                                     \
     }
 
-#define check_result(result)                                                   \
-    {                                                                          \
-        char *expected = output_to_str(0);                                     \
-        TEST_CHECK(strcmp(result, expected) == 0);                             \
-        TEST_MSG("Wrong result. Actual: %s", expected);                        \
+#define check_result(result)                                                                                           \
+    {                                                                                                                  \
+        char *expected = output_to_str(0);                                                                             \
+        TEST_CHECK(strcmp(result, expected) == 0);                                                                     \
+        TEST_MSG("Wrong result. Actual: %s", expected);                                                                \
     }
 
 GrB_Matrix *adj_matrices = NULL;
@@ -133,8 +132,7 @@ void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list) {
             continue;
         }
 
-        map[i] = symbol_list_add_str(&new_list, symbol_numerate(&sym, 0),
-                                     sym.is_nonterm);
+        map[i] = symbol_list_add_str(&new_list, symbol_numerate(&sym, 0), sym.is_nonterm);
         for (size_t j = 1; j < graph->block_count; j++) {
             char *new_label = symbol_numerate(&sym, j);
             symbol_list_add_str(&new_list, new_label, sym.is_nonterm);
@@ -153,13 +151,11 @@ void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list) {
 
         Rule rule = grammar->rules[i];
         Symbol *first = rule.first == -1 ? NULL : &old_list.symbols[rule.first];
-        Symbol *second =
-            rule.second == -1 ? NULL : &old_list.symbols[rule.second];
+        Symbol *second = rule.second == -1 ? NULL : &old_list.symbols[rule.second];
         Symbol *third = rule.third == -1 ? NULL : &old_list.symbols[rule.third];
         if (!is_rule_has_indexed_symb(rule, old_list)) {
             new_rules[rules_count] =
-                (Rule){rule_new_index(map, first, rule.first, 0),
-                       rule_new_index(map, second, rule.second, 0),
+                (Rule){rule_new_index(map, first, rule.first, 0), rule_new_index(map, second, rule.second, 0),
                        rule_new_index(map, third, rule.third, 0)};
             rules_count++;
             continue;
@@ -167,8 +163,7 @@ void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list) {
 
         for (size_t j = 0; j < graph->block_count; j++) {
             new_rules[rules_count] =
-                (Rule){rule_new_index(map, first, rule.first, j),
-                       rule_new_index(map, second, rule.second, j),
+                (Rule){rule_new_index(map, first, rule.first, j), rule_new_index(map, second, rule.second, j),
                        rule_new_index(map, third, rule.third, j)};
             rules_count++;
         }
@@ -254,8 +249,7 @@ GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list) {
         nrows *= list.symbols[i].is_indexed ? graph.block_count : 1;
 
         char msg[LAGRAPH_MSG_LEN];
-        MY_GRB_TRY(
-            GrB_Matrix_new(&matrices[i], GrB_BOOL, nrows, graph.node_count));
+        MY_GRB_TRY(GrB_Matrix_new(&matrices[i], GrB_BOOL, nrows, graph.node_count));
 
         if (data.size == 0) {
             continue;
@@ -264,8 +258,7 @@ GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list) {
         GrB_Scalar true_scalar;
         MY_GRB_TRY(GrB_Scalar_new(&true_scalar, GrB_BOOL));
         MY_GRB_TRY(GrB_Scalar_setElement_BOOL(true_scalar, true));
-        MY_GRB_TRY(GxB_Matrix_build_Scalar(matrices[i], data.rows, data.cols,
-                                           true_scalar, data.size));
+        MY_GRB_TRY(GxB_Matrix_build_Scalar(matrices[i], data.rows, data.cols, true_scalar, data.size));
         GrB_free(&true_scalar);
     }
 
@@ -290,47 +283,45 @@ char *configs_rdf[] = {"data/graphs/rdf/go_hierarchy.g,data/grammars/"
                        "nested_parentheses_subClassOf_type.cnf",
                        NULL};
 
-char *configs_java[] = {
-    "data/graphs/java/lusearch.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/sunflow.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/gson.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/commons_io.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/luindex.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/eclipse.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/avrora.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/batik.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/commons_lang3.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/h2.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/mockito.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/fop.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/tomcat.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/xalan.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/pmd.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/junit5.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/jython.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/tradesoap.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/tradebeans.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/jackson.g,data/grammars/java_points_to.cnf",
-    "data/graphs/java/guava.g,data/grammars/java_points_to.cnf",
-    NULL};
+char *configs_java[] = {"data/graphs/java/lusearch.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/sunflow.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/gson.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/commons_io.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/luindex.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/eclipse.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/avrora.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/batik.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/commons_lang3.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/h2.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/mockito.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/fop.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/tomcat.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/xalan.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/pmd.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/junit5.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/jython.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/tradesoap.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/tradebeans.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/jackson.g,data/grammars/java_points_to.cnf",
+                        "data/graphs/java/guava.g,data/grammars/java_points_to.cnf",
+                        NULL};
 
-char *configs_c_alias[] = {
-    "data/graphs/c_alias/init.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/mm.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/ipc.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/lib.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/block.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/arch.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/crypto.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/security.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/sound.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/fs.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/net.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/drivers.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/kernel.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/apache.g,data/grammars/c_alias.cnf",
-    "data/graphs/c_alias/postgre.g,data/grammars/c_alias.cnf",
-    NULL};
+char *configs_c_alias[] = {"data/graphs/c_alias/init.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/mm.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/ipc.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/lib.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/block.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/arch.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/crypto.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/security.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/sound.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/fs.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/net.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/drivers.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/kernel.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/apache.g,data/grammars/c_alias.cnf",
+                           "data/graphs/c_alias/postgre.g,data/grammars/c_alias.cnf",
+                           NULL};
 
 char *configs_aa[] = {"data/graphs/aa/xz.g,data/grammars/aa.cnf",
                       "data/graphs/aa/nab.g,data/grammars/aa.cnf",
@@ -344,13 +335,10 @@ char *configs_aa[] = {"data/graphs/aa/xz.g,data/grammars/aa.cnf",
                       "data/graphs/aa/omnetpp.g,data/grammars/aa.cnf",
                       NULL};
 
-char *configs_vf[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf",
-                      "data/graphs/vf/nab.g,data/grammars/vf.cnf",
+char *configs_vf[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf", "data/graphs/vf/nab.g,data/grammars/vf.cnf",
                       "data/graphs/vf/leela.g,data/grammars/vf.cnf", NULL};
 
-char *configs_my[] = {
-    "data/graphs/java/lusearch_new.g,data/grammars/java_points_to_new.cnf",
-    NULL};
+char *configs_my[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf", NULL};
 
 // Number of benchmark runs on a single graph
 #define COUNT 1
@@ -418,14 +406,16 @@ int main(int argc, char **argv) {
 
         GrB_Matrix *matrices = get_matrices_from_graph(graph, list);
 
-        LAGraph_rule_WCNF *rules_WCNF =
-            calloc(_grammar.rules_count, sizeof(LAGraph_rule_WCNF));
+        // FILE *homka = fopen("./xzMatrixResult.mtx", "w");
+        // if (homka == NULL) {
+        //     exit(-1);
+        // }
+
+        LAGraph_rule_WCNF *rules_WCNF = calloc(_grammar.rules_count, sizeof(LAGraph_rule_WCNF));
 
         for (size_t i = 0; i < _grammar.rules_count; i++) {
             Rule rule = _grammar.rules[i];
-            rules_WCNF[i] =
-                (LAGraph_rule_WCNF){rule.first, rule.second, rule.third,
-                                    list.symbols[rule.second].is_nonterm};
+            rules_WCNF[i] = (LAGraph_rule_WCNF){rule.first, rule.second, rule.third, 0};
         }
 
         int32_t nonterms_count = 0;
@@ -434,9 +424,8 @@ int main(int argc, char **argv) {
                 nonterms_count++;
         }
 
-        grammar = (grammar_t){.nonterms_count = nonterms_count,
-                              .rules_count = _grammar.rules_count,
-                              .rules = rules_WCNF};
+        grammar =
+            (grammar_t){.nonterms_count = nonterms_count, .rules_count = _grammar.rules_count, .rules = rules_WCNF};
 
         adj_matrices = matrices;
 
@@ -475,6 +464,8 @@ int main(int argc, char **argv) {
             end[i] = LAGraph_WallClockTime();
 
             GrB_Matrix_nvals(&nnz, outputs[0]);
+            // LAGraph_MMWrite(outputs[0], homka, NULL, msg);
+
             // GxB_print(outputs[0], 1);
             printf("\t%.3fs", end[i] - start[i]);
             fflush(stdout);

@@ -2,15 +2,22 @@ COUNT=10
 
 LIB_FLAGS = -lgraphblas -llagraph -llagraphx
 INCLUDE_FLAGS = -I/usr/local/include/suitesparse -I./
-ALGO_PATH=/home/homka122/code/course_work/LAGraph/experimental/algorithm/LAGraph_CFL_reachability_advanced.c
-ALGO_I=-I/home/homka122/code/course_work/LAGraph/src/utility
+ALGO_PATH=../LAGraph/experimental/algorithm/LAGraph_CFL_reachability_advanced.c
+ALGO_OPT_PATH=../LAGraph/experimental/algorithm/LAGraph_CFL_optimized_matrix_opt.c
+ALGO_I=-I../LAGraph/src/utility
 ALGO_OBJ = LAGraph_CFL_reachability_advanced.o
+ALGO_OPT_OBJ=LAGraph_CFL_optimized_matrix_opt.o
 ALGO_OBJ_V = LAGraph_CFL_reachability_advanced_V.o
 
 all: bench_compile_v
 
-$(ALGO_OBJ): ${ALGO_PATH}
-	gcc -c ${ALGO_PATH} ${INCLUDE_FLAGS} ${ALGO_I} -o $@
+LAGraph_CFL_optimized_matrix_opt.o: ../LAGraph/experimental/algorithm/LAGraph_CFL_optimized_matrix_opt.c
+
+$(ALGO_OBJ): ${ALGO_PATH} ${ALGO_OPT_OBJ}
+	gcc ${ALGO_PATH} ${ALGO_OPT_PATH}  ${INCLUDE_FLAGS} ${ALGO_I} -o $@
+
+$(ALGO_OPT_OBJ): ${ALGO_OPT_PATH}
+	gcc -c ${ALGO_OPT_PATH} ${INCLUDE_FLAGS} ${ALGO_I} -o $@
 
 $(ALGO_OBJ_V): ${ALGO_PATH}
 	gcc -c -g  ${ALGO_PATH} -DBENCH_CFL_REACHBILITY ${INCLUDE_FLAGS} ${ALGO_I} -o $@
@@ -33,8 +40,8 @@ bench: test.c parser.c
 	gcc test.c parser.c -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} \
 		-o test && ./test -l
 
-bench_compile: test.c parser.c ${ALGO_OBJ}
-	gcc test.c parser.c ${ALGO_OBJ} -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
+bench_compile: test.c parser.c ${ALGO_PATH} ${ALGO_OPT_PATH}
+	gcc test.c parser.c ${ALGO_PATH} ${ALGO_OPT_PATH} -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
 		-o test && ./test -${FLAGS}
 
 
