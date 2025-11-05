@@ -35,8 +35,8 @@ void teardown(void) { LAGraph_Finalize(msg); }
 
 void init_outputs() { outputs = calloc(symbols_amount, sizeof(GrB_Matrix)); }
 
-void free_outputs() {
-    for (size_t i = 0; i < grammar.nonterms_count; i++) {
+void free_outputs(size_t symbols_amount) {
+    for (size_t i = 0; i < (symbols_amount); i++) {
         if (outputs == NULL)
             break;
 
@@ -445,7 +445,7 @@ int main(int argc, char **argv) {
             }
             printf("\n");
             fflush(stdout);
-            free_outputs();
+            free_outputs(symbols_amount);
             config = configs[++config_index];
             continue;
         }
@@ -469,7 +469,7 @@ int main(int argc, char **argv) {
             // GxB_print(outputs[0], 1);
             printf("\t%.3fs", end[i] - start[i]);
             fflush(stdout);
-            free_outputs();
+            free_outputs(symbols_amount);
         }
         printf("\n");
 
@@ -484,6 +484,20 @@ int main(int argc, char **argv) {
                sum / COUNT, nnz, retval, msg);
         // GxB_print(outputs[0], 1);
         free_workspace();
+
+        free(graph.edges);
+        free(grammar.rules);
+        free(_grammar.rules);
+        for (size_t i = 0; i < list.count; i++) {
+            free(list.symbols[i].label);
+        }
+
+        free(list.symbols);
+        for (size_t i = 0; i < list.count; i++) {
+            GrB_free(&adj_matrices[i]);
+        }
+        free(adj_matrices);
+
         config = configs[++config_index];
         fflush(stdout);
     }
