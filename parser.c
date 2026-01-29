@@ -128,9 +128,7 @@ char *read_entire_file(char *path) {
 
     FILE *file = fopen(path, "rb");
     if (file == NULL) {
-        fprintf(stderr,
-                "\x1B[31m[ERROR]\033[0m Problem with opening file by %s path\n",
-                path);
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m Problem with opening file by %s path\n", path);
         exit(-1);
     }
 
@@ -140,9 +138,7 @@ char *read_entire_file(char *path) {
 
     char *buffer = (char *)malloc(file_size + 1);
     if (fread(buffer, 1, file_size, file) == 0) {
-        fprintf(stderr,
-                "\x1B[31m[ERROR]\033[0m Problem with reading file by %s path\n",
-                path);
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m Problem with reading file by %s path\n", path);
         exit(-1);
     };
     buffer[file_size] = '\0';
@@ -162,14 +158,12 @@ void grammar_print(Grammar grammar, SymbolList list) {
         int third = grammar.rules[i].third;
 
         if (third != -1) {
-            printf("%s -> %s %s\n", list.symbols[first].label,
-                   list.symbols[second].label, list.symbols[third].label);
+            printf("%s -> %s %s\n", list.symbols[first].label, list.symbols[second].label, list.symbols[third].label);
             continue;
         }
 
         if (second != -1) {
-            printf("%s -> %s\n", list.symbols[first].label,
-                   list.symbols[second].label);
+            printf("%s -> %s\n", list.symbols[first].label, list.symbols[second].label);
             continue;
         }
 
@@ -232,8 +226,7 @@ Grammar process_grammar(char *grammar_text, SymbolList *symbol_list) {
             if (end)
                 *end = '\0';
 
-            int replaced_symbol =
-                symbol_list_add_str_start_nonterm(symbol_list, line);
+            int replaced_symbol = symbol_list_add_str_start_nonterm(symbol_list, line);
 
             for (size_t rule_i = 0; rule_i < rules_count; rule_i++) {
                 int *first = &rules[rule_i].first;
@@ -255,11 +248,8 @@ Grammar process_grammar(char *grammar_text, SymbolList *symbol_list) {
 
         Rule rule;
         rule.first = symbol_list_add_str(symbol_list, first, true);
-        rule.second = second == NULL
-                          ? -1
-                          : symbol_list_add_str(symbol_list, second, false);
-        rule.third =
-            third == NULL ? -1 : symbol_list_add_str(symbol_list, third, false);
+        rule.second = second == NULL ? -1 : symbol_list_add_str(symbol_list, second, false);
+        rule.third = third == NULL ? -1 : symbol_list_add_str(symbol_list, third, false);
 
         rules = realloc(rules, (rules_count + 1) * sizeof(Rule));
         rules[rules_count] = rule;
@@ -275,10 +265,11 @@ Grammar process_grammar(char *grammar_text, SymbolList *symbol_list) {
 // Input: graphText
 // Output: edges array (init with malloc), count
 Graph process_graph(char *graph_text, SymbolList *symbol_list) {
-    Graph result = {
-        .edges = NULL, .edge_count = 0, .node_count = 0, .block_count = 1};
+    Graph result = {.edges = NULL, .edge_count = 0, .node_count = 0, .block_count = 1};
 
     char *line = graph_text;
+    size_t capacity = 128;
+    result.edges = malloc(capacity * sizeof(GraphEdge));
     while (*line) {
         char *end = strchr(line, '\n');
         if (end)
@@ -296,8 +287,7 @@ Graph process_graph(char *graph_text, SymbolList *symbol_list) {
             continue;
         }
 
-        if (!is_number(u_str) || !is_number(v_str) ||
-            (index_str != NULL && !is_number(index_str))) {
+        if (!is_number(u_str) || !is_number(v_str) || (index_str != NULL && !is_number(index_str))) {
             fprintf(stderr, "error: %s, %s, %s", u_str, v_str, index_str);
             exit(-1);
         }
@@ -312,10 +302,12 @@ Graph process_graph(char *graph_text, SymbolList *symbol_list) {
         result.node_count = MAX(result.node_count, u + 1);
         result.block_count = MAX(result.block_count, index + 1);
 
-        result.edges =
-            realloc(result.edges, (result.edge_count + 1) * sizeof(GraphEdge));
-        result.edges[result.edge_count++] =
-            (GraphEdge){u, v, term_index, index};
+        if (result.edge_count >= capacity) {
+            result.edges = realloc(result.edges, capacity * 2 * sizeof(GraphEdge));
+            capacity *= 2;
+        }
+
+        result.edges[result.edge_count++] = (GraphEdge){u, v, term_index, index};
 
         line = end ? end + 1 : line + strlen(line);
     }
