@@ -30,7 +30,7 @@
 typedef struct {
     size_t nonterms_count;
     size_t rules_count;
-    LAGraph_rule_WCNF *rules;
+    LAGraph_rule_EWCNF *rules;
 } grammar_t;
 
 typedef struct {

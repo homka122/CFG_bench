@@ -214,15 +214,15 @@ void symbol_data_free(SymbolData *data) {
     free(data->indeces);
 }
 
-GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list) {
-    SymbolData *symbol_datas = calloc(list.count, sizeof(SymbolData));
-    for (size_t i = 0; i < list.count; i++) {
+GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list, size_t *map_base_indecies, size_t symbols_amount) {
+    SymbolData *symbol_datas = calloc(symbols_amount, sizeof(SymbolData));
+    for (size_t i = 0; i < symbols_amount; i++) {
         symbol_data_init(&symbol_datas[i]);
     }
 
     for (size_t i = 0; i < graph.edge_count; i++) {
         GraphEdge edge = graph.edges[i];
-        SymbolData *data = &symbol_datas[edge.term_index];
+        SymbolData *data = &symbol_datas[map_base_indecies[edge.term_index] + edge.index];
 
         if (data->size == data->capacity) {
             symbol_data_expand(data);
@@ -234,19 +234,11 @@ GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list) {
         data->size++;
     }
 
-    for (size_t i = 0; i < list.count; i++) {
-        SymbolData *data = &symbol_datas[i];
-        for (size_t j = 0; j < data->size; j++) {
-            data->rows[j] += data->indeces[j] * graph.node_count;
-            // printf("%ld %ld\n", data->rows[j], data->cols[j]);
-        }
-    }
-
-    GrB_Matrix *matrices = malloc(sizeof(GrB_Matrix) * list.count);
-    for (size_t i = 0; i < list.count; i++) {
+    GrB_Matrix *matrices = malloc(sizeof(GrB_Matrix) * symbols_amount);
+    for (size_t i = 0; i < symbols_amount; i++) {
         SymbolData data = symbol_datas[i];
         GrB_Index nrows = graph.node_count;
-        nrows *= list.symbols[i].is_indexed ? graph.block_count : 1;
+        // nrows *= list.symbols[i].is_indexed ? graph.block_count : 1;
 
         char msg[LAGRAPH_MSG_LEN];
         MY_GRB_TRY(GrB_Matrix_new(&matrices[i], GrB_BOOL, nrows, graph.node_count));
@@ -262,7 +254,7 @@ GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list) {
         GrB_free(&true_scalar);
     }
 
-    for (size_t i = 0; i < list.count; i++) {
+    for (size_t i = 0; i < symbols_amount; i++) {
         symbol_data_free(&symbol_datas[i]);
     }
 
@@ -397,25 +389,63 @@ int main(int argc, char **argv) {
         Graph graph = parser_result.graph;
         SymbolList list = parser_result.symbols;
 
-        // expolode indecies
-        if (!(optimizations & OPT_BLOCK)) {
-            explode_indices(&_grammar, &graph, &list);
+        // indexed symbols must be each enumerate
+        size_t *map = calloc(sizeof(size_t), list.count * graph.block_count);
+        size_t offset = 0;
+        for (size_t i = 0; i < list.count; i++) {
+            Symbol sym = list.symbols[i];
+            if (!sym.is_indexed) {
+                map[i] = i + offset;
+                continue;
+            }
+
+            map[i] = i + offset;
+            offset += graph.block_count - 1;
         }
+        symbols_amount = map[list.count - 1] + (graph.block_count - 1) + 1;
+        // printf("BLOCK_COUNT: %ld, SYMBOLS_AMOUNT: %ld\n", graph.block_count, symbols_amount);
+        // symbol_list_print(list);
+        // for (size_t i = 0; i < list.count; i++) {
+        //     printf("%ld ", map[i]);
+        // }
+        // fflush(stdout);
+
+        // expolode indecies
+        // if (!(optimizations & OPT_BLOCK)) {
+        //     explode_indices(&_grammar, &graph, &list);
+        // }
         // symbol_list_print(list);
         // grammar_print(_grammar, list);
 
-        GrB_Matrix *matrices = get_matrices_from_graph(graph, list);
+        GrB_Matrix *matrices = get_matrices_from_graph(graph, list, map, symbols_amount);
 
         // FILE *homka = fopen("./xzMatrixResult.mtx", "w");
         // if (homka == NULL) {
         //     exit(-1);
         // }
 
-        LAGraph_rule_WCNF *rules_WCNF = calloc(_grammar.rules_count, sizeof(LAGraph_rule_WCNF));
+        LAGraph_rule_EWCNF *rules_EWCNF = calloc(_grammar.rules_count, sizeof(LAGraph_rule_EWCNF));
 
         for (size_t i = 0; i < _grammar.rules_count; i++) {
             Rule rule = _grammar.rules[i];
-            rules_WCNF[i] = (LAGraph_rule_WCNF){rule.first, rule.second, rule.third, 0};
+            rules_EWCNF[i] = (LAGraph_rule_EWCNF){.nonterm = rule.first == -1 ? -1 : map[rule.first],
+                                                  .prod_A = rule.second == -1 ? -1 : map[rule.second],
+                                                  .prod_B = rule.third == -1 ? -1 : map[rule.third],
+                                                  .indexed = 0,
+                                                  .indexed_count = 0};
+            if (rule.first != -1 && list.symbols[rule.first].is_indexed) {
+                rules_EWCNF[i].indexed |= LAGraph_EWNCF_INDEX_NONTERM;
+            }
+            if (rule.second != -1 && list.symbols[rule.second].is_indexed)
+                rules_EWCNF[i].indexed |= LAGraph_EWNCF_INDEX_PROD_A;
+            if (rule.third != -1 && list.symbols[rule.third].is_indexed)
+                rules_EWCNF[i].indexed |= LAGraph_EWNCF_INDEX_PROD_B;
+            if (rules_EWCNF[i].indexed != 0) {
+                rules_EWCNF[i].indexed_count = graph.block_count;
+            }
+
+            // printf("%d %d %d %d\n", rules_EWCNF[i].nonterm, rules_EWCNF[i].prod_A, rules_EWCNF[i].prod_B,
+            //        rules_EWCNF[i].indexed);
         }
 
         int32_t nonterms_count = 0;
@@ -425,14 +455,12 @@ int main(int argc, char **argv) {
         }
 
         grammar =
-            (grammar_t){.nonterms_count = nonterms_count, .rules_count = _grammar.rules_count, .rules = rules_WCNF};
+            (grammar_t){.nonterms_count = nonterms_count, .rules_count = _grammar.rules_count, .rules = rules_EWCNF};
 
         adj_matrices = matrices;
 
         double start[COUNT];
         double end[COUNT];
-
-        symbols_amount = list.count;
 
         GrB_Index nnz = 0;
         if (is_test) {
