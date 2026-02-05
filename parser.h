@@ -1,30 +1,29 @@
 #include <LAGraph.h>
 #include <LAGraphX.h>
 
-#define LG_ERROR_MSG(...)                                                      \
-    {                                                                          \
-        if (msg != NULL && msg[0] == '\0') {                                   \
-            snprintf(msg, LAGRAPH_MSG_LEN, __VA_ARGS__);                       \
-        }                                                                      \
+#define LG_ERROR_MSG(...)                                                                                              \
+    {                                                                                                                  \
+        if (msg != NULL && msg[0] == '\0') {                                                                           \
+            snprintf(msg, LAGRAPH_MSG_LEN, __VA_ARGS__);                                                               \
+        }                                                                                                              \
     }
 
 #ifndef GRB_CATCH
-#define GRB_CATCH(info)                                                        \
-    {                                                                          \
-        LG_ERROR_MSG("GraphBLAS failure (file %s, line %d): info: %d",         \
-                     __FILE__, __LINE__, info);                                \
-        fprintf(stderr, "%s\n", msg);                                          \
-        fflush(stderr);                                                        \
-        exit(info);                                                            \
+#define GRB_CATCH(info)                                                                                                \
+    {                                                                                                                  \
+        LG_ERROR_MSG("GraphBLAS failure (file %s, line %d): info: %d", __FILE__, __LINE__, info);                      \
+        fprintf(stderr, "%s\n", msg);                                                                                  \
+        fflush(stderr);                                                                                                \
+        exit(info);                                                                                                    \
     }
 #endif
 
-#define MY_GRB_TRY(GrB_method)                                                 \
-    {                                                                          \
-        GrB_Info LG_GrB_Info = GrB_method;                                     \
-        if (LG_GrB_Info < GrB_SUCCESS) {                                       \
-            GRB_CATCH(LG_GrB_Info);                                            \
-        }                                                                      \
+#define MY_GRB_TRY(GrB_method)                                                                                         \
+    {                                                                                                                  \
+        GrB_Info LG_GrB_Info = GrB_method;                                                                             \
+        if (LG_GrB_Info < GrB_SUCCESS) {                                                                               \
+            GRB_CATCH(LG_GrB_Info);                                                                                    \
+        }                                                                                                              \
     }
 
 typedef struct {
@@ -78,7 +77,13 @@ typedef struct {
     Graph graph;
 } ParserResult;
 
-ParserResult parser(char *config_i);
+typedef struct {
+    char *grammar;
+    char *graph;
+    size_t valid_result;
+} config_row;
+
+ParserResult parser(config_row config_i);
 
 // SymbolList ans Symbol methods
 Symbol symbol_create(char *str);
@@ -90,3 +95,5 @@ int symbol_list_add_str_start_nonterm(SymbolList *list, char *str);
 void symbol_list_free(SymbolList *list);
 bool is_non_terminal(const Symbol symbol, SymbolList non_terms);
 void grammar_print(Grammar grammar, SymbolList list);
+char *read_entire_file(char *path);
+void get_configs_from_file(char *path, size_t *configs_count, config_row *configs);

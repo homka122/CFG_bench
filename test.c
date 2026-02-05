@@ -1,8 +1,10 @@
 #include <GraphBLAS.h>
 #include <LAGraph.h>
 #include <LAGraphX.h>
+#include <getopt.h>
 #include <parser.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #define run_algorithm()                                                                                                \
@@ -47,26 +49,6 @@ void free_outputs(size_t symbols_amount) {
     }
     free(outputs);
     outputs = NULL;
-}
-
-void free_workspace() {
-
-    // for (size_t i = 0; i < grammar.terms_count; i++) {
-    //     if (adj_matrices == NULL)
-    //         break;
-
-    //     if (adj_matrices[i] == NULL)
-    //         continue;
-
-    //     GrB_free(&adj_matrices[i]);
-    // }
-    // free(adj_matrices);
-    // adj_matrices = NULL;
-
-    // free_outputs();
-
-    // free(grammar.rules);
-    // grammar = (grammar_t){0, 0, 0, NULL};
 }
 
 char *symbol_numerate(Symbol *sym, size_t num) {
@@ -214,7 +196,7 @@ void symbol_data_free(SymbolData *data) {
     free(data->indeces);
 }
 
-GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list, size_t *map_base_indecies, size_t symbols_amount) {
+GrB_Matrix *get_matrices_from_graph(Graph graph, size_t *map_base_indecies, size_t symbols_amount) {
     SymbolData *symbol_datas = calloc(symbols_amount, sizeof(SymbolData));
     for (size_t i = 0; i < symbols_amount; i++) {
         symbol_data_init(&symbol_datas[i]);
@@ -238,7 +220,6 @@ GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list, size_t *map_ba
     for (size_t i = 0; i < symbols_amount; i++) {
         SymbolData data = symbol_datas[i];
         GrB_Index nrows = graph.node_count;
-        // nrows *= list.symbols[i].is_indexed ? graph.block_count : 1;
 
         char msg[LAGRAPH_MSG_LEN];
         MY_GRB_TRY(GrB_Matrix_new(&matrices[i], GrB_BOOL, nrows, graph.node_count));
@@ -251,7 +232,7 @@ GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list, size_t *map_ba
         MY_GRB_TRY(GrB_Scalar_new(&true_scalar, GrB_BOOL));
         MY_GRB_TRY(GrB_Scalar_setElement_BOOL(true_scalar, true));
         MY_GRB_TRY(GxB_Matrix_build_Scalar(matrices[i], data.rows, data.cols, true_scalar, data.size));
-        GrB_free(&true_scalar);
+        MY_GRB_TRY(GrB_free(&true_scalar));
     }
 
     for (size_t i = 0; i < symbols_amount; i++) {
@@ -263,82 +244,87 @@ GrB_Matrix *get_matrices_from_graph(Graph graph, SymbolList list, size_t *map_ba
     return matrices;
 }
 
-char *configs_rdf[] = {"data/graphs/rdf/go_hierarchy.g,data/grammars/"
-                       "nested_parentheses_subClassOf_type.cnf",
-                       "data/graphs/rdf/taxonomy.g,data/grammars/"
-                       "nested_parentheses_subClassOf_type.cnf",
-                       "data/graphs/rdf/eclass.g,data/grammars/"
-                       "nested_parentheses_subClassOf_type.cnf",
-                       "data/graphs/rdf/go.g,data/grammars/"
-                       "nested_parentheses_subClassOf_type.cnf",
-                       "data/graphs/rdf/taxonomy_hierarchy.g,data/grammars/"
-                       "nested_parentheses_subClassOf_type.cnf",
-                       NULL};
-
-char *configs_java[] = {"data/graphs/java/lusearch.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/sunflow.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/gson.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/commons_io.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/luindex.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/eclipse.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/avrora.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/batik.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/commons_lang3.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/h2.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/mockito.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/fop.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/tomcat.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/xalan.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/pmd.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/junit5.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/jython.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/tradesoap.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/tradebeans.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/jackson.g,data/grammars/java_points_to.cnf",
-                        "data/graphs/java/guava.g,data/grammars/java_points_to.cnf",
-                        NULL};
-
-char *configs_c_alias[] = {"data/graphs/c_alias/init.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/mm.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/ipc.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/lib.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/block.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/arch.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/crypto.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/security.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/sound.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/fs.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/net.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/drivers.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/kernel.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/apache.g,data/grammars/c_alias.cnf",
-                           "data/graphs/c_alias/postgre.g,data/grammars/c_alias.cnf",
-                           NULL};
-
-char *configs_aa[] = {"data/graphs/aa/xz.g,data/grammars/aa.cnf",
-                      "data/graphs/aa/nab.g,data/grammars/aa.cnf",
-                      "data/graphs/aa/leela.g,data/grammars/aa.cnf",
-                      "data/graphs/aa/x264.g,data/grammars/aa.cnf",
-                      "data/graphs/aa/povray.g,data/grammars/aa.cnf",
-                      "data/graphs/aa/cactus.g,data/grammars/aa.cnf",
-                      "data/graphs/aa/parest.g,data/grammars/aa.cnf",
-                      "data/graphs/aa/imagick.g,data/grammars/aa.cnf",
-                      "data/graphs/aa/perlbench.g,data/grammars/aa.cnf",
-                      "data/graphs/aa/omnetpp.g,data/grammars/aa.cnf",
-                      NULL};
-
 char *configs_vf[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf", "data/graphs/vf/nab.g,data/grammars/vf.cnf",
                       "data/graphs/vf/leela.g,data/grammars/vf.cnf", NULL};
 
 char *configs_my[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf", NULL};
 
+// Took path to graph, grammar and prepare for launching algorithm
+void preparing_for_config(config_row config) {
+    ParserResult parser_result = parser(config);
+    Grammar _grammar = parser_result.grammar;
+    Graph graph = parser_result.graph;
+    SymbolList list = parser_result.symbols;
+
+    // indexed symbols must be each enumerate
+    size_t *map = calloc(list.count * graph.block_count, sizeof(size_t));
+    size_t offset = 0;
+    for (size_t i = 0; i < list.count; i++) {
+        Symbol sym = list.symbols[i];
+        if (!sym.is_indexed) {
+            map[i] = i + offset;
+            continue;
+        }
+
+        map[i] = i + offset;
+        offset += graph.block_count - 1;
+    }
+    symbols_amount = map[list.count - 1] + (graph.block_count - 1) + 1;
+
+    GrB_Matrix *matrices = get_matrices_from_graph(graph, map, symbols_amount);
+
+    LAGraph_rule_EWCNF *rules_EWCNF = calloc(_grammar.rules_count, sizeof(LAGraph_rule_EWCNF));
+
+    for (size_t i = 0; i < _grammar.rules_count; i++) {
+        Rule rule = _grammar.rules[i];
+        rules_EWCNF[i] = (LAGraph_rule_EWCNF){.nonterm = rule.first == -1 ? -1 : (int32_t)map[rule.first],
+                                              .prod_A = rule.second == -1 ? -1 : (int32_t)map[rule.second],
+                                              .prod_B = rule.third == -1 ? -1 : (int32_t)map[rule.third],
+                                              .indexed = 0,
+                                              .indexed_count = 0};
+        if (rule.first != -1 && list.symbols[rule.first].is_indexed) {
+            rules_EWCNF[i].indexed |= LAGraph_EWNCF_INDEX_NONTERM;
+        }
+        if (rule.second != -1 && list.symbols[rule.second].is_indexed)
+            rules_EWCNF[i].indexed |= LAGraph_EWNCF_INDEX_PROD_A;
+        if (rule.third != -1 && list.symbols[rule.third].is_indexed)
+            rules_EWCNF[i].indexed |= LAGraph_EWNCF_INDEX_PROD_B;
+        if (rules_EWCNF[i].indexed != 0) {
+            rules_EWCNF[i].indexed_count = graph.block_count;
+        }
+    }
+    free(map);
+
+    int32_t nonterms_count = 0;
+    for (size_t i = 0; i < list.count; i++) {
+        if (list.symbols[i].is_nonterm)
+            nonterms_count++;
+    }
+
+    grammar = (grammar_t){.nonterms_count = nonterms_count, .rules_count = _grammar.rules_count, .rules = rules_EWCNF};
+
+    adj_matrices = matrices;
+
+    free(graph.edges);
+    free(_grammar.rules);
+    for (size_t i = 0; i < list.count; i++) {
+        free(list.symbols[i].label);
+    }
+    free(list.symbols);
+}
+
+#define RESET "\033[0m"
+#define BLACK "\033[30m" /* Black */
+#define RED "\033[31m"   /* Red */
+#define GREEN "\033[32m" /* Green */
+
 // Number of benchmark runs on a single graph
-#define COUNT 1
+#define COUNT 10
 // If true, the first run is done without measuring time (warm-up)
 #define HOT false
 // Use your custom configuration for the benchmark (default is the xz.g graph
 // and vf.cnf grammar)
-#define configs configs_my
+#define configs_macro configs_java
 
 #define OPT_EMPTY (1 << 0)
 #define OPT_FORMAT (1 << 1)
@@ -349,8 +335,10 @@ int main(int argc, char **argv) {
     int8_t optimizations = 0;
     int opt;
     bool is_test = false;
+    bool is_config = false;
+    char *input_config = NULL;
 
-    while ((opt = getopt(argc, argv, "eflbt")) != -1) {
+    while ((opt = getopt(argc, argv, "eflbtc:")) != -1) {
         switch (opt) {
         case 'e':
             optimizations |= OPT_EMPTY;
@@ -367,6 +355,11 @@ int main(int argc, char **argv) {
         case 't':
             is_test = true;
             break;
+        case 'c':
+            is_config = true;
+            input_config = optarg;
+            printf("Choosen config: %s\n", input_config);
+            break;
         default:
             fprintf(stderr, "Usage: %s [-e] [-f] [-l]\n", argv[0]);
             exit(EXIT_FAILURE);
@@ -376,132 +369,96 @@ int main(int argc, char **argv) {
     setup();
     GrB_Info retval;
 
-    // char *config = argv[1];
+    if (!is_config) {
+        fprintf(stderr, "Need to choose config by flag -c [config file]\n");
+        exit(EXIT_FAILURE);
+    }
+
+    size_t configs_count = 0;
+    config_row *configs = calloc(1000, sizeof(config_row));
+    get_configs_from_file(input_config, &configs_count, configs);
+
     printf("Start bench\n");
     fflush(stdout);
-    int config_index = 0;
-    char *config = configs[config_index];
-    while (config) {
-        printf("CONFIG: %s\n", config);
+
+    for (size_t i = 0; i < configs_count; i++) {
+        config_row config = configs[i];
+        printf("CONFIG: grammar: %s, graph: %s\n", config.grammar, config.graph);
         fflush(stdout);
-        ParserResult parser_result = parser(config);
-        Grammar _grammar = parser_result.grammar;
-        Graph graph = parser_result.graph;
-        SymbolList list = parser_result.symbols;
 
-        // indexed symbols must be each enumerate
-        size_t *map = calloc(sizeof(size_t), list.count * graph.block_count);
-        size_t offset = 0;
-        for (size_t i = 0; i < list.count; i++) {
-            Symbol sym = list.symbols[i];
-            if (!sym.is_indexed) {
-                map[i] = i + offset;
-                continue;
-            }
-
-            map[i] = i + offset;
-            offset += graph.block_count - 1;
-        }
-        symbols_amount = map[list.count - 1] + (graph.block_count - 1) + 1;
-        // printf("BLOCK_COUNT: %ld, SYMBOLS_AMOUNT: %ld\n", graph.block_count, symbols_amount);
-        // symbol_list_print(list);
-        // for (size_t i = 0; i < list.count; i++) {
-        //     printf("%ld ", map[i]);
-        // }
-        // fflush(stdout);
-
-        // expolode indecies
-        // if (!(optimizations & OPT_BLOCK)) {
-        //     explode_indices(&_grammar, &graph, &list);
-        // }
-        // symbol_list_print(list);
-        // grammar_print(_grammar, list);
-
-        GrB_Matrix *matrices = get_matrices_from_graph(graph, list, map, symbols_amount);
-
-        // FILE *homka = fopen("./xzMatrixResult.mtx", "w");
-        // if (homka == NULL) {
-        //     exit(-1);
-        // }
-
-        LAGraph_rule_EWCNF *rules_EWCNF = calloc(_grammar.rules_count, sizeof(LAGraph_rule_EWCNF));
-
-        for (size_t i = 0; i < _grammar.rules_count; i++) {
-            Rule rule = _grammar.rules[i];
-            rules_EWCNF[i] = (LAGraph_rule_EWCNF){.nonterm = rule.first == -1 ? -1 : map[rule.first],
-                                                  .prod_A = rule.second == -1 ? -1 : map[rule.second],
-                                                  .prod_B = rule.third == -1 ? -1 : map[rule.third],
-                                                  .indexed = 0,
-                                                  .indexed_count = 0};
-            if (rule.first != -1 && list.symbols[rule.first].is_indexed) {
-                rules_EWCNF[i].indexed |= LAGraph_EWNCF_INDEX_NONTERM;
-            }
-            if (rule.second != -1 && list.symbols[rule.second].is_indexed)
-                rules_EWCNF[i].indexed |= LAGraph_EWNCF_INDEX_PROD_A;
-            if (rule.third != -1 && list.symbols[rule.third].is_indexed)
-                rules_EWCNF[i].indexed |= LAGraph_EWNCF_INDEX_PROD_B;
-            if (rules_EWCNF[i].indexed != 0) {
-                rules_EWCNF[i].indexed_count = graph.block_count;
-            }
-
-            // printf("%d %d %d %d\n", rules_EWCNF[i].nonterm, rules_EWCNF[i].prod_A, rules_EWCNF[i].prod_B,
-            //        rules_EWCNF[i].indexed);
-        }
-
-        int32_t nonterms_count = 0;
-        for (size_t i = 0; i < list.count; i++) {
-            if (list.symbols[i].is_nonterm)
-                nonterms_count++;
-        }
-
-        grammar =
-            (grammar_t){.nonterms_count = nonterms_count, .rules_count = _grammar.rules_count, .rules = rules_EWCNF};
-
-        adj_matrices = matrices;
+        preparing_for_config(config);
 
         double start[COUNT];
         double end[COUNT];
 
         GrB_Index nnz = 0;
-        if (is_test) {
-            init_outputs();
-            retval = run_algorithm();
-            GrB_Matrix_nvals(&nnz, outputs[0]);
-            printf("\tResult: %ld (Return code: %d)", nnz, retval);
-            if (retval != 0) {
-                printf("\t(MSG: %s)", msg);
-            }
-            printf("\n");
-            fflush(stdout);
-            free_outputs(symbols_amount);
-            config = configs[++config_index];
-            continue;
-        }
-
-        if (HOT) {
-            run_algorithm();
-        }
+        bool is_hot = HOT;
 
         for (size_t i = 0; i < COUNT; i++) {
             init_outputs();
+
+            // printf("\n");
+            // for (size_t j = 0; j < symbols_amount; j++) {
+            //     GrB_Matrix_nvals(&nnz, adj_matrices[j]);
+            //     printf("%ld ", nnz);
+            // }
+            // printf("\n");
 
             start[i] = LAGraph_WallClockTime();
 #ifndef CI
             retval = run_algorithm();
 #endif
             end[i] = LAGraph_WallClockTime();
-
             GrB_Matrix_nvals(&nnz, outputs[0]);
-            // LAGraph_MMWrite(outputs[0], homka, NULL, msg);
 
-            // GxB_print(outputs[0], 1);
+            if (is_test) {
+                if (nnz == config.valid_result) {
+                    printf("\tResult: %ld (Return code: %d)" GREEN " [OK]" RESET, nnz, retval);
+                } else {
+                    printf("\tResult: %ld (Return code: %d)" RED " [Wrong]" RESET " (Result must be %ld)", nnz, retval,
+                           config.valid_result);
+                }
+                if (retval != 0) {
+                    printf("\t(MSG: %s)", msg);
+                }
+                printf(" (%.4f sec)", end[i] - start[i]);
+
+                // printf("\n");
+                // for (size_t j = 0; j < symbols_amount; j++) {
+                //     GrB_Matrix_nvals(&nnz, outputs[j]);
+                //     printf("%ld ", nnz);
+                // }
+                // printf("\n");
+
+                free_outputs(symbols_amount);
+                break;
+            }
+
+            if (is_hot) {
+                is_hot = false;
+                i--;
+                free_outputs(symbols_amount);
+                continue;
+            }
+
             printf("\t%.3fs", end[i] - start[i]);
             fflush(stdout);
+
             free_outputs(symbols_amount);
         }
         printf("\n");
 
-        // printf("retval = %d (%s)\n", retval, msg);
+        if (is_test) {
+            free(grammar.rules);
+            for (size_t i = 0; i < symbols_amount; i++) {
+                GrB_free(&adj_matrices[i]);
+            }
+            free(adj_matrices);
+
+            fflush(stdout);
+            continue;
+        }
+
         double sum = 0;
         for (size_t i = 0; i < COUNT; i++) {
             sum += end[i] - start[i];
@@ -510,26 +467,17 @@ int main(int argc, char **argv) {
         printf("\tTime elapsed (avg): %.6f seconds. Result: %ld (return code "
                "%d) (%s)\n\n",
                sum / COUNT, nnz, retval, msg);
-        // GxB_print(outputs[0], 1);
-        free_workspace();
 
-        free(graph.edges);
         free(grammar.rules);
-        free(_grammar.rules);
-        for (size_t i = 0; i < list.count; i++) {
-            free(list.symbols[i].label);
-        }
-
-        free(list.symbols);
-        for (size_t i = 0; i < list.count; i++) {
+        for (size_t i = 0; i < symbols_amount; i++) {
             GrB_free(&adj_matrices[i]);
         }
         free(adj_matrices);
 
-        config = configs[++config_index];
         fflush(stdout);
     }
 
+    free(configs);
     teardown();
     return 0;
 }

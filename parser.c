@@ -315,16 +315,17 @@ Graph process_graph(char *graph_text, SymbolList *symbol_list) {
     return result;
 }
 
-ParserResult parser(char *config_i) {
-    char *config = strdup(config_i);
+ParserResult parser(config_row config_i) {
+    char *config_graph = strdup(config_i.graph);
+    char *config_grammar = strdup(config_i.grammar);
 
     // printf("Reading graph file...");
-    char *graph_buf = read_entire_file(strtok(config, ","));
+    char *graph_buf = read_entire_file(config_graph);
     // printf("OK\n");
     fflush(stdout);
 
     // printf("Reading grammar file...");
-    char *grammar_buf = read_entire_file(strtok(NULL, ","));
+    char *grammar_buf = read_entire_file(config_grammar);
     // printf("OK\n");
     fflush(stdout);
 
@@ -352,11 +353,38 @@ ParserResult parser(char *config_i) {
 
     free(graph_buf);
     free(grammar_buf);
-    free(config);
+    free(config_grammar);
+    free(config_graph);
 
     return (ParserResult){.block_count = graph.block_count,
                           .node_count = graph.node_count,
                           .grammar = _grammar,
                           .symbols = list,
                           .graph = graph};
+}
+
+void get_configs_from_file(char *path, size_t *configs_count, config_row *configs) {
+    *configs_count = 0;
+    char *config_text = read_entire_file(path);
+
+    char *line = config_text;
+    bool last = false;
+    while (!last) {
+        char *end = strchrnul(line, '\n');
+        if (*end == '\0')
+            last = true;
+        *end = '\0';
+
+        char *graph = strtok(line, ",");
+        char *grammar = strtok(NULL, ",");
+        char *valid_result_str = strtok(NULL, ",");
+
+        if (graph == NULL || grammar == NULL || valid_result_str == NULL)
+            break;
+
+        size_t valid_result = atoi(valid_result_str);
+
+        configs[(*configs_count)++] = (config_row){.grammar = grammar, .graph = graph, .valid_result = valid_result};
+        line = end + 1;
+    }
 }
