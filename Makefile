@@ -37,11 +37,11 @@ run: test.c parser.c
  && ./test
 
 bench: test.c parser.c
-	gcc test.c parser.c -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} \
-		-o test && ./test -l
+	gcc test.c parser.c -O0 -g ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} \
+		-o test && ./test -
 
 bench_compile: test.c parser.c ${ALGO_PATH} ${ALGO_OPT_PATH}
-	gcc test.c parser.c ${ALGO_PATH} ${ALGO_OPT_PATH} -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
+	gcc test.c parser.c ${ALGO_PATH} ${ALGO_OPT_PATH} -g -O0 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
 		-o test && ./test -${FLAGS}
 
 
@@ -54,7 +54,7 @@ bench_compile_v: test.c parser.c ${ALGO_OBJ_V}
 		-o test && ./test -${FLAGS}
 
 bench_compile_v_leak: test.c parser.c
-	gcc test.c -fsanitize=address,leak -g parser.c ${ALGO_PATH} -O0 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
+	gcc test.c parser.c -fsanitize=address,leak ${ALGO_PATH} ${ALGO_OPT_PATH} -g -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
 		-o test && ./test -${FLAGS}
 
 deb: test.c parser.c ${ALGO_PATH}
