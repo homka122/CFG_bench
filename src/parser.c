@@ -96,6 +96,12 @@ int symbol_list_add_str_start_nonterm(SymbolList *list, char *str) {
     return (list->count - 1);
 }
 
+void symbol_list_swap(SymbolList *list, size_t i1, size_t i2) {
+    Symbol temp = list->symbols[i1];
+    list->symbols[i1] = list->symbols[i2];
+    list->symbols[i2] = temp;
+}
+
 void symbol_list_free(SymbolList *list) {
     for (size_t i = 0; i < list->count; i++) {
         symbol_free(list->symbols[i]);
@@ -201,79 +207,71 @@ size_t get_text_lines(char *text, char ***lines_arg) {
 }
 
 // TODO: if there is no Count line
-Grammar process_grammar(char *grammar_text, SymbolList *symbol_list) {
-    Rule *rules = NULL;
+Grammar process_grammar(FILE *grammar_file, SymbolList *symbol_list) {
     size_t rules_count = 0;
+    size_t rules_capacity = 1024;
+    Rule *rules = calloc(rules_capacity, sizeof(Rule));
 
-    char *line = grammar_text;
-    while (*line) {
-        // don't blame me for this code, i know
-        char *end = strchr(line, '\n');
-        if (end)
-            *end = '\0';
+    int start_nonterm = -1;
+    char line[1024];
 
-        char *first = strtok(line, " \t");
-        char *second = strtok(NULL, " \t");
-        char *third = strtok(NULL, " \t");
-
-        if (first == NULL) {
-            line = end ? end + 1 : line + strlen(line);
+    while (fgets(line, sizeof(line), grammar_file)) {
+        if (line[0] == '\n') {
             continue;
         }
 
+        if (rules_count == rules_capacity) {
+            rules_capacity *= 2;
+            rules = realloc(rules, rules_capacity * sizeof(Rule));
+        }
+
+        char *first = strtok(line, " \t\n");
+        char *second = strtok(NULL, " \t\n");
+        char *third = strtok(NULL, " \t\n");
+
         if (strcmp(first, "Count:") == 0) {
-            line = end ? end + 1 : line + strlen(line);
-            char *end = strchr(line, '\n');
-            if (end)
-                *end = '\0';
-
-            int replaced_symbol = symbol_list_add_str_start_nonterm(symbol_list, line);
-
-            for (size_t rule_i = 0; rule_i < rules_count; rule_i++) {
-                int *first = &rules[rule_i].first;
-                int *second = &rules[rule_i].second;
-                int *third = &rules[rule_i].third;
-
-                if (*first == 0) {
-                    *first = replaced_symbol;
-                } else if (*first == replaced_symbol) {
-                    *first = 0;
-                }
-
-                if (*second == 0) {
-                    *second = replaced_symbol;
-                } else if (*second == replaced_symbol) {
-                    *second = 0;
-                }
-
-                if (*third == 0) {
-                    *third = replaced_symbol;
-                } else if (*third == replaced_symbol) {
-                    *third = 0;
-                }
-            }
+            fgets(line, sizeof(line), grammar_file);
+            char *first = strtok(line, " \t\n");
+            start_nonterm = symbol_list_add_str(symbol_list, first, true);
 
             break;
         }
 
-        if (first == NULL) {
-            line = end ? end + 1 : line + strlen(line);
-            continue;
-        };
+        int first_symbol = symbol_list_add_str(symbol_list, first, true);
+        int second_symbol = second ? symbol_list_add_str(symbol_list, second, false) : -1;
+        int third_symbol = third ? symbol_list_add_str(symbol_list, third, false) : -1;
 
-        Rule rule;
-        rule.first = symbol_list_add_str(symbol_list, first, true);
-        rule.second = second == NULL ? -1 : symbol_list_add_str(symbol_list, second, false);
-        rule.third = third == NULL ? -1 : symbol_list_add_str(symbol_list, third, false);
-
-        rules = realloc(rules, (rules_count + 1) * sizeof(Rule));
-        rules[rules_count] = rule;
-        rules_count++;
-
-        line = end ? end + 1 : line + strlen(line);
+        rules[rules_count++] = (Rule){first_symbol, second_symbol, third_symbol};
     }
 
-    return (Grammar){0, rules, rules_count};
+    if (start_nonterm == -1) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m no start nonterminal in grammar file\n");
+        exit(-1);
+    }
+
+    return (Grammar){start_nonterm, rules, rules_count};
+}
+
+void grammar_swap_symbols(Grammar *grammar, int sym1, int sym2) {
+    for (size_t i = 0; i < grammar->rules_count; i++) {
+        if (grammar->rules[i].first == sym1) {
+            grammar->rules[i].first = sym2;
+        } else if (grammar->rules[i].first == sym2) {
+            grammar->rules[i].first = sym1;
+        }
+
+        if (grammar->rules[i].second == sym1) {
+            grammar->rules[i].second = sym2;
+        } else if (grammar->rules[i].second == sym2) {
+            grammar->rules[i].second = sym1;
+        }
+
+        if (grammar->rules[i].third == sym1) {
+            grammar->rules[i].third = sym2;
+        } else if (grammar->rules[i].third == sym2) {
+            grammar->rules[i].third = sym1;
+        }
+    }
 }
 
 // Accept edges NULL prointer and create new array
@@ -347,7 +345,11 @@ ParserResult parser(config_row config_i) {
     SymbolList list = symbol_list_create();
 
     // printf("Process grammar...");
-    Grammar _grammar = process_grammar(grammar_buf, &list);
+    FILE *grammar_file = fopen(config_grammar, "r");
+    Grammar _grammar = process_grammar(grammar_file, &list);
+    grammar_swap_symbols(&_grammar, 0, _grammar.start_nonterm);
+    symbol_list_swap(&list, 0, _grammar.start_nonterm);
+    _grammar.start_nonterm = 0;
     // printf("OK\n");
     fflush(stdout);
 
@@ -367,7 +369,7 @@ ParserResult parser(config_row config_i) {
 #endif
 
     free(graph_buf);
-    free(grammar_buf);
+    fclose(grammar_file);
     free(config_grammar);
     free(config_graph);
 
