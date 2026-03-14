@@ -25,19 +25,28 @@
         TEST_MSG("Wrong result. Actual: %s", expected);                                                                \
     }
 
+#define TRY(GrB_method)                                                                                                \
+    {                                                                                                                  \
+        GrB_Info LG_GrB_Info = GrB_method;                                                                             \
+        if (LG_GrB_Info < GrB_SUCCESS) {                                                                               \
+            fprintf(stderr, "LAGraph failure (file %s, line %d): (%d) \n", __FILE__, __LINE__, LG_GrB_Info);           \
+            return (LG_GrB_Info);                                                                                      \
+        }                                                                                                              \
+    }
+
 GrB_Matrix *adj_matrices = NULL;
 GrB_Matrix *outputs = NULL;
 grammar_t grammar = {0, 0, NULL};
 char msg[LAGRAPH_MSG_LEN];
 size_t symbols_amount = 0;
 
-void setup() { LAGr_Init(GrB_NONBLOCKING, malloc, NULL, NULL, free, msg); }
+GrB_Info setup() { TRY(LAGr_Init(GrB_NONBLOCKING, malloc, NULL, NULL, free, msg)); }
 
-void teardown(void) { LAGraph_Finalize(msg); }
+GrB_Info teardown(void) { TRY(LAGraph_Finalize(msg)); }
 
-void init_outputs() { outputs = calloc(symbols_amount, sizeof(GrB_Matrix)); }
+GrB_Info init_outputs() { TRY(LAGraph_Calloc((void **)&outputs, symbols_amount, sizeof(GrB_Matrix), msg)); }
 
-void free_outputs(size_t symbols_amount) {
+GrB_Info free_outputs(size_t symbols_amount) {
     for (size_t i = 0; i < (symbols_amount); i++) {
         if (outputs == NULL)
             break;
@@ -45,9 +54,9 @@ void free_outputs(size_t symbols_amount) {
         if (outputs[i] == NULL)
             continue;
 
-        GrB_free(&outputs[i]);
+        TRY(GrB_free(&outputs[i]));
     }
-    free(outputs);
+    TRY(LAGraph_Free((void **)&outputs, msg));
     outputs = NULL;
 }
 
@@ -249,12 +258,47 @@ char *configs_vf[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf", "data/graphs/v
 
 char *configs_my[] = {"data/graphs/vf/xz.g,data/grammars/vf.cnf", NULL};
 
+void print_rules(Grammar grammar, SymbolList list) {
+    for (size_t i = 0; i < grammar.rules_count; i++) {
+        Rule rule = grammar.rules[i];
+        if (rule.first != -1) {
+            printf("%s ->", list.symbols[rule.first].label);
+        }
+        if (rule.second != -1) {
+            printf(" %s", list.symbols[rule.second].label);
+        }
+        if (rule.third != -1) {
+            printf(" %s", list.symbols[rule.third].label);
+        }
+        printf("\n");
+    }
+}
+
+void print_list(SymbolList list, size_t *map) {
+    if (map == NULL) {
+        for (size_t i = 0; i < list.count; i++) {
+            Symbol sym = list.symbols[i];
+            printf("[%2d] %s [%s] %s\n", i, sym.label, sym.is_nonterm ? "N" : "T", sym.is_indexed ? "[I]" : "");
+        }
+    } else {
+        for (size_t i = 0; i < list.count; i++) {
+            Symbol sym = list.symbols[i];
+            printf("[%2d] %s [%s] %s\n", map[i], sym.label, sym.is_nonterm ? "N" : "T", sym.is_indexed ? "[I]" : "");
+        }
+    }
+}
+
 // Took path to graph, grammar and prepare for launching algorithm
 void preparing_for_config(config_row config) {
     ParserResult parser_result = parser(config);
     Grammar _grammar = parser_result.grammar;
     Graph graph = parser_result.graph;
     SymbolList list = parser_result.symbols;
+
+    // print_rules(_grammar, list);
+    // print_list(list, NULL);
+
+    // printf("BLOCK COUNT: %ld\n", graph.block_count);
 
     // indexed symbols must be each enumerate
     size_t *map = calloc(list.count * graph.block_count, sizeof(size_t));
@@ -269,7 +313,8 @@ void preparing_for_config(config_row config) {
         map[i] = i + offset;
         offset += graph.block_count - 1;
     }
-    symbols_amount = map[list.count - 1] + (graph.block_count - 1) + 1;
+    symbols_amount = list.count + offset;
+    // print_list(list, map);
 
     GrB_Matrix *matrices = get_matrices_from_graph(graph, map, symbols_amount);
 
@@ -294,6 +339,11 @@ void preparing_for_config(config_row config) {
         }
     }
     free(map);
+
+    // for (size_t i = 0; i < _grammar.rules_count; i++) {
+    //     LAGraph_rule_EWCNF rule = rules_EWCNF[i];
+    //     printf("%d %d %d %d %d\n", rule.nonterm, rule.prod_A, rule.prod_B, rule.indexed, rule.indexed_count);
+    // }
 
     int32_t nonterms_count = 0;
     for (size_t i = 0; i < list.count; i++) {
@@ -366,7 +416,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    setup();
+    TRY(setup());
     GrB_Info retval;
 
     if (!is_config) {
@@ -395,7 +445,7 @@ int main(int argc, char **argv) {
         bool is_hot = HOT;
 
         for (size_t i = 0; i < COUNT; i++) {
-            init_outputs();
+            TRY(init_outputs());
 
             // printf("\n");
             // for (size_t j = 0; j < symbols_amount; j++) {
@@ -430,21 +480,21 @@ int main(int argc, char **argv) {
                 // }
                 // printf("\n");
 
-                free_outputs(symbols_amount);
+                TRY(free_outputs(symbols_amount));
                 break;
             }
 
             if (is_hot) {
                 is_hot = false;
                 i--;
-                free_outputs(symbols_amount);
+                TRY(free_outputs(symbols_amount));
                 continue;
             }
 
             printf("\t%.3fs", end[i] - start[i]);
             fflush(stdout);
 
-            free_outputs(symbols_amount);
+            TRY(free_outputs(symbols_amount));
         }
         printf("\n");
 
@@ -478,6 +528,6 @@ int main(int argc, char **argv) {
     }
 
     free(configs);
-    teardown();
+    TRY(teardown());
     return 0;
 }
