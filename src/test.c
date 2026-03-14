@@ -2,7 +2,7 @@
 #include <LAGraph.h>
 #include <LAGraphX.h>
 #include <getopt.h>
-#include <parser.h>
+#include "parser.h"
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>

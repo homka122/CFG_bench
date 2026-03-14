@@ -1,5 +1,3 @@
-COUNT=10
-
 LIB_FLAGS = -lgraphblas -llagraph -llagraphx
 INCLUDE_FLAGS = -I/usr/local/include/suitesparse -I./
 ALGO_PATH=../LAGraph/experimental/algorithm/LAGraph_CFL_reachability_advanced.c
@@ -36,14 +34,14 @@ run: test.c parser.c
  -o test -Wextra -Wno-sign-compare -pedantic -fsanitize=undefined -DDEBUG_parser \
  && ./test
 
-bench: test.c parser.c
-	gcc test.c parser.c -O0 -g ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} \
-		-o test && ./test -
+bench: src/test.c src/parser.c
+	gcc src/test.c src/parser.c -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
 
-bench_compile: test.c parser.c ${ALGO_PATH} ${ALGO_OPT_PATH}
-	gcc test.c parser.c ${ALGO_PATH} ${ALGO_OPT_PATH} -g -O0 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
-		-o test && ./test -${FLAGS}
+bench_compile: src/test.c src/parser.c ${ALGO_PATH} ${ALGO_OPT_PATH}
+	gcc src/test.c src/parser.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
 
+bench_debug: src/test.c src/parser.c ${ALGO_PATH} ${ALGO_OPT_PATH}
+	gcc src/test.c src/parser.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O0 -g ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
 
 test_compile: test.c parser.c ${ALGO_OBJ}
 	gcc test.c parser.c ${ALGO_OBJ} -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \

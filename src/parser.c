@@ -1,7 +1,7 @@
 #include <LAGraph.h>
 #include <LAGraphX.h>
 #include <ctype.h>
-#include <parser.h>
+#include "parser.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
