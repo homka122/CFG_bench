@@ -1,7 +1,7 @@
+#include "parser.h"
 #include <LAGraph.h>
 #include <LAGraphX.h>
 #include <ctype.h>
-#include "parser.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -277,33 +277,36 @@ void grammar_swap_symbols(Grammar *grammar, int sym1, int sym2) {
 // Accept edges NULL prointer and create new array
 // Input: graphText
 // Output: edges array (init with malloc), count
-Graph process_graph(char *graph_text, SymbolList *symbol_list) {
+Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
     Graph result = {.edges = NULL, .edge_count = 0, .node_count = 0, .block_count = 1};
 
-    char *line = graph_text;
+    char line[1024];
     size_t capacity = 128;
-    result.edges = malloc(capacity * sizeof(GraphEdge));
-    while (*line) {
-        char *end = strchr(line, '\n');
-        if (end)
-            *end = '\0';
+    result.edges = calloc(capacity, sizeof(GraphEdge));
 
-        char *saveptr;
-        char *u_str = strtok_r(line, " \t", &saveptr);
-        char *v_str = strtok_r(NULL, " \t", &saveptr);
-        char *a_str = strtok_r(NULL, " \t", &saveptr);
-        char *index_str = strtok_r(NULL, " \t", &saveptr);
-        char *rest = strtok_r(NULL, " \t", &saveptr);
-
-        if (!u_str || !a_str || !v_str || rest != NULL) {
-            line = end ? end + 1 : line + strlen(line);
+    while (fgets(line, sizeof(line), graph_file)) {
+        if (line[0] == '\n') {
             continue;
         }
 
-        if (!is_number(u_str) || !is_number(v_str) || (index_str != NULL && !is_number(index_str))) {
-            fprintf(stderr, "error: %s, %s, %s", u_str, v_str, index_str);
-            exit(-1);
+        char *saveptr;
+        char *u_str = strtok_r(line, " \t\n", &saveptr);
+        char *v_str = strtok_r(NULL, " \t\n", &saveptr);
+        char *a_str = strtok_r(NULL, " \t\n", &saveptr);
+        char *index_str = strtok_r(NULL, " \t\n", &saveptr);
+        char *rest = strtok_r(NULL, " \t\n", &saveptr);
+
+        if (!u_str || !a_str || !v_str || rest != NULL) {
+            continue;
         }
+
+        // JUST BELIEVE THAT USER USE INSTEAD OF NUMBERS SOMETHING ELSE
+        // cause this check is really expensive
+        //
+        // if (!is_number(u_str) || !is_number(v_str) || (index_str != NULL && !is_number(index_str))) {
+        //     fprintf(stderr, "error: %s, %s, %s", u_str, v_str, index_str);
+        //     exit(-1);
+        // }
 
         size_t u = (size_t)atoi(u_str);
         size_t v = (size_t)atoi(v_str);
@@ -321,8 +324,6 @@ Graph process_graph(char *graph_text, SymbolList *symbol_list) {
         }
 
         result.edges[result.edge_count++] = (GraphEdge){u, v, term_index, index};
-
-        line = end ? end + 1 : line + strlen(line);
     }
 
     return result;
@@ -333,14 +334,9 @@ ParserResult parser(config_row config_i) {
     char *config_grammar = strdup(config_i.grammar);
 
     // printf("Reading graph file...");
-    char *graph_buf = read_entire_file(config_graph);
+    // char *graph_buf = read_entire_file(config_graph);
     // printf("OK\n");
-    fflush(stdout);
-
-    // printf("Reading grammar file...");
-    char *grammar_buf = read_entire_file(config_grammar);
-    // printf("OK\n");
-    fflush(stdout);
+    // fflush(stdout);
 
     SymbolList list = symbol_list_create();
 
@@ -351,12 +347,11 @@ ParserResult parser(config_row config_i) {
     symbol_list_swap(&list, 0, _grammar.start_nonterm);
     _grammar.start_nonterm = 0;
     // printf("OK\n");
-    fflush(stdout);
 
     // printf("Process graph...");
-    Graph graph = process_graph(graph_buf, &list);
+    FILE *graph_file = fopen(config_graph, "r");
+    Graph graph = process_graph(graph_file, &list);
     // printf("OK\n");
-    fflush(stdout);
 
 #if false
     symbol_list_print(list);
@@ -368,7 +363,7 @@ ParserResult parser(config_row config_i) {
     printf("Edges: %d\n", graph.edge_count);
 #endif
 
-    free(graph_buf);
+    fclose(graph_file);
     fclose(grammar_file);
     free(config_grammar);
     free(config_graph);
