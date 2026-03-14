@@ -91,8 +91,9 @@ int symbol_list_add_str_start_nonterm(SymbolList *list, char *str) {
     list->symbols[list->count] = list->symbols[0];
     list->symbols[0] = new_sym;
     new_sym.is_nonterm = true;
+    list->count++;
 
-    return list->count++;
+    return (list->count - 1);
 }
 
 void symbol_list_free(SymbolList *list) {
@@ -233,9 +234,23 @@ Grammar process_grammar(char *grammar_text, SymbolList *symbol_list) {
                 int *second = &rules[rule_i].second;
                 int *third = &rules[rule_i].third;
 
-                *first = *first == 0 ? replaced_symbol : *first;
-                *second = *second == 0 ? replaced_symbol : *second;
-                *third = *third == 0 ? replaced_symbol : *third;
+                if (*first == 0) {
+                    *first = replaced_symbol;
+                } else if (*first == replaced_symbol) {
+                    *first = 0;
+                }
+
+                if (*second == 0) {
+                    *second = replaced_symbol;
+                } else if (*second == replaced_symbol) {
+                    *second = 0;
+                }
+
+                if (*third == 0) {
+                    *third = replaced_symbol;
+                } else if (*third == replaced_symbol) {
+                    *third = 0;
+                }
             }
 
             break;
