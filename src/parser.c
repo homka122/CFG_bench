@@ -160,10 +160,12 @@ void grammar_swap_symbols(Grammar *grammar, int sym1, int sym2) {
     }
 }
 
-// Accept edges NULL prointer and create new array
-// Input: graphText
-// Output: edges array (init with malloc), count
 Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
+    if (symbol_list == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m symbol_list is NULL\n");
+        exit(-1);
+    }
+
     Graph result = {.edges = NULL, .edge_count = 0, .node_count = 0, .block_count = 1};
 
     char line[1024];
@@ -186,7 +188,7 @@ Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
             continue;
         }
 
-        // JUST BELIEVE THAT USER USE INSTEAD OF NUMBERS SOMETHING ELSE
+        // JUST BELIEVE THAT USER DON'T USE INSTEAD OF NUMBERS SOMETHING ELSE
         // cause this check is really expensive
         //
         // if (!is_number(u_str) || !is_number(v_str) || (index_str != NULL && !is_number(index_str))) {
