@@ -1,3 +1,5 @@
+#pragma once
+
 #include <LAGraph.h>
 #include <LAGraphX.h>
 
@@ -82,6 +84,18 @@ typedef struct {
     char *graph;
     size_t valid_result;
 } config_row;
+
+typedef struct {
+    GrB_Info (*setup)(void);
+    GrB_Info (*teardown)(void);
+    GrB_Info (*init_outputs)(void);
+    GrB_Info (*free_outputs)(void);
+    GrB_Info (*run)(void);
+    GrB_Info (*prepare)(ParserResult, void *);
+    GrB_Info (*cleanup)(void);
+    bool (*is_result_valid)(size_t);
+    size_t (*get_result)(void);
+} AdapterMethods;
 
 ParserResult parser(config_row config_i);
 
