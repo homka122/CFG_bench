@@ -6,7 +6,7 @@
 #include <string.h>
 
 Symbol symbol_create(char *str) {
-    Symbol result;
+    Symbol result = {0};
 
     size_t len = strlen(str);
     if (len >= 2) {
@@ -22,15 +22,30 @@ Symbol symbol_create(char *str) {
     return result;
 }
 
-void symbol_free(Symbol sym) { free(sym.label); }
+void symbol_free(Symbol sym) {
+    free(sym.label);
+    sym.label = NULL;
+}
 
 SymbolList symbol_list_create() {
     SymbolList result;
 
-    result.symbols = NULL;
+    result.symbols = calloc(128, sizeof(Symbol));
     result.count = 0;
+    result.capacity = 128;
 
     return result;
+}
+
+void symbol_list_free(SymbolList *list) {
+    for (size_t i = 0; i < list->count; i++) {
+        symbol_free(list->symbols[i]);
+    }
+
+    free(list->symbols);
+    list->symbols = NULL;
+    list->count = 0;
+    list->capacity = 0;
 }
 
 void symbol_list_print(SymbolList list) {
@@ -44,77 +59,39 @@ void symbol_list_print(SymbolList list) {
     }
 }
 
-int symbol_list_add_str(SymbolList *list, char *str, bool is_nonterm) {
+int symbol_list_get_index_str(SymbolList *list, char *str) {
     for (size_t i = 0; i < list->count; i++) {
         if (strcmp(list->symbols[i].label, str) == 0) {
-            if (is_nonterm)
-                list->symbols[i].is_nonterm = true;
             return i;
         }
     }
 
-    Symbol new_sym = symbol_create(str);
-    list->symbols = realloc(list->symbols, (list->count + 1) * sizeof(Symbol));
-    if (is_nonterm)
-        new_sym.is_nonterm = is_nonterm;
-    list->symbols[list->count] = new_sym;
-
-    return list->count++;
+    return -1;
 }
 
-int symbol_list_add_str_start_nonterm(SymbolList *list, char *str) {
-    for (size_t i = 0; i < list->count; i++) {
-        if (strcmp(list->symbols[i].label, str) == 0) {
-            list->symbols[i].is_nonterm = true;
-            Symbol temp = list->symbols[0];
-            list->symbols[0] = list->symbols[i];
-            list->symbols[i] = temp;
-
-            return i;
-        }
+int symbol_list_add_str(SymbolList *list, char *str, bool is_nonterm) {
+    int index = symbol_list_get_index_str(list, str);
+    if (index != -1) {
+        if (is_nonterm)
+            list->symbols[index].is_nonterm = true;
+        return index;
     }
 
     Symbol new_sym = symbol_create(str);
-    list->symbols = realloc(list->symbols, (list->count + 1) * sizeof(Symbol));
-    list->symbols[list->count] = list->symbols[0];
-    list->symbols[0] = new_sym;
-    new_sym.is_nonterm = true;
-    list->count++;
+    if (list->count == list->capacity) {
+        list->capacity *= 2;
+        list->symbols = realloc(list->symbols, list->capacity * sizeof(Symbol));
+    }
 
-    return (list->count - 1);
+    if (is_nonterm)
+        new_sym.is_nonterm = is_nonterm;
+    list->symbols[list->count++] = new_sym;
+
+    return list->count - 1;
 }
 
 void symbol_list_swap(SymbolList *list, size_t i1, size_t i2) {
     Symbol temp = list->symbols[i1];
     list->symbols[i1] = list->symbols[i2];
     list->symbols[i2] = temp;
-}
-
-void symbol_list_free(SymbolList *list) {
-    for (size_t i = 0; i < list->count; i++) {
-        symbol_free(list->symbols[i]);
-    }
-
-    free(list->symbols);
-}
-
-bool is_non_terminal(const Symbol symbol, SymbolList non_terms) {
-    for (size_t i = 0; i < non_terms.count; ++i) {
-        if (strcmp(non_terms.symbols[i].label, symbol.label) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool is_number(const char *s) {
-    if (s == NULL || *s == '\0')
-        return false;
-    while (*s) {
-        if (!isdigit(*s))
-            return false;
-        s++;
-    }
-    return true;
 }
