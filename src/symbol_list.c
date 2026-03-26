@@ -27,6 +27,25 @@ void symbol_free(Symbol sym) {
     sym.label = NULL;
 }
 
+char *symbol_numerate(Symbol *sym, size_t num) {
+    char *original_str = sym->label;
+    size_t len = strlen(original_str);
+
+    if (len >= 2 && strcmp(original_str + len - 2, "_i") == 0) {
+        size_t num_len = snprintf(NULL, 0, "%zu", num);
+        size_t new_len = len - 1 + num_len;
+
+        char *new_str = malloc(new_len + 1);
+        strncpy(new_str, original_str, len - 1);
+        snprintf(new_str + len - 1, num_len + 1, "%zu", num);
+        new_str[new_len] = '\0';
+
+        return new_str;
+    } else {
+        return sym->label;
+    }
+}
+
 SymbolList symbol_list_create() {
     SymbolList result;
 

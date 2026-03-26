@@ -17,6 +17,11 @@ typedef struct {
 
 Symbol symbol_create(char *str);
 void symbol_free(Symbol sym);
+
+// return new string with numeration
+// if symbol is not indexed, return its label
+char *symbol_numerate(Symbol *sym, size_t num);
+
 SymbolList symbol_list_create();
 void symbol_list_print(SymbolList list);
 

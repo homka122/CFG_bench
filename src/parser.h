@@ -90,9 +90,16 @@ typedef struct {
 //
 // graph format:
 // [u v a index], where is index is optional
-// 
+//
 // output is Graph structure and modified symbol_list
 Graph process_graph(FILE *graph_file, SymbolList *symbol_list);
+GrB_Matrix *get_grb_matrices_from_graph(Graph graph, SymbolList *list);
+
+// before: homka_i
+// after: homka_1
+//        homka_2
+//        homka_3
+void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list);
 
 ParserResult parser(config_row config_i);
 

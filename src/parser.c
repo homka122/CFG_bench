@@ -217,6 +217,182 @@ Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
     return result;
 }
 
+static int rule_new_index(size_t *map, Symbol *sym, int index, size_t offset) {
+    if (index == -1) {
+        return -1;
+    }
+
+    if (sym->is_indexed) {
+        return map[index] + offset;
+    } else {
+        return map[index];
+    }
+}
+
+static bool is_rule_has_indexed_symb(Rule rule, SymbolList list) {
+    bool first = rule.first != -1 && (list.symbols[rule.first].is_indexed);
+    bool second = rule.second != -1 && (list.symbols[rule.second].is_indexed);
+    bool third = rule.third != -1 && (list.symbols[rule.third].is_indexed);
+
+    return first || second || third;
+}
+
+// helper structure to accumulate data for building matrices
+typedef struct {
+    size_t *rows;
+    size_t *cols;
+    size_t *indeces;
+    size_t size;
+    size_t capacity;
+} SymbolData;
+
+static void symbol_data_init(SymbolData *data) {
+    data->rows = NULL;
+    data->cols = NULL;
+    data->indeces = NULL;
+    data->size = 0;
+    data->capacity = 0;
+}
+
+static void symbol_data_expand(SymbolData *data) {
+    size_t new_capacity = data->capacity == 0 ? 10 : data->capacity * 2;
+    data->rows = realloc(data->rows, new_capacity * sizeof(size_t));
+    data->cols = realloc(data->cols, new_capacity * sizeof(size_t));
+    data->indeces = realloc(data->indeces, new_capacity * sizeof(size_t));
+    data->capacity = new_capacity;
+}
+
+static void symbol_data_free(SymbolData *data) {
+    free(data->rows);
+    free(data->cols);
+    free(data->indeces);
+}
+
+// before: homka_i
+// after: homka_1
+//        homka_2
+//        homka_3
+void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list) {
+    size_t *map = NULL;
+    size_t map_size = 0;
+    SymbolList new_list = symbol_list_create();
+    SymbolList old_list = *list;
+
+    for (size_t i = 0; i < list->count; i++) {
+        Symbol sym = list->symbols[i];
+
+        if (map_size == i) {
+            map_size = map_size * 2 + 1;
+            map = realloc(map, map_size * sizeof(size_t));
+        }
+
+        // just add to new list and map to it
+        if (!sym.is_indexed) {
+            map[i] = symbol_list_add_str(&new_list, sym.label, sym.is_nonterm);
+            continue;
+        }
+
+        map[i] = symbol_list_add_str(&new_list, symbol_numerate(&sym, 0), sym.is_nonterm);
+        for (size_t j = 1; j < graph->block_count; j++) {
+            char *new_label = symbol_numerate(&sym, j);
+            symbol_list_add_str(&new_list, new_label, sym.is_nonterm);
+        }
+    }
+    *list = new_list;
+
+    Rule *new_rules = NULL;
+    size_t rules_size = 0;
+    size_t rules_count = 0;
+    for (size_t i = 0; i < grammar->rules_count; i++) {
+        if (rules_size + graph->block_count + 2 >= rules_count) {
+            rules_size = rules_size * 2 + graph->block_count + 2;
+            new_rules = realloc(new_rules, rules_size * sizeof(Rule));
+        }
+
+        Rule rule = grammar->rules[i];
+        Symbol *first = rule.first == -1 ? NULL : &old_list.symbols[rule.first];
+        Symbol *second = rule.second == -1 ? NULL : &old_list.symbols[rule.second];
+        Symbol *third = rule.third == -1 ? NULL : &old_list.symbols[rule.third];
+        if (!is_rule_has_indexed_symb(rule, old_list)) {
+            new_rules[rules_count] =
+                (Rule){rule_new_index(map, first, rule.first, 0), rule_new_index(map, second, rule.second, 0),
+                       rule_new_index(map, third, rule.third, 0)};
+            rules_count++;
+            continue;
+        }
+
+        for (size_t j = 0; j < graph->block_count; j++) {
+            new_rules[rules_count] =
+                (Rule){rule_new_index(map, first, rule.first, j), rule_new_index(map, second, rule.second, j),
+                       rule_new_index(map, third, rule.third, j)};
+            rules_count++;
+        }
+    }
+    grammar->rules = new_rules;
+    grammar->rules_count = rules_count;
+
+    for (size_t i = 0; i < graph->edge_count; i++) {
+        GraphEdge *edge = &graph->edges[i];
+
+        edge->term_index = map[edge->term_index] + edge->index;
+        edge->index = 0;
+    }
+    graph->block_count = 1;
+
+    free(map);
+
+    return;
+}
+
+GrB_Matrix *get_grb_matrices_from_graph(Graph graph, SymbolList *list) {
+    explode_indices(&(Grammar){.rules = NULL, .rules_count = 0}, &graph, list);
+    SymbolData *symbol_datas = calloc(list->count, sizeof(SymbolData));
+    for (size_t i = 0; i < list->count; i++) {
+        symbol_data_init(&symbol_datas[i]);
+    }
+
+    for (size_t i = 0; i < graph.edge_count; i++) {
+        GraphEdge edge = graph.edges[i];
+        SymbolData *data = &symbol_datas[edge.term_index];
+
+        if (data->size == data->capacity) {
+            symbol_data_expand(data);
+        }
+
+        data->rows[data->size] = edge.u;
+        data->cols[data->size] = edge.v;
+        data->indeces[data->size] = edge.index;
+        data->size++;
+    }
+
+    GrB_Matrix *matrices = malloc(sizeof(GrB_Matrix) * list->count);
+    for (size_t i = 0; i < list->count; i++) {
+        SymbolData data = symbol_datas[i];
+        GrB_Index nrows = graph.node_count;
+
+        char msg[LAGRAPH_MSG_LEN];
+        MY_GRB_TRY(GrB_Matrix_new(&matrices[i], GrB_BOOL, nrows, graph.node_count));
+
+        if (data.size == 0) {
+            continue;
+        }
+
+        GrB_Scalar true_scalar;
+        MY_GRB_TRY(GrB_Scalar_new(&true_scalar, GrB_BOOL));
+        MY_GRB_TRY(GrB_Scalar_setElement_BOOL(true_scalar, true));
+        MY_GRB_TRY(GxB_Matrix_build_Scalar(matrices[i], data.rows, data.cols, true_scalar, data.size));
+        MY_GRB_TRY(GrB_free(&true_scalar));
+    }
+
+    for (size_t i = 0; i < list->count; i++) {
+        symbol_data_free(&symbol_datas[i]);
+    }
+
+    free(symbol_datas);
+
+    return matrices;
+}
+
 ParserResult parser(config_row config_i) {
     char *config_graph = strdup(config_i.graph);
     char *config_grammar = strdup(config_i.grammar);
