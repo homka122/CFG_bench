@@ -13,11 +13,6 @@
         }                                                                                                              \
     }
 
-typedef struct {
-    GrB_Matrix *matrices;
-    size_t matrices_count;
-} AdapterResult;
-
 // inner state of the adapter
 typedef struct {
     GrB_Matrix *adj_matrices;
