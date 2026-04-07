@@ -17,7 +17,8 @@
 typedef struct {
     GrB_Matrix *adj_matrices;
     GrB_Matrix *outputs;
-    grammar_t grammar;
+    LAGraph_rule_EWCNF *rules;
+    size_t rules_count;
     char msg[LAGRAPH_MSG_LEN];
     size_t symbols_amount;
     int8_t optimizations;
@@ -162,15 +163,9 @@ static GrB_Info adapter_CFL_adv_prepare(ParserResult parser_result, void *prepar
     }
     free(map);
 
-    int32_t nonterms_count = 0;
-    for (size_t i = 0; i < list.count; i++) {
-        if (list.symbols[i].is_nonterm)
-            nonterms_count++;
-    }
-
     state.adj_matrices = matrices;
-    state.grammar =
-        (grammar_t){.nonterms_count = nonterms_count, .rules_count = grammar.rules_count, .rules = rules_EWCNF};
+    state.rules = rules_EWCNF;
+    state.rules_count = grammar.rules_count;
     state.optimizations = optimizations;
 
     free(graph.edges);
@@ -194,8 +189,8 @@ static GrB_Info adapter_CFL_adv_init_outputs() {
 //
 // this should be called after adapter_CFL_adv_init_outputs
 static GrB_Info adapter_CFL_adv_run() {
-    TRY(LAGraph_CFL_reachability_adv(state.outputs, state.adj_matrices, state.symbols_amount, state.grammar.rules,
-                                     state.grammar.rules_count, state.msg, state.optimizations));
+    TRY(LAGraph_CFL_reachability_adv(state.outputs, state.adj_matrices, state.symbols_amount, state.rules,
+                                     state.rules_count, state.msg, state.optimizations));
 }
 
 // check if the result of the algorithm is valid
@@ -244,7 +239,7 @@ static GrB_Info adapter_CFL_adv_cleanup() {
         TRY(GrB_free(&state.adj_matrices[i]));
     }
     free(state.adj_matrices);
-    free(state.grammar.rules);
+    free(state.rules);
 
     return GrB_SUCCESS;
 }
