@@ -114,3 +114,38 @@ void symbol_list_swap(SymbolList *list, size_t i1, size_t i2) {
     list->symbols[i1] = list->symbols[i2];
     list->symbols[i2] = temp;
 }
+
+SymbolData symbol_data_create(void) {
+    SymbolData data = {0};
+    return data;
+}
+
+static void symbol_data_expand(SymbolData *data) {
+    size_t new_capacity = data->capacity == 0 ? 10 : data->capacity * 2;
+    data->rows = realloc(data->rows, new_capacity * sizeof(size_t));
+    data->cols = realloc(data->cols, new_capacity * sizeof(size_t));
+    data->indeces = realloc(data->indeces, new_capacity * sizeof(size_t));
+    data->capacity = new_capacity;
+}
+
+void symbol_data_add(SymbolData *data, size_t row, size_t col, size_t index) {
+    if (data->size == data->capacity) {
+        symbol_data_expand(data);
+    }
+
+    data->rows[data->size] = row;
+    data->cols[data->size] = col;
+    data->indeces[data->size] = index;
+    data->size++;
+}
+
+void symbol_data_free(SymbolData *data) {
+    free(data->rows);
+    free(data->cols);
+    free(data->indeces);
+    data->rows = NULL;
+    data->cols = NULL;
+    data->indeces = NULL;
+    data->size = 0;
+    data->capacity = 0;
+}

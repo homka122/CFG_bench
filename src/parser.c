@@ -237,37 +237,6 @@ static bool is_rule_has_indexed_symb(Rule rule, SymbolList list) {
     return first || second || third;
 }
 
-// helper structure to accumulate data for building matrices
-typedef struct {
-    size_t *rows;
-    size_t *cols;
-    size_t *indeces;
-    size_t size;
-    size_t capacity;
-} SymbolData;
-
-static void symbol_data_init(SymbolData *data) {
-    data->rows = NULL;
-    data->cols = NULL;
-    data->indeces = NULL;
-    data->size = 0;
-    data->capacity = 0;
-}
-
-static void symbol_data_expand(SymbolData *data) {
-    size_t new_capacity = data->capacity == 0 ? 10 : data->capacity * 2;
-    data->rows = realloc(data->rows, new_capacity * sizeof(size_t));
-    data->cols = realloc(data->cols, new_capacity * sizeof(size_t));
-    data->indeces = realloc(data->indeces, new_capacity * sizeof(size_t));
-    data->capacity = new_capacity;
-}
-
-static void symbol_data_free(SymbolData *data) {
-    free(data->rows);
-    free(data->cols);
-    free(data->indeces);
-}
-
 // before: homka_i
 // after: homka_1
 //        homka_2
@@ -348,21 +317,12 @@ GrB_Matrix *get_grb_matrices_from_graph(Graph graph, SymbolList *list) {
     explode_indices(&(Grammar){.rules = NULL, .rules_count = 0}, &graph, list);
     SymbolData *symbol_datas = calloc(list->count, sizeof(SymbolData));
     for (size_t i = 0; i < list->count; i++) {
-        symbol_data_init(&symbol_datas[i]);
+        symbol_datas[i] = symbol_data_create();
     }
 
     for (size_t i = 0; i < graph.edge_count; i++) {
         GraphEdge edge = graph.edges[i];
-        SymbolData *data = &symbol_datas[edge.term_index];
-
-        if (data->size == data->capacity) {
-            symbol_data_expand(data);
-        }
-
-        data->rows[data->size] = edge.u;
-        data->cols[data->size] = edge.v;
-        data->indeces[data->size] = edge.index;
-        data->size++;
+        symbol_data_add(&symbol_datas[edge.term_index], edge.u, edge.v, edge.index);
     }
 
     GrB_Matrix *matrices = malloc(sizeof(GrB_Matrix) * list->count);

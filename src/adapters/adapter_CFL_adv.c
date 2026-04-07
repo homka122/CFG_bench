@@ -26,55 +26,15 @@ typedef struct {
 
 static state_t state;
 
-// helper structure to accumulate data for building matrices
-typedef struct {
-    size_t *rows;
-    size_t *cols;
-    size_t *indeces;
-    size_t size;
-    size_t capacity;
-} SymbolData;
-
-static void symbol_data_init(SymbolData *data) {
-    data->rows = NULL;
-    data->cols = NULL;
-    data->indeces = NULL;
-    data->size = 0;
-    data->capacity = 0;
-}
-
-static void symbol_data_expand(SymbolData *data) {
-    size_t new_capacity = data->capacity == 0 ? 10 : data->capacity * 2;
-    data->rows = realloc(data->rows, new_capacity * sizeof(size_t));
-    data->cols = realloc(data->cols, new_capacity * sizeof(size_t));
-    data->indeces = realloc(data->indeces, new_capacity * sizeof(size_t));
-    data->capacity = new_capacity;
-}
-
-static void symbol_data_free(SymbolData *data) {
-    free(data->rows);
-    free(data->cols);
-    free(data->indeces);
-}
-
 static GrB_Matrix *get_matrices_from_graph(Graph graph, size_t *map_base_indecies, size_t symbols_amount) {
     SymbolData *symbol_datas = calloc(symbols_amount, sizeof(SymbolData));
     for (size_t i = 0; i < symbols_amount; i++) {
-        symbol_data_init(&symbol_datas[i]);
+        symbol_datas[i] = symbol_data_create();
     }
 
     for (size_t i = 0; i < graph.edge_count; i++) {
         GraphEdge edge = graph.edges[i];
-        SymbolData *data = &symbol_datas[map_base_indecies[edge.term_index] + edge.index];
-
-        if (data->size == data->capacity) {
-            symbol_data_expand(data);
-        }
-
-        data->rows[data->size] = edge.u;
-        data->cols[data->size] = edge.v;
-        data->indeces[data->size] = edge.index;
-        data->size++;
+        symbol_data_add(&symbol_datas[map_base_indecies[edge.term_index] + edge.index], edge.u, edge.v, edge.index);
     }
 
     GrB_Matrix *matrices = malloc(sizeof(GrB_Matrix) * symbols_amount);

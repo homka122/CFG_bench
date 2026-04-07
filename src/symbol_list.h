@@ -15,6 +15,15 @@ typedef struct {
     size_t capacity;
 } SymbolList;
 
+// helper structure to accumulate data for building matrices
+typedef struct {
+    size_t *rows;
+    size_t *cols;
+    size_t *indeces;
+    size_t size;
+    size_t capacity;
+} SymbolData;
+
 Symbol symbol_create(char *str);
 void symbol_free(Symbol sym);
 
@@ -36,3 +45,8 @@ int symbol_list_get_index_str(SymbolList *list, char *str);
 int symbol_list_add_str(SymbolList *list, char *str, bool is_nonterm);
 void symbol_list_swap(SymbolList *list, size_t i1, size_t i2);
 void symbol_list_free(SymbolList *list);
+
+// operations with SymbolData
+SymbolData symbol_data_create(void);
+void symbol_data_add(SymbolData *data, size_t row, size_t col, size_t index);
+void symbol_data_free(SymbolData *data);
