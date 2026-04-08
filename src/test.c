@@ -1,4 +1,5 @@
 #include "adapter_CFL_adv.h"
+#include "adapter_CFL.h"
 #include "parser.h"
 #include <GraphBLAS.h>
 #include <LAGraph.h>
@@ -130,8 +131,7 @@ int main(int argc, char **argv) {
             if (strcmp(algo, "CFL_adv") == 0) {
                 adapter = adapter_CFL_adv_get_methods();
             } else if (strcmp(algo, "CFL") == 0) {
-                fprintf(stderr, "CFL algorithm is not implemented yet\n");
-                exit(EXIT_FAILURE);
+                adapter = adapter_CFL_get_methods();
             } else {
                 fprintf(stderr, "Unknown algorithm: %s\n", algo);
                 exit(EXIT_FAILURE);

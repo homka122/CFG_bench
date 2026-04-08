@@ -109,6 +109,22 @@ int symbol_list_add_str(SymbolList *list, char *str, bool is_nonterm) {
     return list->count - 1;
 }
 
+void symbol_list_split(SymbolList *list, SymbolList *terms, SymbolList *nonterms) {
+    if (terms->count != 0 || nonterms->count != 0) {
+        fprintf(stderr, "symbol_list_split: terms and nonterms lists should be empty\n");
+        exit(-1);
+    }
+    
+    for (size_t i = 0; i < list->count; i++) {
+        Symbol sym = list->symbols[i];
+        if (sym.is_nonterm) {
+            symbol_list_add_str(nonterms, sym.label, true);
+        } else {
+            symbol_list_add_str(terms, sym.label, false);
+        }
+    }
+}
+
 void symbol_list_swap(SymbolList *list, size_t i1, size_t i2) {
     Symbol temp = list->symbols[i1];
     list->symbols[i1] = list->symbols[i2];

@@ -46,6 +46,10 @@ int symbol_list_add_str(SymbolList *list, char *str, bool is_nonterm);
 void symbol_list_swap(SymbolList *list, size_t i1, size_t i2);
 void symbol_list_free(SymbolList *list);
 
+// split SymbolList into two lists: one with terminal symbols and another with nonterminal symbols
+// numerated from zero in order of occurrence in original list
+void symbol_list_split(SymbolList *list, SymbolList *terms, SymbolList *nonterms);
+
 // operations with SymbolData
 SymbolData symbol_data_create(void);
 void symbol_data_add(SymbolData *data, size_t row, size_t col, size_t index);

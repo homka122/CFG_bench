@@ -30,6 +30,33 @@ void grammar_print(Grammar grammar, SymbolList list) {
     fflush(stdout);
 }
 
+void grammar_print_splited(Grammar grammar, SymbolList nonterms, SymbolList terms) {
+    printf("Grammar:\n");
+
+    printf("Start nonterm: %s\n", nonterms.symbols[grammar.start_nonterm].label);
+
+    for (size_t i = 0; i < grammar.rules_count; i++) {
+        int first = grammar.rules[i].first;
+        int second = grammar.rules[i].second;
+        int third = grammar.rules[i].third;
+
+        if (third != -1) {
+            printf("%s -> %s %s\n", nonterms.symbols[first].label, nonterms.symbols[second].label, nonterms.symbols[third].label);
+            continue;
+        }
+
+        if (second != -1) {
+            printf("%s -> %s\n", nonterms.symbols[first].label, terms.symbols[second].label);
+            continue;
+        }
+
+        printf("%s ->\n", nonterms.symbols[first].label);
+    }
+
+    printf("\n");
+    fflush(stdout);
+}
+
 void grammar_add_rule(Grammar *grammar, int first, int second, int third) {
     if (grammar->rules_count == grammar->rules_capacity) {
         grammar->rules_capacity = grammar->rules_capacity * 2 + 1;
@@ -188,4 +215,30 @@ void grammar_to_WCNF(Grammar *grammar, SymbolList *list) {
     }
 
     free(terms_set);
+}
+
+void grammar_split_terms_nonterms(Grammar *grammar, SymbolList *list, SymbolList *terms, SymbolList *nonterms) {
+    symbol_list_split(list, terms, nonterms);
+
+    for (size_t i = 0; i < grammar->rules_count; i++) {
+        grammar->rules[i].first = symbol_list_get_index_str(nonterms, list->symbols[grammar->rules[i].first].label);
+
+        if (grammar->rules[i].second != -1 && grammar->rules[i].third != -1) {
+            // N -> A B
+            grammar->rules[i].second =
+                symbol_list_get_index_str(nonterms, list->symbols[grammar->rules[i].second].label);
+            grammar->rules[i].third = symbol_list_get_index_str(nonterms, list->symbols[grammar->rules[i].third].label);
+        } else if (grammar->rules[i].second != -1 && grammar->rules[i].third == -1) {
+            // N -> t
+            grammar->rules[i].second = symbol_list_get_index_str(terms, list->symbols[grammar->rules[i].second].label);
+        } else if (grammar->rules[i].second == -1 && grammar->rules[i].third == -1) {
+            // N -> eps
+            continue;
+        } else {
+            fprintf(stderr, "\x1B[31m[ERROR]\033[0m grammar is not in WCNF format\n");
+            exit(-1);
+        }
+    }
+
+    grammar->start_nonterm = symbol_list_get_index_str(nonterms, list->symbols[grammar->start_nonterm].label);
 }
