@@ -27,6 +27,7 @@ void grammar_print(Grammar grammar, SymbolList list) {
     }
 
     printf("\n");
+    fflush(stdout);
 }
 
 void grammar_add_rule(Grammar *grammar, int first, int second, int third) {
@@ -65,7 +66,7 @@ Grammar process_grammar(FILE *grammar_file, SymbolList *symbol_list) {
         int first_symbol = symbol_list_add_str(symbol_list, first, true);
         int second_symbol = second ? symbol_list_add_str(symbol_list, second, false) : -1;
         int third_symbol = third ? symbol_list_add_str(symbol_list, third, false) : -1;
-        
+
         grammar_add_rule(&result, first_symbol, second_symbol, third_symbol);
     }
 
@@ -99,4 +100,92 @@ void grammar_swap_symbols(Grammar *grammar, int sym1, int sym2) {
             grammar->rules[i].third = sym1;
         }
     }
+}
+
+// convert rules M -> N t | M -> t N | M -> N to WCNF format
+void grammar_to_WCNF(Grammar *grammar, SymbolList *list) {
+// Code from CFPQ_PyAlgo by Ilya Muravyov
+#define NONTERM_LABEL "NON_TERMINAL#"
+    char *non_term_prefix = NONTERM_LABEL;
+    char *eps_non_term_label = NONTERM_LABEL "EPS";
+    bool is_eps_non_term_added = false;
+
+    size_t terms_set_size = 0;
+    size_t terms_set_capacity = 16;
+    int *terms_set = malloc(sizeof(int) * terms_set_capacity);
+
+    for (int i = 0; i < grammar->rules_count; ++i) {
+        Rule *r = &grammar->rules[i];
+        if (r->second == -1 && r->third == -1) {
+            continue;
+        } else if (r->second != -1 && r->third == -1) {
+            if (!list->symbols[r->second].is_nonterm) {
+                continue;
+            }
+
+            is_eps_non_term_added = true;
+            int eps_index = symbol_list_add_str(list, eps_non_term_label, true);
+            r->third = eps_index;
+        } else if (r->second != -1 && r->third != -1) {
+            if (list->symbols[r->second].is_nonterm && list->symbols[r->third].is_nonterm) {
+                continue;
+            }
+
+            if (terms_set_size == terms_set_capacity) {
+                terms_set_capacity *= 2;
+                terms_set = realloc(terms_set, sizeof(int) * terms_set_capacity);
+            }
+
+            if (!list->symbols[r->second].is_nonterm && !list->symbols[r->third].is_nonterm) {
+                char *term_nonterm_label1 =
+                    malloc(strlen(non_term_prefix) + strlen(list->symbols[r->second].label) + 1);
+                sprintf(term_nonterm_label1, "%s%s", non_term_prefix, list->symbols[r->second].label);
+                int term_nonterm_index1 = symbol_list_add_str(list, term_nonterm_label1, true);
+                free(term_nonterm_label1);
+
+                char *term_nonterm_label2 = malloc(strlen(non_term_prefix) + strlen(list->symbols[r->third].label) + 1);
+                sprintf(term_nonterm_label2, "%s%s", non_term_prefix, list->symbols[r->third].label);
+                int term_nonterm_index2 = symbol_list_add_str(list, term_nonterm_label2, true);
+                free(term_nonterm_label2);
+
+                terms_set[terms_set_size++] = r->second;
+                terms_set[terms_set_size++] = r->third;
+                r->second = term_nonterm_index1;
+                r->third = term_nonterm_index2;
+                continue;
+            }
+
+            int *term_index;
+            if (!list->symbols[r->second].is_nonterm) {
+                term_index = &r->second;
+            } else {
+                term_index = &r->third;
+            }
+
+            char *term_nonterm_label = malloc(strlen(non_term_prefix) + strlen(list->symbols[*term_index].label) + 1);
+            sprintf(term_nonterm_label, "%s%s", non_term_prefix, list->symbols[*term_index].label);
+            int term_nonterm_index = symbol_list_add_str(list, term_nonterm_label, true);
+            free(term_nonterm_label);
+
+            terms_set[terms_set_size++] = *term_index;
+            *term_index = term_nonterm_index;
+        }
+    }
+
+    if (is_eps_non_term_added) {
+        int eps_index = symbol_list_add_str(list, eps_non_term_label, true);
+        grammar_add_rule(grammar, eps_index, -1, -1);
+    }
+
+    for (size_t i = 0; i < terms_set_size; i++) {
+        int term_index = terms_set[i];
+        char *term_nonterm_label = malloc(strlen(non_term_prefix) + strlen(list->symbols[term_index].label) + 1);
+        sprintf(term_nonterm_label, "%s%s", non_term_prefix, list->symbols[term_index].label);
+        int term_nonterm_index = symbol_list_add_str(list, term_nonterm_label, true);
+        free(term_nonterm_label);
+
+        grammar_add_rule(grammar, term_nonterm_index, term_index, -1);
+    }
+
+    free(terms_set);
 }
