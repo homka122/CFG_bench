@@ -1,5 +1,5 @@
-#include "adapter_CFL_adv.h"
 #include "adapter_CFL.h"
+#include "adapter_CFL_adv.h"
 #include "parser.h"
 #include <GraphBLAS.h>
 #include <LAGraph.h>

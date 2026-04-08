@@ -41,7 +41,8 @@ void grammar_print_splited(Grammar grammar, SymbolList nonterms, SymbolList term
         int third = grammar.rules[i].third;
 
         if (third != -1) {
-            printf("%s -> %s %s\n", nonterms.symbols[first].label, nonterms.symbols[second].label, nonterms.symbols[third].label);
+            printf("%s -> %s %s\n", nonterms.symbols[first].label, nonterms.symbols[second].label,
+                   nonterms.symbols[third].label);
             continue;
         }
 

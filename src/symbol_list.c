@@ -114,7 +114,7 @@ void symbol_list_split(SymbolList *list, SymbolList *terms, SymbolList *nonterms
         fprintf(stderr, "symbol_list_split: terms and nonterms lists should be empty\n");
         exit(-1);
     }
-    
+
     for (size_t i = 0; i < list->count; i++) {
         Symbol sym = list->symbols[i];
         if (sym.is_nonterm) {

@@ -156,9 +156,7 @@ static void explode_indices_CFL(Grammar *grammar, Graph *graph, SymbolList *nont
             }
 
             for (size_t j = 0; j < graph->block_count; j++) {
-                new_rules[rules_count] = (Rule){rule_new_index(map_nonterms, first, rule.first, j),
-                                                -1,
-                                                -1};
+                new_rules[rules_count] = (Rule){rule_new_index(map_nonterms, first, rule.first, j), -1, -1};
                 rules_count++;
             }
         }
