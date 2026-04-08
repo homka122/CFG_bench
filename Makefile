@@ -76,3 +76,12 @@ ${LIB_FLAGS} ${INCLUDE_FLAGS} \
 
 convert: convert.c
 	gcc convert.c -o convert -Wextra -Wall -pedantic && time ./convert
+
+# Code formatting with clang-format
+FORMAT_SOURCES = src/*.c src/*.h src/adapters/*.c src/adapters/*.h
+
+format:
+	clang-format -i $(FORMAT_SOURCES)
+
+format-check:
+	clang-format --dry-run -Werror $(FORMAT_SOURCES)

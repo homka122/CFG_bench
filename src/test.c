@@ -41,8 +41,6 @@ grammar_t grammar = {0, 0, NULL};
 char msg[LAGRAPH_MSG_LEN];
 size_t symbols_amount = 0;
 
-
-
 void print_rules(Grammar grammar, SymbolList list) {
     for (size_t i = 0; i < grammar.rules_count; i++) {
         Rule rule = grammar.rules[i];

@@ -59,7 +59,6 @@ size_t get_text_lines(char *text, char ***lines_arg) {
     return lines_count;
 }
 
-
 Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
     if (symbol_list == NULL) {
         fprintf(stderr, "\x1B[31m[ERROR]\033[0m symbol_list is NULL\n");
