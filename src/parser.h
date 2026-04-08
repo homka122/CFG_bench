@@ -1,5 +1,6 @@
 #pragma once
 
+#include "grammar.h"
 #include "symbol_list.h"
 #include <LAGraph.h>
 #include <LAGraphX.h>
@@ -34,18 +35,6 @@ typedef struct {
     size_t rules_count;
     LAGraph_rule_EWCNF *rules;
 } grammar_t;
-
-typedef struct {
-    int first;
-    int second;
-    int third;
-} Rule;
-
-typedef struct {
-    int start_nonterm;
-    Rule *rules;
-    size_t rules_count;
-} Grammar;
 
 // Edge is a tuple (u, v, a, index)
 // "term_index" is index of terminal in symbol_list

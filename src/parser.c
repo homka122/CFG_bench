@@ -10,13 +10,6 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-typedef struct {
-    int lhs;
-    int rhs1;
-    int rhs2;
-    int index;
-} ProductionRule;
-
 char *read_entire_file(char *path) {
 
     FILE *file = fopen(path, "rb");
@@ -38,32 +31,6 @@ char *read_entire_file(char *path) {
     fclose(file);
 
     return buffer;
-}
-
-void grammar_print(Grammar grammar, SymbolList list) {
-    printf("Grammar:\n");
-
-    printf("Start nonterm: %s\n", list.symbols[grammar.start_nonterm].label);
-
-    for (size_t i = 0; i < grammar.rules_count; i++) {
-        int first = grammar.rules[i].first;
-        int second = grammar.rules[i].second;
-        int third = grammar.rules[i].third;
-
-        if (third != -1) {
-            printf("%s -> %s %s\n", list.symbols[first].label, list.symbols[second].label, list.symbols[third].label);
-            continue;
-        }
-
-        if (second != -1) {
-            printf("%s -> %s\n", list.symbols[first].label, list.symbols[second].label);
-            continue;
-        }
-
-        printf("%s ->\n", list.symbols[first].label);
-    }
-
-    printf("\n");
 }
 
 size_t get_text_lines(char *text, char ***lines_arg) {
@@ -92,73 +59,6 @@ size_t get_text_lines(char *text, char ***lines_arg) {
     return lines_count;
 }
 
-// TODO: if there is no Count line
-Grammar process_grammar(FILE *grammar_file, SymbolList *symbol_list) {
-    size_t rules_count = 0;
-    size_t rules_capacity = 1024;
-    Rule *rules = calloc(rules_capacity, sizeof(Rule));
-
-    int start_nonterm = -1;
-    char line[1024];
-
-    while (fgets(line, sizeof(line), grammar_file)) {
-        if (line[0] == '\n') {
-            continue;
-        }
-
-        if (rules_count == rules_capacity) {
-            rules_capacity *= 2;
-            rules = realloc(rules, rules_capacity * sizeof(Rule));
-        }
-
-        char *first = strtok(line, " \t\n");
-        char *second = strtok(NULL, " \t\n");
-        char *third = strtok(NULL, " \t\n");
-
-        if (strcmp(first, "Count:") == 0) {
-            fgets(line, sizeof(line), grammar_file);
-            char *first = strtok(line, " \t\n");
-            start_nonterm = symbol_list_add_str(symbol_list, first, true);
-
-            break;
-        }
-
-        int first_symbol = symbol_list_add_str(symbol_list, first, true);
-        int second_symbol = second ? symbol_list_add_str(symbol_list, second, false) : -1;
-        int third_symbol = third ? symbol_list_add_str(symbol_list, third, false) : -1;
-
-        rules[rules_count++] = (Rule){first_symbol, second_symbol, third_symbol};
-    }
-
-    if (start_nonterm == -1) {
-        fprintf(stderr, "\x1B[31m[ERROR]\033[0m no start nonterminal in grammar file\n");
-        exit(-1);
-    }
-
-    return (Grammar){start_nonterm, rules, rules_count};
-}
-
-void grammar_swap_symbols(Grammar *grammar, int sym1, int sym2) {
-    for (size_t i = 0; i < grammar->rules_count; i++) {
-        if (grammar->rules[i].first == sym1) {
-            grammar->rules[i].first = sym2;
-        } else if (grammar->rules[i].first == sym2) {
-            grammar->rules[i].first = sym1;
-        }
-
-        if (grammar->rules[i].second == sym1) {
-            grammar->rules[i].second = sym2;
-        } else if (grammar->rules[i].second == sym2) {
-            grammar->rules[i].second = sym1;
-        }
-
-        if (grammar->rules[i].third == sym1) {
-            grammar->rules[i].third = sym2;
-        } else if (grammar->rules[i].third == sym2) {
-            grammar->rules[i].third = sym1;
-        }
-    }
-}
 
 Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
     if (symbol_list == NULL) {
