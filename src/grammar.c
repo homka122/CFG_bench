@@ -74,6 +74,8 @@ Grammar process_grammar(FILE *grammar_file, SymbolList *symbol_list) {
         exit(-1);
     }
 
+    result.start_nonterm = start_nonterm;
+
     return result;
 }
 
