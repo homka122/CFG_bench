@@ -25,6 +25,7 @@ typedef struct {
     size_t rules_count;
     size_t terms_count;
     size_t nonterms_count;
+    size_t graph_size;
     char msg[LAGRAPH_MSG_LEN];
 } state_t;
 
@@ -40,14 +41,14 @@ static GrB_Info adapter_CFL_setup() { TRY(LAGr_Init(GrB_NONBLOCKING, malloc, NUL
 // adapter_CFL_prepare should be called just once for each config
 static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_data) {
     return adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count, &state.nonterms_count,
-                                      &state.rules, &state.rules_count);
+                                      &state.rules, &state.rules_count, &state.graph_size);
 }
 
 // initialize output matrices
 //
 // this should be called before each run of the algorithm
 static GrB_Info adapter_CFL_init_outputs() {
-    TRY(adapter_CFL_init_outputs_common(&state.outputs, state.nonterms_count, state.msg));
+    TRY(adapter_CFL_init_outputs_common(&state.outputs, state.nonterms_count, state.graph_size, state.msg));
 }
 
 // run the algorithm

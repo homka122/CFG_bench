@@ -22,6 +22,7 @@ typedef struct {
     size_t rules_count;
     char msg[LAGRAPH_MSG_LEN];
     size_t symbols_amount;
+    size_t graph_size;
     int8_t optimizations;
 } state_t;
 
@@ -128,6 +129,7 @@ static GrB_Info adapter_CFL_adv_prepare(ParserResult parser_result, void *prepar
     state.rules = rules_EWCNF;
     state.rules_count = grammar.rules_count;
     state.optimizations = optimizations;
+    state.graph_size = graph.node_count;
 
     free(graph.edges);
     free(grammar.rules);
@@ -143,7 +145,7 @@ static GrB_Info adapter_CFL_adv_prepare(ParserResult parser_result, void *prepar
 //
 // this should be called before each run of the algorithm
 static GrB_Info adapter_CFL_adv_init_outputs() {
-    TRY(adapter_CFL_init_outputs_common(&state.outputs, state.symbols_amount, state.msg));
+    TRY(adapter_CFL_init_outputs_common(&state.outputs, state.symbols_amount, state.graph_size, state.msg));
 }
 
 // run the algorithm

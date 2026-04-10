@@ -1,5 +1,14 @@
 #include "adapter_CFL_common.h"
 
+#define TRY(GrB_method)                                                                                                \
+    {                                                                                                                  \
+        GrB_Info LG_GrB_Info = GrB_method;                                                                             \
+        if (LG_GrB_Info < GrB_SUCCESS) {                                                                               \
+            fprintf(stderr, "LAGraph failure (file %s, line %d): (%d) \n", __FILE__, __LINE__, LG_GrB_Info);           \
+            return (LG_GrB_Info);                                                                                      \
+        }                                                                                                              \
+    }
+
 static int rule_new_index(size_t *map, Symbol *sym, int index, size_t offset) {
     if (index == -1) {
         return -1;
@@ -149,7 +158,7 @@ static void explode_indices_CFL(Grammar *grammar, Graph *graph, SymbolList *nont
 }
 
 GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj_matrices, size_t *terms_count,
-                                    size_t *nonterms_count, LAGraph_rule_WCNF **rules, size_t *rules_count) {
+                                    size_t *nonterms_count, LAGraph_rule_WCNF **rules, size_t *rules_count, size_t *graph_size) {
     Grammar grammar = parser_result.grammar;
     Graph graph = parser_result.graph;
     SymbolList list = parser_result.symbols;
@@ -210,6 +219,7 @@ GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj
     *nonterms_count = nonterms.count;
     *rules = rules_WCNF;
     *rules_count = grammar.rules_count;
+    *graph_size = graph.node_count;
 
     free(graph.edges);
     free(grammar.rules);
@@ -221,16 +231,19 @@ GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj
     return GrB_SUCCESS;
 }
 
-GrB_Info adapter_CFL_init_outputs_common(GrB_Matrix **outputs, size_t nonterms_count, char *msg) {
-    return LAGraph_Calloc((void **)outputs, nonterms_count, sizeof(GrB_Matrix), msg);
+GrB_Info adapter_CFL_init_outputs_common(GrB_Matrix **outputs, size_t nonterms_count, size_t graph_size, char *msg) {
+    TRY(LAGraph_Calloc((void **)outputs, nonterms_count, sizeof(GrB_Matrix), msg));
+
+    for (size_t i = 0; i < nonterms_count; i++) {
+        TRY(GrB_Matrix_new(&(*outputs)[i], GrB_BOOL, graph_size, graph_size));
+    }
+
+    return GrB_SUCCESS;
 }
 
 GrB_Info adapter_CFL_get_result_common(GrB_Matrix output, size_t *result) {
     GrB_Index nnz = 0;
-    GrB_Info info = GrB_Matrix_nvals(&nnz, output);
-    if (info != GrB_SUCCESS) {
-        return info;
-    }
+    TRY(GrB_Matrix_nvals(&nnz, output));
 
     *result = nnz;
     return GrB_SUCCESS;
@@ -238,10 +251,7 @@ GrB_Info adapter_CFL_get_result_common(GrB_Matrix output, size_t *result) {
 
 GrB_Info adapter_CFL_is_result_valid_common(GrB_Matrix output, size_t valid_result, bool *is_valid) {
     size_t result = 0;
-    GrB_Info info = adapter_CFL_get_result_common(output, &result);
-    if (info != GrB_SUCCESS) {
-        return info;
-    }
+    TRY(adapter_CFL_get_result_common(output, &result));
 
     *is_valid = result == valid_result;
     return GrB_SUCCESS;
