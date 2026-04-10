@@ -1,5 +1,6 @@
 #include "adapter_CFL.h"
 #include "adapter_CFL_adv.h"
+#include "adapter_CFL_all_path.h"
 #include "adapter_CFL_single_path.h"
 #include "parser.h"
 #include <GraphBLAS.h>
@@ -135,6 +136,8 @@ int main(int argc, char **argv) {
                 adapter = adapter_CFL_get_methods();
             } else if (strcmp(algo, "CFL_single_path") == 0) {
                 adapter = adapter_CFL_single_path_get_methods();
+            } else if (strcmp(algo, "CFL_all_path") == 0) {
+                adapter = adapter_CFL_all_paths_get_methods();
             } else {
                 fprintf(stderr, "Unknown algorithm: %s\n", algo);
                 exit(EXIT_FAILURE);
