@@ -298,9 +298,10 @@ ParserResult parser(config_row config_i) {
                           .graph = graph};
 }
 
-void get_configs_from_file(char *path, size_t *configs_count, config_row *configs) {
+void get_configs_from_file(char *path, size_t *configs_count, config_row *configs, char **text_p) {
     *configs_count = 0;
     char *config_text = read_entire_file(path);
+    *text_p = config_text;
 
     char *line = config_text;
     bool last = false;

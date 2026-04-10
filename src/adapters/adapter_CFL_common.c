@@ -142,6 +142,7 @@ static void explode_indices_CFL(Grammar *grammar, Graph *graph, SymbolList *nont
             }
         }
     }
+    free(grammar->rules);
     grammar->rules = new_rules;
     grammar->rules_count = rules_count;
 
@@ -155,6 +156,8 @@ static void explode_indices_CFL(Grammar *grammar, Graph *graph, SymbolList *nont
 
     free(map_terms);
     free(map_nonterms);
+    symbol_list_free(&old_list_terms);
+    symbol_list_free(&old_list_nonterms);
 }
 
 GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj_matrices, size_t *terms_count,
@@ -223,10 +226,9 @@ GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj
 
     free(graph.edges);
     free(grammar.rules);
-    for (size_t i = 0; i < list.count; i++) {
-        free(list.symbols[i].label);
-    }
-    free(list.symbols);
+    symbol_list_free(&terms);
+    symbol_list_free(&nonterms);
+    symbol_list_free(&list);
 
     return GrB_SUCCESS;
 }
@@ -234,9 +236,9 @@ GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj
 GrB_Info adapter_CFL_init_outputs_common(GrB_Matrix **outputs, size_t nonterms_count, size_t graph_size, char *msg) {
     TRY(LAGraph_Calloc((void **)outputs, nonterms_count, sizeof(GrB_Matrix), msg));
 
-    for (size_t i = 0; i < nonterms_count; i++) {
-        TRY(GrB_Matrix_new(&(*outputs)[i], GrB_BOOL, graph_size, graph_size));
-    }
+    // for (size_t i = 0; i < nonterms_count; i++) {
+    //     TRY(GrB_Matrix_new(&(*outputs)[i], GrB_BOOL, graph_size, graph_size));
+    // }
 
     return GrB_SUCCESS;
 }

@@ -93,4 +93,4 @@ void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list);
 ParserResult parser(config_row config_i);
 
 void grammar_print(Grammar grammar, SymbolList list);
-void get_configs_from_file(char *path, size_t *configs_count, config_row *configs);
+void get_configs_from_file(char *path, size_t *configs_count, config_row *configs, char **text_p);

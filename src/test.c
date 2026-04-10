@@ -93,7 +93,7 @@ void print_list(SymbolList list, size_t *map) {
 #define OPT_BLOCK (1 << 3)
 
 int main(int argc, char **argv) {
-    GrB_Info retval;
+    GrB_Info retval = GrB_SUCCESS;
     int8_t optimizations = 0;
     int opt;
     bool is_test = false;
@@ -163,7 +163,8 @@ int main(int argc, char **argv) {
 
     size_t configs_count = 0;
     config_row *configs = calloc(1000, sizeof(config_row));
-    get_configs_from_file(input_config, &configs_count, configs);
+    char *config_text;
+    get_configs_from_file(input_config, &configs_count, configs, &config_text);
 
     printf("Start bench\n");
     fflush(stdout);
@@ -244,6 +245,7 @@ int main(int argc, char **argv) {
     }
 
     free(configs);
+    free(config_text);
     TRY(adapter.teardown());
     return 0;
 }
