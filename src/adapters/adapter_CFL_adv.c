@@ -1,6 +1,7 @@
 #include "adapter_CFL_adv.h"
 #include "GraphBLAS.h"
 #include "LAGraph.h"
+#include "adapter_CFL_common.h"
 #include "parser.h"
 
 #define TRY(GrB_method)                                                                                                \
@@ -142,7 +143,7 @@ static GrB_Info adapter_CFL_adv_prepare(ParserResult parser_result, void *prepar
 //
 // this should be called before each run of the algorithm
 static GrB_Info adapter_CFL_adv_init_outputs() {
-    TRY(LAGraph_Calloc((void **)&state.outputs, state.symbols_amount, sizeof(GrB_Matrix), state.msg));
+    TRY(adapter_CFL_init_outputs_common(&state.outputs, state.symbols_amount, state.msg));
 }
 
 // run the algorithm
@@ -157,33 +158,23 @@ static GrB_Info adapter_CFL_adv_run() {
 //
 // TODO: now check only count of reachibility pairs, make this more generic for other adapters
 static bool adapter_CFL_adv_is_result_valid(size_t valid_result) {
-    GrB_Index nnz = 0;
-    TRY(GrB_Matrix_nvals(&nnz, state.outputs[0]));
-    return nnz == valid_result;
+    bool is_valid = false;
+    TRY(adapter_CFL_is_result_valid_common(state.outputs[0], valid_result, &is_valid));
+    return is_valid;
 }
 
 // TODO: now this is the same as adapter_CFL_adv_is_result_valid, make this more generic for other adapters
 static size_t adapter_CFL_adv_get_result() {
-    GrB_Index nnz = 0;
-    TRY(GrB_Matrix_nvals(&nnz, state.outputs[0]));
-    return nnz;
+    size_t result = 0;
+    TRY(adapter_CFL_get_result_common(state.outputs[0], &result));
+    return result;
 }
 
 // free output matrices
 //
 // this should be called after each run of the algorithm
 static GrB_Info adapter_CFL_adv_free_outputs() {
-    if (state.outputs == NULL) {
-        return GrB_SUCCESS;
-    }
-
-    for (size_t i = 0; i < state.symbols_amount; i++) {
-        if (state.outputs[i] == NULL)
-            continue;
-
-        TRY(GrB_free(&state.outputs[i]));
-    }
-    TRY(LAGraph_Free((void **)&state.outputs, state.msg));
+    TRY(adapter_CFL_free_outputs_common(&state.outputs, state.symbols_amount, state.msg));
 
     return GrB_SUCCESS;
 }
@@ -192,14 +183,7 @@ static GrB_Info adapter_CFL_adv_free_outputs() {
 //
 // this should be called after all runs of the algorithm for the given config
 static GrB_Info adapter_CFL_adv_cleanup() {
-    for (size_t i = 0; i < state.symbols_amount; i++) {
-        if (state.adj_matrices[i] == NULL)
-            continue;
-
-        TRY(GrB_free(&state.adj_matrices[i]));
-    }
-    free(state.adj_matrices);
-    free(state.rules);
+    TRY(adapter_CFL_cleanup_common(&state.adj_matrices, state.symbols_amount, (void **)&state.rules));
 
     return GrB_SUCCESS;
 }
