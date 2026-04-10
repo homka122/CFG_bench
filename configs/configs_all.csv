@@ -1,0 +1,13 @@
+data/graphs/c_alias/init.g,data/grammars/c_alias.cnf,3783769
+data/graphs/c_alias/mm.g,data/grammars/c_alias.cnf,3990305
+data/graphs/c_alias/ipc.g,data/grammars/c_alias.cnf,5249389
+data/graphs/java/lusearch.g,data/grammars/java_points_to.cnf,9242
+data/graphs/java/sunflow.g,data/grammars/java_points_to.cnf,16354
+data/graphs/java/gson.g,data/grammars/java_points_to.cnf,56325
+data/graphs/java/commons_io.g,data/grammars/java_points_to.cnf,24020
+data/graphs/java/luindex.g,data/grammars/java_points_to.cnf,9677
+data/graphs/rdf/go_hierarchy.g,data/grammars/nested_parentheses_subClassOf_type.cnf,588976
+data/graphs/rdf/eclass.g,data/grammars/nested_parentheses_subClassOf_type.cnf,90994
+data/graphs/rdf/go.g,data/grammars/nested_parentheses_subClassOf_type.cnf,640316
+data/graphs/rdf/taxonomy.g,data/grammars/nested_parentheses_subClassOf_type.cnf,151706
+data/graphs/rdf/taxonomy_hierarchy.g,data/grammars/nested_parentheses_subClassOf_type.cnf,5351657
