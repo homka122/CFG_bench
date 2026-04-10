@@ -22,9 +22,9 @@ Symbol symbol_create(char *str) {
     return result;
 }
 
-void symbol_free(Symbol sym) {
-    free(sym.label);
-    sym.label = NULL;
+void symbol_free(Symbol *sym) {
+    free(sym->label);
+    sym->label = NULL;
 }
 
 char *symbol_numerate(Symbol *sym, size_t num) {
@@ -58,7 +58,7 @@ SymbolList symbol_list_create() {
 
 void symbol_list_free(SymbolList *list) {
     for (size_t i = 0; i < list->count; i++) {
-        symbol_free(list->symbols[i]);
+        symbol_free(&list->symbols[i]);
     }
 
     free(list->symbols);

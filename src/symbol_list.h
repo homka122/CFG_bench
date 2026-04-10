@@ -25,7 +25,7 @@ typedef struct {
 } SymbolData;
 
 Symbol symbol_create(char *str);
-void symbol_free(Symbol sym);
+void symbol_free(Symbol *sym);
 
 // return new string with numeration
 // if symbol is not indexed, return its label
