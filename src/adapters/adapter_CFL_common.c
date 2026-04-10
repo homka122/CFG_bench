@@ -161,7 +161,8 @@ static void explode_indices_CFL(Grammar *grammar, Graph *graph, SymbolList *nont
 }
 
 GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj_matrices, size_t *terms_count,
-                                    size_t *nonterms_count, LAGraph_rule_WCNF **rules, size_t *rules_count, size_t *graph_size) {
+                                    size_t *nonterms_count, LAGraph_rule_WCNF **rules, size_t *rules_count,
+                                    size_t *graph_size) {
     Grammar grammar = parser_result.grammar;
     Graph graph = parser_result.graph;
     SymbolList list = parser_result.symbols;
