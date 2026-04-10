@@ -1,3 +1,5 @@
+// code from b08lsoai's CFG_Bench fork
+
 #include "GraphBLAS.h"
 #include "LAGraph.h"
 #include "adapter_CFL_adv.h"
@@ -15,6 +17,7 @@
 
 // inner state of the adapter
 typedef struct {
+    GrB_Type pi_type;
     GrB_Matrix *adj_matrices;
     GrB_Matrix *outputs;
     LAGraph_rule_WCNF *rules;
@@ -275,15 +278,14 @@ static GrB_Info adapter_CFL_init_outputs() {
 //
 // this should be called after adapter_CFL_adv_init_outputs
 static GrB_Info adapter_CFL_run() {
-    TRY(LAGraph_CFL_reachability(state.outputs, state.adj_matrices, state.terms_count, state.nonterms_count,
-                                 state.rules, state.rules_count, state.msg));
+    TRY(LAGraph_CFL_single_path(state.outputs, &state.pi_type, state.adj_matrices, state.terms_count,
+                                state.nonterms_count, state.rules, state.rules_count, state.msg));
 }
 
 // check if the result of the algorithm is valid
 //
 // TODO: now check only count of reachibility pairs, make this more generic for other adapters
 static bool adapter_CFL_is_result_valid(size_t valid_result) {
-    // TODO: combine indexed matrices if initial nonterm is indexed
     GrB_Index nnz = 0;
     TRY(GrB_Matrix_nvals(&nnz, state.outputs[0]));
     return nnz == valid_result;
@@ -291,7 +293,6 @@ static bool adapter_CFL_is_result_valid(size_t valid_result) {
 
 // TODO: now this is the same as adapter_CFL_adv_is_result_valid, make this more generic for other adapters
 static size_t adapter_CFL_get_result() {
-    // TODO: combine indexed matrices if initial nonterm is indexed
     GrB_Index nnz = 0;
     TRY(GrB_Matrix_nvals(&nnz, state.outputs[0]));
     return nnz;
@@ -301,6 +302,8 @@ static size_t adapter_CFL_get_result() {
 //
 // this should be called after each run of the algorithm
 static GrB_Info adapter_CFL_free_outputs() {
+    TRY(GrB_free(&state.pi_type));
+
     if (state.outputs == NULL) {
         return GrB_SUCCESS;
     }
@@ -309,7 +312,6 @@ static GrB_Info adapter_CFL_free_outputs() {
         if (state.outputs[i] == NULL)
             continue;
 
-        // TODO: make NULL value for outputs
         TRY(GrB_free(&state.outputs[i]));
     }
     TRY(LAGraph_Free((void **)&state.outputs, state.msg));
@@ -337,7 +339,7 @@ static GrB_Info adapter_CFL_cleanup() {
 static GrB_Info adapter_CFL_teardown() { TRY(LAGraph_Finalize(state.msg)); }
 
 // get the methods of the adapter
-AdapterMethods adapter_CFL_get_methods() {
+AdapterMethods adapter_CFL_single_path_get_methods() {
     AdapterMethods methods = {.setup = adapter_CFL_setup,
                               .teardown = adapter_CFL_teardown,
                               .init_outputs = adapter_CFL_init_outputs,
