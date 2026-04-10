@@ -12,7 +12,7 @@ digraph g {
     }
     subgraph PointsTo{
         v_0[shape=none, label = "PointsTo: "]
-        v_1[shape=doublecircle, label ="0"]
+        v_1[shape=circle, label ="0"]
         v_2[shape=circle, label ="p_i"]
         v_3[shape=circle, label ="q_i"]
         v_4[shape=doublecircle, label ="1"]
