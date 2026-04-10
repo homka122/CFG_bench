@@ -2,11 +2,13 @@
 #include "adapter_CFL_adv.h"
 #include "adapter_CFL_all_path.h"
 #include "adapter_CFL_single_path.h"
+#include "memory.h"
 #include "parser.h"
 #include <GraphBLAS.h>
 #include <LAGraph.h>
 #include <LAGraphX.h>
 #include <getopt.h>
+#include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -80,7 +82,7 @@ void print_list(SymbolList list, size_t *map) {
 #define GREEN "\033[32m" /* Green */
 
 // Number of benchmark runs on a single graph
-#define COUNT 10
+#define COUNT 2
 // If true, the first run is done without measuring time (warm-up)
 #define HOT false
 // Use your custom configuration for the benchmark (default is the xz.g graph
@@ -182,14 +184,22 @@ int main(int argc, char **argv) {
 
         bool is_hot = HOT;
 
+        size_t result = 0;
+        ssize_t max_memory_kb = 0;
         for (size_t i = 0; i < COUNT; i++) {
             TRY(adapter.init_outputs());
+
+            if (mem_peak_reset() != 0) {
+                fprintf(stderr, "Failed to reset memory peak\n");
+                exit(EXIT_FAILURE);
+            }
 
             start[i] = LAGraph_WallClockTime();
 #ifndef CI
             retval = adapter.run();
 #endif
             end[i] = LAGraph_WallClockTime();
+            max_memory_kb = mem_get_peak_kb();
 
             if (is_test) {
                 size_t result = adapter.get_result();
@@ -219,7 +229,10 @@ int main(int argc, char **argv) {
             printf("\t%.3fs", end[i] - start[i]);
             fflush(stdout);
 
+            result = adapter.get_result();
             TRY(adapter.free_outputs());
+            // in some cases free don't change memory usage, so we need to reset it manually
+            malloc_trim(0);
         }
         printf("\n");
 
@@ -234,10 +247,9 @@ int main(int argc, char **argv) {
         for (size_t i = 0; i < COUNT; i++) {
             sum += end[i] - start[i];
         }
-        size_t result = adapter.get_result();
-        printf("\tTime elapsed (avg): %.6f seconds. Result: %ld (return code "
+        printf("\tTime elapsed (avg): %.6f seconds. %zd KB max memory. Result: %ld (return code "
                "%d) (%s)\n\n",
-               sum / COUNT, result, retval, msg);
+               sum / COUNT, max_memory_kb, result, retval, msg);
 
         TRY(adapter.cleanup());
 
