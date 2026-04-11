@@ -12,11 +12,11 @@
     sudo make install
     cd ..
     ```
-2. Install **LAGraph v1.2**:
+2. Install **LAGraph** from the benchmark branch:
     ```bash
-    git clone https://github.com/GraphBLAS/LAGraph.git
+    git clone git@github.com:SparseLinearAlgebra/LAGraph.git
     cd LAGraph
-    git switch v1.2
+    git switch homka122/all_algorithms_benchmark
     make
     sudo make install
     cd ..
@@ -25,52 +25,57 @@
     ```bash
     git clone https://github.com/homka122/CFG_bench.git
     cd CFG_bench
+    gdown 12Qhc6XNXYbpPbZGp-lo30NsywFELAFhu
+    unzip CFPQ_eval.zip -d .
     make bench
+    ./build/test -c configs/configs_my.csv
     ```
+    After unpacking, the benchmark data will be available in the `data` folder.
+    Run `./build/test -h` or any other invalid flag to print the CLI help message with all available options.
 4. _(Optional)_ To use different graphs and grammars, upload the required files to the `data` folder.
 
 ## Benchmark Configuration
 
-The test configuration is set in `test.c` using three macros:
+The benchmark reads its input set from a CSV file passed with `-c`:
 
-```c
-#define COUNT 10    // Number of benchmark runs on a single graph
-#define HOT true    // If true, the first run is done without measuring time (warm-up)
-#define configs configs_my  // Use your custom configuration for the benchmark (default is the xz.g graph and vf.cnf grammar)
+```bash
+./build/test -c configs/configs_my.csv
+```
+
+Each row in the config file has this format:
+
+```text
+<graph path>,<grammar path>,<expected result>
+```
+
+Example from `configs/configs_my.csv`:
+
+```text
+data/graphs/c_alias/init.g,data/grammars/c_alias.cnf,3783769
 ```
 
 ## Adding a New Configuration
 
-To add a custom configuration for the benchmark, follow these steps:
+To add a custom benchmark configuration:
 
-1. **Prepare the Graph and Grammar Files**:  
-   Ensure that you have the graph and grammar files ready. The paths should be relative to the current directory.
+1. **Prepare the graph and grammar files**  
+   Put the required files into the `data` directory (or use existing files there).
 
-2. **Add the Configuration to the Array**:  
-   Find the appropriate configuration array (e.g., `configs_rdf`, `configs_java`, `configs_c_alias`, etc.) and add your new config. The configuration should be a string containing the path to the graph and the grammar, separated by a comma.  
-   Example:
+2. **Create a config file in `configs/` or extend an existing one**  
+   Use the existing files in `configs/` as examples, such as `configs/configs_my.csv` or `configs/configs_java.csv`.
 
-    ```c
-    char *configs_new[] = {
-        "data/graphs/new_graph.g,data/grammars/new_grammar.cnf",
-        NULL
-    };
-    ```
+3. **Add one row per benchmark case**  
+   Each row must contain the graph path, grammar path, and expected result separated by commas.
 
-3. **Update the `configs` Macro**:  
-   Modify the `configs` macro to use your new configuration array. For example, if you added a config to `configs_new`, change the line:
+   ```text
+   data/graphs/new_graph.g,data/grammars/new_grammar.cnf,12345
+   ```
 
-    ```c
-    #define configs configs_my
-    ```
+4. **Run the benchmark with your config file**  
+   Pass the file with `-c`:
 
-    to:
+   ```bash
+   ./build/test -c configs/your_config.csv
+   ```
 
-    ```c
-    #define configs configs_new
-    ```
-
-4. **Run the Benchmark**:  
-   After adding the new configuration, run the benchmark to ensure that it works correctly with your graph and grammar.
-
-Now the benchmark will use your custom configuration.
+No source code changes are required.

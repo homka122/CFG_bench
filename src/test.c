@@ -148,7 +148,19 @@ int main(int argc, char **argv) {
             }
             break;
         default:
-            fprintf(stderr, "Usage: %s [-e] [-f] [-l]\n", argv[0]);
+            fprintf(stderr,
+                    "Usage: %s [-e] [-f] [-l] [-b] [-t] -c <config file> "
+                    "[-a <algorithm>]\n"
+                    "  -e  Enable empty optimization\n"
+                    "  -f  Enable format optimization\n"
+                    "  -l  Enable lazy optimization\n"
+                    "  -b  Enable block optimization\n"
+                    "  -t  Enable test mode\n"
+                    "  -c  Path to benchmark config file\n"
+                    "  -a  Algorithm to use "
+                    "(default: CFL_adv; options: CFL_adv, CFL, "
+                    "CFL_single_path, CFL_all_path)\n",
+                    argv[0]);
             exit(EXIT_FAILURE);
         }
     }
