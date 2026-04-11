@@ -28,10 +28,10 @@
     gdown 12Qhc6XNXYbpPbZGp-lo30NsywFELAFhu
     unzip CFPQ_eval.zip -d .
     make bench
-    ./build/test -c configs/configs_my.csv
+    ./build/test -c configs/configs_my.csv -r 10 --hot
     ```
     After unpacking, the benchmark data will be available in the `data` folder.
-    Run `./build/test -h` or any other invalid flag to print the CLI help message with all available options.
+    Run `./build/test -h` to print the CLI help message with descriptions of all available options.
 4. _(Optional)_ To use different graphs and grammars, upload the required files to the `data` folder.
 
 ## Benchmark Configuration
@@ -41,6 +41,8 @@ The benchmark reads its input set from a CSV file passed with `-c`:
 ```bash
 ./build/test -c configs/configs_my.csv
 ```
+
+Use `-r` to set the number of benchmark rounds and `--hot` to enable the HOT launch warm-up run.
 
 Each row in the config file has this format:
 

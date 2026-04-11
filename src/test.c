@@ -82,10 +82,6 @@ void print_list(SymbolList list, size_t *map) {
 #define RED "\033[31m"   /* Red */
 #define GREEN "\033[32m" /* Green */
 
-// Number of benchmark runs on a single graph
-#define COUNT 10
-// If true, the first run is done without measuring time (warm-up)
-#define HOT true
 // Use your custom configuration for the benchmark (default is the xz.g graph
 // and vf.cnf grammar)
 #define configs_macro configs_java
@@ -95,19 +91,53 @@ void print_list(SymbolList list, size_t *map) {
 #define OPT_LAZY (1 << 2)
 #define OPT_BLOCK (1 << 3)
 
+enum { HOT_OPTION = 1000 };
+
+static void print_usage(const char *program_name) {
+    fprintf(stderr,
+            "Usage: %s -c <config file> [options]\n"
+            "\n"
+            "Required:\n"
+            "  -c <config file>  Path to benchmark config file\n"
+            "\n"
+            "Benchmark options:\n"
+            "  -r <rounds>       Number of benchmark rounds (default: 10)\n"
+            "  --hot             Enable HOT launch (warm-up run before measurements)\n"
+            "  -a <algorithm>    Algorithm to use "
+            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path)\n"
+            "\n"
+            "Optimization flags:\n"
+            "  -e                Enable empty optimization\n"
+            "  -f                Enable format optimization\n"
+            "  -l                Enable lazy optimization\n"
+            "  -b                Enable block optimization\n"
+            "\n"
+            "Other:\n"
+            "  -t                Enable test mode\n"
+            "  -h                Print this help message\n"
+            "\n"
+            "Example:\n"
+            "  %s -c configs/configs_my.csv -r 10 --hot\n",
+            program_name, program_name);
+}
+
 int main(int argc, char **argv) {
     GrB_Info retval = GrB_SUCCESS;
     int8_t optimizations = 0;
     int opt;
     bool is_test = false;
+    bool is_hot_enabled = false;
     bool is_config = false;
     char *algo = NULL;
     bool is_algo_choosed = false;
     char *input_config = NULL;
+    size_t rounds_count = 10;
 
     AdapterMethods adapter = {0};
 
-    while ((opt = getopt(argc, argv, "eflbtc:a:")) != -1) {
+    static struct option long_options[] = {{"hot", no_argument, 0, HOT_OPTION}, {0, 0, 0, 0}};
+
+    while ((opt = getopt_long(argc, argv, "eflbthr:c:a:", long_options, NULL)) != -1) {
         switch (opt) {
         case 'e':
             optimizations |= OPT_EMPTY;
@@ -121,8 +151,22 @@ int main(int argc, char **argv) {
         case 'b':
             optimizations |= OPT_BLOCK;
             break;
+        case 'h':
+            print_usage(argv[0]);
+            exit(EXIT_SUCCESS);
+        case HOT_OPTION:
+            is_hot_enabled = true;
+            break;
         case 't':
             is_test = true;
+            break;
+        case 'r':
+            rounds_count = strtoul(optarg, NULL, 10);
+            if (rounds_count == 0) {
+                fprintf(stderr, "Rounds count must be greater than 0\n");
+                exit(EXIT_FAILURE);
+            }
+            printf("Choosen rounds count: %zu\n", rounds_count);
             break;
         case 'c':
             is_config = true;
@@ -148,19 +192,7 @@ int main(int argc, char **argv) {
             }
             break;
         default:
-            fprintf(stderr,
-                    "Usage: %s [-e] [-f] [-l] [-b] [-t] -c <config file> "
-                    "[-a <algorithm>]\n"
-                    "  -e  Enable empty optimization\n"
-                    "  -f  Enable format optimization\n"
-                    "  -l  Enable lazy optimization\n"
-                    "  -b  Enable block optimization\n"
-                    "  -t  Enable test mode\n"
-                    "  -c  Path to benchmark config file\n"
-                    "  -a  Algorithm to use "
-                    "(default: CFL_adv; options: CFL_adv, CFL, "
-                    "CFL_single_path, CFL_all_path)\n",
-                    argv[0]);
+            print_usage(argv[0]);
             exit(EXIT_FAILURE);
         }
     }
@@ -187,8 +219,14 @@ int main(int argc, char **argv) {
     fflush(stdout);
 
     for (size_t i = 0; i < configs_count; i++) {
-        double start[COUNT];
-        double end[COUNT];
+        double *start = calloc(rounds_count, sizeof(double));
+        double *end = calloc(rounds_count, sizeof(double));
+        if (start == NULL || end == NULL) {
+            fprintf(stderr, "Failed to allocate memory for benchmark rounds\n");
+            free(start);
+            free(end);
+            exit(EXIT_FAILURE);
+        }
 
         config_row config = configs[i];
         printf("CONFIG: grammar: %s, graph: %s\n", config.grammar, config.graph);
@@ -197,11 +235,11 @@ int main(int argc, char **argv) {
         ParserResult parser_result = parser(config);
         adapter.prepare(parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
 
-        bool is_hot = HOT;
+        bool is_hot = is_hot_enabled;
 
         size_t result = 0;
         ssize_t max_memory_kb = 0;
-        for (size_t i = 0; i < COUNT; i++) {
+        for (size_t i = 0; i < rounds_count; i++) {
             TRY(adapter.init_outputs());
 
             // in some cases free don't change memory usage, so we need to reset it manually
@@ -256,6 +294,8 @@ int main(int argc, char **argv) {
         printf("\n");
 
         if (is_test) {
+            free(start);
+            free(end);
             adapter.cleanup();
 
             fflush(stdout);
@@ -263,12 +303,15 @@ int main(int argc, char **argv) {
         }
 
         double sum = 0;
-        for (size_t i = 0; i < COUNT; i++) {
+        for (size_t i = 0; i < rounds_count; i++) {
             sum += end[i] - start[i];
         }
         printf("\tTime elapsed (avg): %.6f seconds. %zd KB max memory. Result: %ld (return code "
                "%d) (%s)\n\n",
-               sum / COUNT, max_memory_kb, result, retval, msg);
+               sum / rounds_count, max_memory_kb, result, retval, msg);
+
+        free(start);
+        free(end);
 
         TRY(adapter.cleanup());
 
