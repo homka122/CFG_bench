@@ -4,6 +4,7 @@
 #include "adapter_CFL_single_path.h"
 #include "memory.h"
 #include "parser.h"
+#include "result_manager.h"
 #include <GraphBLAS.h>
 #include <LAGraph.h>
 #include <LAGraphX.h>
@@ -82,9 +83,9 @@ void print_list(SymbolList list, size_t *map) {
 #define GREEN "\033[32m" /* Green */
 
 // Number of benchmark runs on a single graph
-#define COUNT 2
+#define COUNT 10
 // If true, the first run is done without measuring time (warm-up)
-#define HOT false
+#define HOT true
 // Use your custom configuration for the benchmark (default is the xz.g graph
 // and vf.cnf grammar)
 #define configs_macro configs_java
@@ -100,6 +101,7 @@ int main(int argc, char **argv) {
     int opt;
     bool is_test = false;
     bool is_config = false;
+    char *algo = NULL;
     bool is_algo_choosed = false;
     char *input_config = NULL;
 
@@ -129,7 +131,7 @@ int main(int argc, char **argv) {
             break;
         case 'a':
             is_algo_choosed = true;
-            char *algo = optarg;
+            algo = optarg;
             printf("Choosen algorithm: %s\n", algo);
 
             if (strcmp(algo, "CFL_adv") == 0) {
@@ -153,6 +155,7 @@ int main(int argc, char **argv) {
 
     if (!is_algo_choosed) {
         adapter = adapter_CFL_adv_get_methods();
+        algo = "CFL_adv";
         printf("No algorithm choosed, using CFL_adv by default\n");
     }
 
@@ -189,6 +192,8 @@ int main(int argc, char **argv) {
         for (size_t i = 0; i < COUNT; i++) {
             TRY(adapter.init_outputs());
 
+            // in some cases free don't change memory usage, so we need to reset it manually
+            malloc_trim(0);
             if (mem_peak_reset() != 0) {
                 fprintf(stderr, "Failed to reset memory peak\n");
                 exit(EXIT_FAILURE);
@@ -231,6 +236,8 @@ int main(int argc, char **argv) {
 
             result = adapter.get_result();
             TRY(adapter.free_outputs());
+            save_result(algo, config.grammar, config.graph, result, max_memory_kb,
+                        (size_t)((end[i] - start[i]) * 1000));
             // in some cases free don't change memory usage, so we need to reset it manually
             malloc_trim(0);
         }

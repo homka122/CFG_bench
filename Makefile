@@ -34,14 +34,14 @@ run: test.c parser.c
  -o test -Wextra -Wno-sign-compare -pedantic -fsanitize=undefined -DDEBUG_parser \
  && ./test
 
-bench: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c
-	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
+bench: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c
+	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
 
-bench_compile: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c ${ALGO_PATH} ${ALGO_OPT_PATH}
-	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
+bench_compile: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c ${ALGO_PATH} ${ALGO_OPT_PATH}
+	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
 
-bench_debug: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c ${ALGO_PATH} ${ALGO_OPT_PATH}
-	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O0 -g ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
+bench_debug: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c ${ALGO_PATH} ${ALGO_OPT_PATH}
+	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O0 -g ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
 
 test_compile: test.c parser.c ${ALGO_OBJ}
 	gcc test.c parser.c ${ALGO_OBJ} -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
