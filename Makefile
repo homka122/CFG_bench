@@ -43,6 +43,9 @@ bench_compile: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/gr
 bench_debug: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c ${ALGO_PATH} ${ALGO_OPT_PATH}
 	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O0 -g ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
 
+bench-CI: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c
+	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c -O2 -DCI ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
+
 test_compile: test.c parser.c ${ALGO_OBJ}
 	gcc test.c parser.c ${ALGO_OBJ} -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
 		-o test && ./test -${FLAGS}t
@@ -57,10 +60,6 @@ bench_compile_v_leak: test.c parser.c
 
 deb: test.c parser.c ${ALGO_PATH}
 	gcc test.c parser.c -DBENCH_CFL_REACHBILITY -DDEBUG_parser -o test -O0 -g -Wextra -Wall -pedantic ${ALGO_PATH} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} && echo OK
-
-bench-CI: test.c parser.c
-	gcc test.c parser.c -O2 -DCI ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} \
-		-o test && ./test
 
 debug: test.c parser.c
 	gcc test.c parser.c  ${ALGO} \
