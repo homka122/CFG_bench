@@ -67,12 +67,12 @@ void print_list(SymbolList list, size_t *map) {
     if (map == NULL) {
         for (size_t i = 0; i < list.count; i++) {
             Symbol sym = list.symbols[i];
-            printf("[%2d] %s [%s] %s\n", i, sym.label, sym.is_nonterm ? "N" : "T", sym.is_indexed ? "[I]" : "");
+            printf("[%2ld] %s [%s] %s\n", i, sym.label, sym.is_nonterm ? "N" : "T", sym.is_indexed ? "[I]" : "");
         }
     } else {
         for (size_t i = 0; i < list.count; i++) {
             Symbol sym = list.symbols[i];
-            printf("[%2d] %s [%s] %s\n", map[i], sym.label, sym.is_nonterm ? "N" : "T", sym.is_indexed ? "[I]" : "");
+            printf("[%2ld] %s [%s] %s\n", map[i], sym.label, sym.is_nonterm ? "N" : "T", sym.is_indexed ? "[I]" : "");
         }
     }
 }
