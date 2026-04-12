@@ -16,13 +16,13 @@ jobs:
             - name: Install depends
               run: |
                   sudo apt-get update
-                  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc make git
+                  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc make git ninja-build
 
             - name: Build and install GraphBLAS
               run: |
                   git clone https://github.com/DrTimothyAldenDavis/GraphBLAS.git
                   cd GraphBLAS
-                  make
+                  CMAKE_OPTIONS="-G Ninja" make compact
                   sudo make install
                   cd ..
 
