@@ -14,7 +14,7 @@
     ```
 2. Install **LAGraph** from the benchmark branch:
     ```bash
-    git clone git@github.com:SparseLinearAlgebra/LAGraph.git
+    git clone https://github.com/SparseLinearAlgebra/LAGraph.git
     cd LAGraph
     git switch homka122/all_algorithms_benchmark
     make
