@@ -11,7 +11,7 @@
     {                                                                                                                  \
         GrB_Info LG_GrB_Info = GrB_method;                                                                             \
         if (LG_GrB_Info < GrB_SUCCESS) {                                                                               \
-            fprintf(stderr, "LAGraph failure (file %s, line %d): (%d, msg: %s) \n", __FILE__, __LINE__, LG_GrB_Info,     \
+            fprintf(stderr, "LAGraph failure (file %s, line %d): (%d, msg: %s) \n", __FILE__, __LINE__, LG_GrB_Info,   \
                     state.msg);                                                                                        \
             return (LG_GrB_Info);                                                                                      \
         }                                                                                                              \
@@ -32,7 +32,11 @@ typedef struct {
 
 static state_t state;
 
-static GrB_Info adapter_CFL_setup() { TRY(LAGr_Init(GrB_NONBLOCKING, malloc, NULL, NULL, free, state.msg)); }
+static GrB_Info adapter_CFL_setup() {
+    TRY(LAGr_Init(GrB_NONBLOCKING, malloc, NULL, NULL, free, state.msg));
+
+    return GrB_SUCCESS;
+}
 
 // prepare the adapter for use with the given parser result
 // this may include converting the grammar and graph into a format suitable for the algorithm
@@ -41,8 +45,10 @@ static GrB_Info adapter_CFL_setup() { TRY(LAGr_Init(GrB_NONBLOCKING, malloc, NUL
 //
 // adapter_CFL_prepare should be called just once for each config
 static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_data) {
-    return adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count, &state.nonterms_count,
-                                      &state.rules, &state.rules_count, &state.graph_size);
+    TRY(adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count, &state.nonterms_count,
+                                   &state.rules, &state.rules_count, &state.graph_size));
+
+    return GrB_SUCCESS;
 }
 
 // initialize output matrices
@@ -50,6 +56,8 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
 // this should be called before each run of the algorithm
 static GrB_Info adapter_CFL_init_outputs() {
     TRY(adapter_CFL_init_outputs_common(&state.outputs, state.nonterms_count, state.graph_size, state.msg));
+
+    return GrB_SUCCESS;
 }
 
 // run the algorithm
@@ -58,6 +66,8 @@ static GrB_Info adapter_CFL_init_outputs() {
 static GrB_Info adapter_CFL_run() {
     TRY(LAGraph_CFL_AllPaths(state.outputs, state.adj_matrices, &state.all_path_type, state.terms_count,
                              state.nonterms_count, state.rules, state.rules_count, state.msg));
+
+    return GrB_SUCCESS;
 }
 
 // check if the result of the algorithm is valid
