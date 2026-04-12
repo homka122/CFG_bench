@@ -8,7 +8,7 @@
     {                                                                                                                  \
         GrB_Info LG_GrB_Info = GrB_method;                                                                             \
         if (LG_GrB_Info < GrB_SUCCESS) {                                                                               \
-            fprintf(stderr, "LAGraph failure (file %s, line %d): (%d, msg: ) \n", __FILE__, __LINE__, LG_GrB_Info,     \
+            fprintf(stderr, "LAGraph failure (file %s, line %d): (%d, msg: %s) \n", __FILE__, __LINE__, LG_GrB_Info,     \
                     state.msg);                                                                                        \
             return (LG_GrB_Info);                                                                                      \
         }                                                                                                              \
