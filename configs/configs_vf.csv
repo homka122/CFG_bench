@@ -1,0 +1,10 @@
+data/graphs/vf/xz.g,data/grammars/vf.cnf,358834
+data/graphs/vf/nab.g,data/grammars/vf.cnf,739646
+data/graphs/vf/leela.g,data/grammars/vf.cnf,662466
+data/graphs/vf/parest.g,data/grammars/vf.cnf,1342540
+data/graphs/vf/omnetpp.g,data/grammars/vf.cnf,8424500
+data/graphs/vf/imagick.g,data/grammars/vf.cnf,12687034
+data/graphs/vf/x264.g,data/grammars/vf.cnf,20259480
+data/graphs/vf/cactus.g,data/grammars/vf.cnf,47806209
+data/graphs/vf/povray.g,data/grammars/vf.cnf,34599413
+data/graphs/vf/perlbench.g,data/grammars/vf.cnf,297504186

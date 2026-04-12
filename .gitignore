@@ -1,5 +1,6 @@
 data/grammars/*
 data/graphs/*
+data
 .vscode
 *.out
 convert
@@ -7,3 +8,5 @@ test
 *.csv
 log.txt
 convert.c
+data.back
+data.old

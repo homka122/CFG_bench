@@ -16,36 +16,30 @@ jobs:
             - name: Install depends
               run: |
                   sudo apt-get update
-                  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc make git ccache ninja-build
+                  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc make git ninja-build
 
-            - name: Restore ccache
-              uses: actions/cache@v3
-              with:
-                  path: ~/.cache/ccache
-                  key: ccache-${{ runner.os }}
-
-            - name: Build and install graphblas
+            - name: Build and install GraphBLAS
               run: |
                   git clone https://github.com/DrTimothyAldenDavis/GraphBLAS.git
                   cd GraphBLAS
-                  CMAKE_OPTIONS="-G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache" make compact
+                  CMAKE_OPTIONS="-G Ninja" make compact
                   sudo make install
                   cd ..
 
-            - name: Build and install LAGraph v1.2
+            - name: Build and install LAGraph benchmark branch
               run: |
-                  git clone https://github.com/GraphBLAS/LAGraph.git
+                  git clone https://github.com/SparseLinearAlgebra/LAGraph.git
                   cd LAGraph
-                  git checkout v1.2
-                  CMAKE_OPTIONS="-G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache" make
+                  git switch homka122/all_algorithms_benchmark
+                  make
                   sudo make install
                   cd ..
 
-            - name: Launch benchmark
+            - name: Build benchmark
               run: |
-                  export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
                   make bench-CI
 
-            - name: Get ccache folder
+            - name: Run benchmark
               run: |
-                  ls -lah ~/.cache
+                  export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+                  ./build/test -efblt -c configs/configs_my.csv -a CFL_adv -r 3 --hot

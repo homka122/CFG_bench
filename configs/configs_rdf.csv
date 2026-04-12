@@ -1,0 +1,5 @@
+data/graphs/rdf/go_hierarchy.g,data/grammars/nested_parentheses_subClassOf_type.cnf,588976
+data/graphs/rdf/eclass.g,data/grammars/nested_parentheses_subClassOf_type.cnf,90994
+data/graphs/rdf/go.g,data/grammars/nested_parentheses_subClassOf_type.cnf,640316
+data/graphs/rdf/taxonomy.g,data/grammars/nested_parentheses_subClassOf_type.cnf,151706
+data/graphs/rdf/taxonomy_hierarchy.g,data/grammars/nested_parentheses_subClassOf_type.cnf,5351657
