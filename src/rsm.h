@@ -17,6 +17,7 @@ CFG_RSM *rsm_create_template(RSM_Template template);
 
 CFG_RSM *rsm_init(void);
 void rsm_add_nonterm(CFG_RSM *rsm, const char *nonterm);
+void rsm_set_start_nonterm(CFG_RSM *rsm, const char *nonterm);
 void rsm_add_term(CFG_RSM *rsm, const char *term);
 void rsm_add_state(CFG_RSM *rsm, const char *nonterm, const char *state);
 void rsm_add_edge(CFG_RSM *rsm, const char *nonterm, const char *state_v, const char *state_u, const char *label);

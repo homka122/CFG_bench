@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #define RSM_NO_STATE ((size_t)-1)
+#define RSM_NO_NONTERM ((size_t)-1)
 
 #define DA_INITIAL_CAPACITY 8
 
@@ -100,6 +101,7 @@ typedef struct CFG_RSM_Boxes {
 typedef struct CFG_RSM {
     SymbolList nonterms;
     SymbolList terms;
+    size_t start_nonterm;
 
     CFG_RSM_Boxes boxes;
 } CFG_RSM;
@@ -133,6 +135,7 @@ CFG_RSM *rsm_init(void) {
     result->nonterms = symbol_list_create();
     result->terms = symbol_list_create();
     result->boxes = (CFG_RSM_Boxes){NULL, 0, 0};
+    result->start_nonterm = RSM_NO_NONTERM;
 
     return result;
 }
@@ -159,6 +162,25 @@ void rsm_add_nonterm(CFG_RSM *rsm, const char *nonterm) {
 
     CFG_RSM_Box box = rsm_box_init((size_t)nonterm_i);
     DA_PUSH(&rsm->boxes, box);
+
+    if (rsm->start_nonterm == RSM_NO_NONTERM) {
+        rsm->start_nonterm = (size_t)nonterm_i;
+    }
+
+    return;
+}
+
+void rsm_set_start_nonterm(CFG_RSM *rsm, const char *nonterm) {
+    rsm_check_not_null(rsm);
+
+    int nonterm_i = symbol_list_get_index_str(&rsm->nonterms, nonterm);
+
+    if (nonterm_i == -1) {
+        fprintf(stderr, "there is no nonterm %s\n", nonterm);
+        abort();
+    }
+
+    rsm->start_nonterm = (size_t)nonterm_i;
 
     return;
 }
