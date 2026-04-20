@@ -1,6 +1,7 @@
 #pragma once
 
 #include "grammar.h"
+#include "rsm.h"
 #include "symbol_list.h"
 #include <LAGraph.h>
 #include <LAGraphX.h>
@@ -65,6 +66,8 @@ typedef struct {
     Grammar grammar;
     SymbolList symbols;
     Graph graph;
+    RSM rsm;
+    bool is_rsm_found;
 } ParserResult;
 
 typedef struct {

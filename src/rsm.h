@@ -2,8 +2,7 @@
 
 #include "LAGraph.h"
 #include "LAGraphX.h"
-
-typedef struct CFG_RSM CFG_RSM;
+#include "symbol_list.h"
 
 typedef enum RSM_Template {
     RSM_TEMPLATE_AA,
@@ -12,6 +11,48 @@ typedef enum RSM_Template {
     RSM_TEMPLATE_JAVA_POINTS_TO,
     RSM_TEMPLATE_RDF_HIERARCHY,
 } RSM_Template;
+
+typedef struct CFG_Edge {
+    size_t start;
+    size_t label;
+    size_t end;
+    bool is_term;
+} CFG_Edge;
+
+typedef struct CFG_Edges {
+    CFG_Edge *data;
+    size_t count;
+    size_t capacity;
+} CFG_Edges;
+
+typedef struct Final_States {
+    size_t *data;
+    size_t count;
+    size_t capacity;
+} Final_States;
+
+typedef struct CFG_RSM_Box {
+    size_t nonterm;
+
+    SymbolList states;
+    CFG_Edges edges;
+    size_t start_state;
+    Final_States final_states;
+} CFG_RSM_Box;
+
+typedef struct CFG_RSM_Boxes {
+    CFG_RSM_Box *data;
+    size_t count;
+    size_t capacity;
+} CFG_RSM_Boxes;
+
+typedef struct CFG_RSM {
+    SymbolList nonterms;
+    SymbolList terms;
+    size_t start_nonterm;
+
+    CFG_RSM_Boxes boxes;
+} CFG_RSM;
 
 CFG_RSM *rsm_create_template(RSM_Template template);
 

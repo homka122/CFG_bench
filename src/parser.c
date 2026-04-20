@@ -252,9 +252,66 @@ GrB_Matrix *get_grb_matrices_from_graph(Graph graph, SymbolList *list) {
     return matrices;
 }
 
+static const char *basename(const char *path) {
+    const char *last_slash = strrchr(path, '/');
+
+    if (last_slash == NULL) {
+        return path;
+    }
+
+    return last_slash + 1;
+}
+
+bool rsm_template_from_string(const char *name, RSM_Template *out) {
+    if (name == NULL || out == NULL) {
+        return false;
+    }
+
+    const char *base = basename(name);
+
+    if (strcmp(base, "aa.cnf") == 0) {
+        *out = RSM_TEMPLATE_AA;
+        return true;
+    }
+
+    if (strcmp(base, "c_alias.cnf") == 0) {
+        *out = RSM_TEMPLATE_C_ALIAS;
+        return true;
+    }
+
+    if (strcmp(base, "java_points_to.cnf") == 0) {
+        *out = RSM_TEMPLATE_JAVA_POINTS_TO;
+        return true;
+    }
+
+    if (strcmp(base, "vf.cnf") == 0) {
+        *out = RSM_TEMPLATE_VF;
+        return true;
+    }
+
+    if (strcmp(base, "nested_parentheses_subClassOf_type.cnf") == 0 || strcmp(base, "rdf_hierarchy.dot") == 0) {
+        *out = RSM_TEMPLATE_RDF_HIERARCHY;
+        return true;
+    }
+
+    return false;
+}
+
 ParserResult parser(config_row config_i) {
     char *config_graph = strdup(config_i.graph);
     char *config_grammar = strdup(config_i.grammar);
+
+    RSM rsm = {0};
+    bool is_rsm_found = false;
+
+    RSM_Template template = RSM_TEMPLATE_AA;
+
+    if (rsm_template_from_string(config_grammar, &template)) {
+        CFG_RSM *cfg_rsm = rsm_create_template(template);
+        rsm = rsm_convert_to_lagraph(cfg_rsm);
+        rsm_free(cfg_rsm);
+        is_rsm_found = true;
+    }
 
     // printf("Reading graph file...");
     // char *graph_buf = read_entire_file(config_graph);
@@ -295,7 +352,9 @@ ParserResult parser(config_row config_i) {
                           .node_count = graph.node_count,
                           .grammar = _grammar,
                           .symbols = list,
-                          .graph = graph};
+                          .graph = graph,
+                          .rsm = rsm,
+                          .is_rsm_found = is_rsm_found};
 }
 
 void get_configs_from_file(char *path, size_t *configs_count, config_row *configs, char **text_p) {
