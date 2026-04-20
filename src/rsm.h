@@ -23,5 +23,6 @@ void rsm_add_state(CFG_RSM *rsm, const char *nonterm, const char *state);
 void rsm_add_edge(CFG_RSM *rsm, const char *nonterm, const char *state_v, const char *state_u, const char *label);
 void rsm_set_start_state(CFG_RSM *rsm, const char *nonterm, const char *state);
 void rsm_add_final_state(CFG_RSM *rsm, const char *nonterm, const char *state);
-RSM rsm_convert_to_lagraph(CFG_RSM *rsm);
 void rsm_free(CFG_RSM *rsm);
+RSM rsm_convert_to_lagraph(CFG_RSM *rsm);
+void rsm_lagraph_rsm_free(RSM *rsm);

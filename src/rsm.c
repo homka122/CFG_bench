@@ -564,5 +564,273 @@ CFG_RSM *rsm_create_template(RSM_Template template) {
     }
 }
 
-// TODO
-RSM rsm_convert_to_lagraph(CFG_RSM *rsm);
+static void rsm_validate_before_convert(const CFG_RSM *rsm) {
+    rsm_check_not_null(rsm);
+
+    if (rsm->boxes.count != rsm->nonterms.count) {
+        fprintf(stderr, "invalid RSM: boxes count (%zu) does not match nonterms count (%zu)\n", rsm->boxes.count,
+                rsm->nonterms.count);
+        abort();
+    }
+
+    if (rsm->nonterms.count == 0) {
+        fprintf(stderr, "invalid RSM: no nonterms\n");
+        abort();
+    }
+
+    if (rsm->start_nonterm == RSM_NO_NONTERM) {
+        fprintf(stderr, "invalid RSM: start nonterm is not set\n");
+        abort();
+    }
+
+    if (rsm->start_nonterm >= rsm->boxes.count) {
+        fprintf(stderr, "invalid RSM: start nonterm index %zu is out of bounds, boxes count is %zu\n",
+                rsm->start_nonterm, rsm->boxes.count);
+        abort();
+    }
+
+    for (size_t box_i = 0; box_i < rsm->boxes.count; ++box_i) {
+        const CFG_RSM_Box *box = &rsm->boxes.data[box_i];
+
+        if (box->nonterm != box_i) {
+            fprintf(stderr, "invalid RSM: box %zu has nonterm index %zu\n", box_i, box->nonterm);
+            abort();
+        }
+
+        if (box->nonterm >= rsm->nonterms.count) {
+            fprintf(stderr, "invalid RSM: box %zu nonterm index %zu is out of bounds, nonterms count is %zu\n", box_i,
+                    box->nonterm, rsm->nonterms.count);
+            abort();
+        }
+
+        if (box->states.count == 0) {
+            fprintf(stderr, "invalid RSM: box %zu has no states\n", box_i);
+            abort();
+        }
+
+        if (box->start_state == RSM_NO_STATE) {
+            fprintf(stderr, "invalid RSM: box %zu start state is not set\n", box_i);
+            abort();
+        }
+
+        if (box->start_state >= box->states.count) {
+            fprintf(stderr, "invalid RSM: box %zu start state index %zu is out of bounds, states count is %zu\n", box_i,
+                    box->start_state, box->states.count);
+            abort();
+        }
+
+        if (box->final_states.count == 0) {
+            fprintf(stderr, "invalid RSM: box %zu has no final states\n", box_i);
+            abort();
+        }
+
+        for (size_t final_i = 0; final_i < box->final_states.count; ++final_i) {
+            size_t state = box->final_states.data[final_i];
+
+            if (state >= box->states.count) {
+                fprintf(stderr, "invalid RSM: box %zu final state index %zu is out of bounds, states count is %zu\n",
+                        box_i, state, box->states.count);
+                abort();
+            }
+
+            for (size_t j = final_i + 1; j < box->final_states.count; ++j) {
+                if (box->final_states.data[j] == state) {
+                    fprintf(stderr, "invalid RSM: box %zu has duplicate final state index %zu\n", box_i, state);
+                    abort();
+                }
+            }
+        }
+
+        for (size_t edge_i = 0; edge_i < box->edges.count; ++edge_i) {
+            const CFG_Edge *edge = &box->edges.data[edge_i];
+
+            if (edge->start >= box->states.count) {
+                fprintf(stderr,
+                        "invalid RSM: box %zu edge %zu start state index %zu is out of bounds, states count is %zu\n",
+                        box_i, edge_i, edge->start, box->states.count);
+                abort();
+            }
+
+            if (edge->end >= box->states.count) {
+                fprintf(stderr,
+                        "invalid RSM: box %zu edge %zu end state index %zu is out of bounds, states count is %zu\n",
+                        box_i, edge_i, edge->end, box->states.count);
+                abort();
+            }
+
+            if (edge->is_term) {
+                if (edge->label >= rsm->terms.count) {
+                    fprintf(
+                        stderr,
+                        "invalid RSM: box %zu edge %zu terminal label index %zu is out of bounds, terms count is %zu\n",
+                        box_i, edge_i, edge->label, rsm->terms.count);
+                    abort();
+                }
+            } else {
+                if (edge->label >= rsm->nonterms.count) {
+                    fprintf(stderr,
+                            "invalid RSM: box %zu edge %zu nonterminal label index %zu is out of bounds, nonterms "
+                            "count is %zu\n",
+                            box_i, edge_i, edge->label, rsm->nonterms.count);
+                    abort();
+                }
+
+                if (edge->label >= rsm->boxes.count) {
+                    fprintf(stderr,
+                            "invalid RSM: box %zu edge %zu nonterminal label index %zu has no corresponding box\n",
+                            box_i, edge_i, edge->label);
+                    abort();
+                }
+            }
+        }
+    }
+}
+
+#define RSM_ABORT(...)                                                                                                 \
+    do {                                                                                                               \
+        fprintf(stderr, __VA_ARGS__);                                                                                  \
+        fputc('\n', stderr);                                                                                           \
+        abort();                                                                                                       \
+    } while (0)
+
+#define RSM_CHECK(cond, ...)                                                                                           \
+    do {                                                                                                               \
+        if (!(cond)) {                                                                                                 \
+            RSM_ABORT(__VA_ARGS__);                                                                                    \
+        }                                                                                                              \
+    } while (0)
+
+#define RSM_GRB_CHECK(expr)                                                                                            \
+    do {                                                                                                               \
+        GrB_Info info = (expr);                                                                                        \
+        if (info != GrB_SUCCESS) {                                                                                     \
+            RSM_ABORT("GraphBLAS error %d at %s:%d", (int)info, __FILE__, __LINE__);                                   \
+        }                                                                                                              \
+    } while (0)
+
+RSM rsm_convert_to_lagraph(CFG_RSM *cfg) {
+    rsm_check_not_null(cfg);
+    rsm_validate_before_convert(cfg);
+
+    RSM result = {0};
+
+    // code by https://github.com/Zestria
+    // ispired by
+    // https://github.com/SparseLinearAlgebra/LAGraph/pull/7/changes#diff-a7b0227939d51efc141437082399c0b7449c85b36691f507b3ca8c26ae1c5ce3R152
+
+    GrB_Index total_states = 0;
+
+    for (size_t i = 0; i < cfg->boxes.count; i++) {
+        total_states += (GrB_Index)cfg->boxes.data[i].states.count;
+    }
+
+    result.state_count = total_states;
+    result.terminal_count = (GrB_Index)cfg->terms.count;
+    result.nonterminal_count = (GrB_Index)cfg->nonterms.count;
+    result.start_nonterminal = (GrB_Index)cfg->start_nonterm;
+
+    result.terminal_matrices = calloc(cfg->terms.count, sizeof(*result.terminal_matrices));
+    result.nonterminal_matrices = calloc(cfg->nonterms.count, sizeof(*result.nonterminal_matrices));
+    result.start_states = calloc(cfg->nonterms.count, sizeof(*result.start_states));
+    result.final_states = calloc(cfg->nonterms.count, sizeof(*result.final_states));
+
+    RSM_CHECK(result.terminal_matrices != NULL || cfg->terms.count == 0, "out of memory");
+
+    RSM_CHECK(result.nonterminal_matrices != NULL || cfg->nonterms.count == 0, "out of memory");
+
+    RSM_CHECK(result.start_states != NULL || cfg->nonterms.count == 0, "out of memory");
+
+    RSM_CHECK(result.final_states != NULL || cfg->nonterms.count == 0, "out of memory");
+
+    for (size_t i = 0; i < cfg->terms.count; i++) {
+        RSM_GRB_CHECK(GrB_Matrix_new(&result.terminal_matrices[i], GrB_BOOL, total_states, total_states));
+    }
+
+    for (size_t i = 0; i < cfg->nonterms.count; i++) {
+        RSM_GRB_CHECK(GrB_Matrix_new(&result.nonterminal_matrices[i], GrB_BOOL, total_states, total_states));
+
+        RSM_GRB_CHECK(GrB_Vector_new(&result.final_states[i], GrB_BOOL, total_states));
+    }
+
+    GrB_Index *state_offsets = calloc(cfg->boxes.count, sizeof(*state_offsets));
+
+    RSM_CHECK(state_offsets != NULL || cfg->boxes.count == 0, "out of memory");
+
+    GrB_Index offset = 0;
+
+    for (size_t box_i = 0; box_i < cfg->boxes.count; box_i++) {
+        state_offsets[box_i] = offset;
+        offset += (GrB_Index)cfg->boxes.data[box_i].states.count;
+    }
+
+    for (size_t box_i = 0; box_i < cfg->boxes.count; box_i++) {
+        const CFG_RSM_Box *box = &cfg->boxes.data[box_i];
+
+        GrB_Index box_offset = state_offsets[box_i];
+
+        result.start_states[box_i] = box_offset + (GrB_Index)box->start_state;
+
+        for (size_t final_i = 0; final_i < box->final_states.count; ++final_i) {
+            GrB_Index global_final_state = box_offset + (GrB_Index)box->final_states.data[final_i];
+
+            RSM_GRB_CHECK(GrB_Vector_setElement_BOOL(result.final_states[box_i], true, global_final_state));
+        }
+
+        for (size_t edge_i = 0; edge_i < box->edges.count; ++edge_i) {
+            const CFG_Edge *edge = &box->edges.data[edge_i];
+
+            GrB_Index from = box_offset + (GrB_Index)edge->start;
+            GrB_Index to = box_offset + (GrB_Index)edge->end;
+
+            if (edge->is_term) {
+                RSM_GRB_CHECK(GrB_Matrix_setElement_BOOL(result.terminal_matrices[edge->label], true, from, to));
+            } else {
+                RSM_GRB_CHECK(GrB_Matrix_setElement_BOOL(result.nonterminal_matrices[edge->label], true, from, to));
+            }
+        }
+    }
+
+    free(state_offsets);
+
+    return result;
+}
+
+void rsm_lagraph_rsm_free(RSM *rsm) {
+    if (rsm == NULL) {
+        return;
+    }
+
+    if (rsm->terminal_matrices != NULL) {
+        for (GrB_Index i = 0; i < rsm->terminal_count; i++) {
+            if (rsm->terminal_matrices[i] != NULL) {
+                GrB_Matrix_free(&rsm->terminal_matrices[i]);
+            }
+        }
+
+        free(rsm->terminal_matrices);
+    }
+
+    if (rsm->nonterminal_matrices != NULL) {
+        for (GrB_Index i = 0; i < rsm->nonterminal_count; i++) {
+            if (rsm->nonterminal_matrices[i] != NULL) {
+                GrB_Matrix_free(&rsm->nonterminal_matrices[i]);
+            }
+        }
+
+        free(rsm->nonterminal_matrices);
+    }
+
+    if (rsm->final_states != NULL) {
+        for (GrB_Index i = 0; i < rsm->nonterminal_count; i++) {
+            if (rsm->final_states[i] != NULL) {
+                GrB_Vector_free(&rsm->final_states[i]);
+            }
+        }
+
+        free(rsm->final_states);
+    }
+
+    free(rsm->start_states);
+
+    *rsm = (RSM){0};
+}
