@@ -34,14 +34,14 @@ run: test.c parser.c
  -o test -Wextra -Wno-sign-compare -pedantic -fsanitize=undefined -DDEBUG_parser \
  && ./test
 
-bench: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c
-	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
+bench: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c
+	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
 
-bench_compile: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c ${ALGO_PATH} ${ALGO_OPT_PATH}
-	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
+bench_compile: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c ${ALGO_PATH} ${ALGO_OPT_PATH}
+	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
 
-bench_debug: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c ${ALGO_PATH} ${ALGO_OPT_PATH}
-	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O0 -g ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
+bench_debug: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c ${ALGO_PATH} ${ALGO_OPT_PATH}
+	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O0 -g ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
 
 bench-CI: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c
 	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c -O2 -DCI ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
@@ -77,7 +77,7 @@ convert: convert.c
 	gcc convert.c -o convert -Wextra -Wall -pedantic && time ./convert
 
 # Code formatting with clang-format
-FORMAT_SOURCES = src/*.c src/*.h src/adapters/*.c src/adapters/*.h
+FORMAT_SOURCES = src/*.c src/*.h src/adapters/*.c src/adapters/*.h tests/*.c
 
 format:
 	clang-format -i $(FORMAT_SOURCES)
