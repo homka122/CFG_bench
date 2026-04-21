@@ -64,6 +64,43 @@ static void rsm_box_free(CFG_RSM_Box *box) {
     return;
 }
 
+static void rsm_box_print(CFG_RSM_Box *box, SymbolList *terms, SymbolList *nonterms) {
+    printf("==== box %s ====\n", symbol_list_get_str(nonterms, box->nonterm));
+    printf("    states:");
+    for (size_t i = 0; i < box->states.count; i++) {
+        printf(" %s", symbol_list_get_str(&box->states, i));
+    }
+    printf("\n");
+
+    printf("    start_state: %s\n", symbol_list_get_str(&box->states, box->start_state));
+    printf("    edges:\n");
+    for (size_t i = 0; i < box->edges.count; i++) {
+        char *start_state = symbol_list_get_str(&box->states, box->edges.data[i].start);
+        char *label = NULL;
+        if (box->edges.data[i].is_term) {
+            label = symbol_list_get_str(terms, box->edges.data[i].label);
+        } else {
+            label = symbol_list_get_str(nonterms, box->edges.data[i].label);
+        }
+        char *end_state = symbol_list_get_str(&box->states, box->edges.data[i].end);
+        printf("        %s -[%s]-> %s\n", start_state, label, end_state);
+    }
+    printf("    final_states:");
+    for (size_t i = 0; i < box->final_states.count; i++) {
+        printf(" %s", symbol_list_get_str(&box->states, box->final_states.data[i]));
+    }
+    printf("\n");
+    printf("\n");
+}
+
+void rsm_print(CFG_RSM *rsm) {
+    printf("RSM:\n");
+    printf("start nonterm: %s\n", symbol_list_get_str(&rsm->nonterms, rsm->start_nonterm));
+    for (size_t i = 0; i < rsm->boxes.count; i++) {
+        rsm_box_print(&rsm->boxes.data[i], &rsm->terms, &rsm->nonterms);
+    }
+}
+
 static void rsm_check_not_null(const CFG_RSM *rsm) {
     if (rsm == NULL) {
         fprintf(stderr, "rsm is NULL\n");

@@ -40,7 +40,7 @@ int symbol_list_get_index_str(SymbolList *list, char *str);
 
 // return label of Symbol with "index" in SymbolList
 // raise error if Symbol with "index" not found
-const char *symbol_list_get_str(SymbolList *list, size_t index);
+const char *symbol_list_get_str(const SymbolList *list, size_t index);
 
 // create Symbol with "str" label and put it in SymbolList
 // if Symbol with "str" label already exists in SymbolList, return its index
