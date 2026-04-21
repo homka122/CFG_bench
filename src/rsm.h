@@ -5,6 +5,7 @@
 #include "symbol_list.h"
 
 typedef enum RSM_Template {
+    RSM_NO_TEMPLATE,
     RSM_TEMPLATE_AA,
     RSM_TEMPLATE_VF,
     RSM_TEMPLATE_C_ALIAS,
@@ -52,11 +53,12 @@ typedef struct CFG_RSM {
     size_t start_nonterm;
 
     CFG_RSM_Boxes boxes;
+    bool with_intial_terms;
 } CFG_RSM;
 
-CFG_RSM *rsm_create_template(RSM_Template template);
+CFG_RSM *rsm_create_template(RSM_Template template, bool exploded, size_t n, SymbolList *terms);
 
-CFG_RSM *rsm_init(void);
+CFG_RSM *rsm_init(SymbolList *terms);
 void rsm_add_nonterm(CFG_RSM *rsm, const char *nonterm);
 void rsm_set_start_nonterm(CFG_RSM *rsm, const char *nonterm);
 void rsm_add_term(CFG_RSM *rsm, const char *term);

@@ -82,7 +82,7 @@ static CFG_RSM_Box *rsm_get_box(CFG_RSM *rsm, const char *nonterm) {
     return &rsm->boxes.data[nonterm_i];
 }
 
-CFG_RSM *rsm_init(void) {
+CFG_RSM *rsm_init(SymbolList *terms) {
     CFG_RSM *result = calloc(1, sizeof(*result));
 
     if (result == NULL) {
@@ -91,7 +91,12 @@ CFG_RSM *rsm_init(void) {
     }
 
     result->nonterms = symbol_list_create();
-    result->terms = symbol_list_create();
+    if (terms == NULL) {
+        result->terms = symbol_list_create();
+    } else {
+        result->terms = *terms;
+        result->with_intial_terms = true;
+    }
     result->boxes = (CFG_RSM_Boxes){NULL, 0, 0};
     result->start_nonterm = RSM_NO_NONTERM;
 
@@ -146,7 +151,7 @@ void rsm_set_start_nonterm(CFG_RSM *rsm, const char *nonterm) {
 void rsm_add_term(CFG_RSM *rsm, const char *term) {
     rsm_check_not_null(rsm);
 
-    if (symbol_list_get_index_str(&rsm->terms, term) != -1) {
+    if (symbol_list_get_index_str(&rsm->terms, term) != -1 && (!rsm->with_intial_terms)) {
         fprintf(stderr, "term %s already exists\n", term);
         abort();
     }
@@ -281,32 +286,95 @@ void rsm_free(CFG_RSM *rsm) {
     return;
 }
 
-static CFG_RSM *rsm_create_aa_template(void) {
-    CFG_RSM *rsm = rsm_init();
+static CFG_RSM *rsm_create_aa_template(bool exploded, size_t n, SymbolList *terms) {
+    if (exploded && n == 0) {
+        fprintf(stderr, "rsm_template: n should be positive when exploded = true\n");
+        abort();
+    }
+
+    CFG_RSM *rsm = rsm_init(terms);
 
     rsm_add_nonterm(rsm, "A");
 
     rsm_add_term(rsm, "a");
-    rsm_add_term(rsm, "call_i");
-    rsm_add_term(rsm, "return_i");
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "call_%zu", i);
+            rsm_add_term(rsm, label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "return_%zu", i);
+            rsm_add_term(rsm, label);
+        }
+    } else {
+        rsm_add_term(rsm, "call_i");
+        rsm_add_term(rsm, "return_i");
+    }
 
     rsm_add_state(rsm, "A", "0");
-    rsm_add_state(rsm, "A", "p_i");
-    rsm_add_state(rsm, "A", "q_i");
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "p_%zu", i);
+            rsm_add_state(rsm, "A", label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "q_%zu", i);
+            rsm_add_state(rsm, "A", label);
+        }
+    } else {
+        rsm_add_state(rsm, "A", "p_i");
+        rsm_add_state(rsm, "A", "q_i");
+    }
 
     rsm_set_start_state(rsm, "A", "0");
     rsm_add_final_state(rsm, "A", "0");
 
     rsm_add_edge(rsm, "A", "0", "0", "a");
-    rsm_add_edge(rsm, "A", "0", "p_i", "call_i");
-    rsm_add_edge(rsm, "A", "p_i", "q_i", "A");
-    rsm_add_edge(rsm, "A", "q_i", "0", "return_i");
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char label_first[256];
+            char label_second[256];
+            snprintf(label_first, sizeof(label_first), "p_%zu", i);
+            snprintf(label_second, sizeof(label_second), "call_%zu", i);
+            rsm_add_edge(rsm, "A", "0", label_first, label_second);
+        }
+    } else {
+        rsm_add_edge(rsm, "A", "0", "p_i", "call_i");
+    }
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char label_first[256];
+            char label_second[256];
+            snprintf(label_first, sizeof(label_first), "p_%zu", i);
+            snprintf(label_second, sizeof(label_second), "q_%zu", i);
+            rsm_add_edge(rsm, "A", label_first, label_second, "A");
+        }
+    } else {
+        rsm_add_edge(rsm, "A", "p_i", "q_i", "A");
+    }
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char label_first[256];
+            char label_second[256];
+            snprintf(label_first, sizeof(label_first), "q_%zu", i);
+            snprintf(label_second, sizeof(label_second), "return_%zu", i);
+            rsm_add_edge(rsm, "A", label_first, "0", label_second);
+        }
+    } else {
+        rsm_add_edge(rsm, "A", "q_i", "0", "return_i");
+    }
 
     return rsm;
 }
 
 static CFG_RSM *rsm_create_c_alias_template(void) {
-    CFG_RSM *rsm = rsm_init();
+    CFG_RSM *rsm = rsm_init(NULL);
 
     rsm_add_nonterm(rsm, "S");
     rsm_add_nonterm(rsm, "V");
@@ -351,8 +419,8 @@ static CFG_RSM *rsm_create_c_alias_template(void) {
     return rsm;
 }
 
-static CFG_RSM *rsm_create_java_points_to_template(void) {
-    CFG_RSM *rsm = rsm_init();
+static CFG_RSM *rsm_create_java_points_to_template(bool exploded, size_t n, SymbolList *terms) {
+    CFG_RSM *rsm = rsm_init(terms);
 
     rsm_add_nonterm(rsm, "Alias");
     rsm_add_nonterm(rsm, "PointsTo");
@@ -409,7 +477,7 @@ static CFG_RSM *rsm_create_java_points_to_template(void) {
 }
 
 static CFG_RSM *rsm_create_rdf_hierarchy_template(void) {
-    CFG_RSM *rsm = rsm_init();
+    CFG_RSM *rsm = rsm_init(NULL);
 
     rsm_add_nonterm(rsm, "S");
 
@@ -443,8 +511,8 @@ static CFG_RSM *rsm_create_rdf_hierarchy_template(void) {
     return rsm;
 }
 
-static CFG_RSM *rsm_create_vf_template(void) {
-    CFG_RSM *rsm = rsm_init();
+static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *terms) {
+    CFG_RSM *rsm = rsm_init(terms);
 
     rsm_add_nonterm(rsm, "M");
     rsm_add_nonterm(rsm, "V");
@@ -499,19 +567,19 @@ static CFG_RSM *rsm_create_vf_template(void) {
     return rsm;
 }
 
-CFG_RSM *rsm_create_template(RSM_Template template) {
+CFG_RSM *rsm_create_template(RSM_Template template, bool exploded, size_t n, SymbolList *terms) {
     switch (template) {
     case RSM_TEMPLATE_AA:
-        return rsm_create_aa_template();
+        return rsm_create_aa_template(exploded, n, terms);
 
     case RSM_TEMPLATE_VF:
-        return rsm_create_vf_template();
+        return rsm_create_vf_template(exploded, n, terms);
 
     case RSM_TEMPLATE_C_ALIAS:
         return rsm_create_c_alias_template();
 
     case RSM_TEMPLATE_JAVA_POINTS_TO:
-        return rsm_create_java_points_to_template();
+        return rsm_create_java_points_to_template(exploded, n, terms);
 
     case RSM_TEMPLATE_RDF_HIERARCHY:
         return rsm_create_rdf_hierarchy_template();
