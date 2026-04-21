@@ -165,3 +165,17 @@ void symbol_data_free(SymbolData *data) {
     data->size = 0;
     data->capacity = 0;
 }
+
+const char *symbol_list_get_str(const SymbolList *list, size_t index) {
+    if (list == NULL) {
+        fprintf(stderr, "symbol_list_get_str: list is NULL\n");
+        abort();
+    }
+
+    if (index >= list->count) {
+        fprintf(stderr, "symbol_list_get_str: index out of bounds: index=%zu, count=%zu\n", index, list->count);
+        abort();
+    }
+
+    return list->symbols[index].label;
+}
