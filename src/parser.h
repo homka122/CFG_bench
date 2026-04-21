@@ -66,8 +66,7 @@ typedef struct {
     Grammar grammar;
     SymbolList symbols;
     Graph graph;
-    RSM rsm;
-    bool is_rsm_found;
+    RSM_Template rsm_template;
 } ParserResult;
 
 typedef struct {

@@ -294,6 +294,8 @@ bool rsm_template_from_string(const char *name, RSM_Template *out) {
         return true;
     }
 
+    *out = RSM_NO_TEMPLATE;
+
     return false;
 }
 
@@ -301,17 +303,8 @@ ParserResult parser(config_row config_i) {
     char *config_graph = strdup(config_i.graph);
     char *config_grammar = strdup(config_i.grammar);
 
-    RSM rsm = {0};
-    bool is_rsm_found = false;
-
-    RSM_Template template = RSM_TEMPLATE_AA;
-
-    if (rsm_template_from_string(config_grammar, &template)) {
-        CFG_RSM *cfg_rsm = rsm_create_template(template);
-        rsm = rsm_convert_to_lagraph(cfg_rsm);
-        rsm_free(cfg_rsm);
-        is_rsm_found = true;
-    }
+    RSM_Template template = RSM_NO_TEMPLATE;
+    rsm_template_from_string(config_grammar, &template);
 
     // printf("Reading graph file...");
     // char *graph_buf = read_entire_file(config_graph);
@@ -348,13 +341,14 @@ ParserResult parser(config_row config_i) {
     free(config_grammar);
     free(config_graph);
 
-    return (ParserResult){.block_count = graph.block_count,
-                          .node_count = graph.node_count,
-                          .grammar = _grammar,
-                          .symbols = list,
-                          .graph = graph,
-                          .rsm = rsm,
-                          .is_rsm_found = is_rsm_found};
+    return (ParserResult){
+        .block_count = graph.block_count,
+        .node_count = graph.node_count,
+        .grammar = _grammar,
+        .symbols = list,
+        .graph = graph,
+        .rsm_template = template,
+    };
 }
 
 void get_configs_from_file(char *path, size_t *configs_count, config_row *configs, char **text_p) {
