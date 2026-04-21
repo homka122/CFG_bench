@@ -44,7 +44,7 @@ static bool is_rule_has_indexed_symb(Rule rule, SymbolList nonterms, SymbolList 
 // after: homka_1
 //        homka_2
 //        homka_3
-static void explode_indices_CFL(Grammar *grammar, Graph *graph, SymbolList *nonterms, SymbolList *terms) {
+void explode_indices_CFL(Grammar *grammar, Graph *graph, SymbolList *nonterms, SymbolList *terms) {
     size_t *map_nonterms = NULL;
     size_t *map_terms = NULL;
     size_t map_nonterms_size = 0;
@@ -291,8 +291,10 @@ GrB_Info adapter_CFL_cleanup_common(GrB_Matrix **adj_matrices, size_t terms_coun
 
     free(*adj_matrices);
     *adj_matrices = NULL;
-    free(*rules);
-    *rules = NULL;
+    if (rules != NULL) {
+        free(*rules);
+        *rules = NULL;
+    }
 
     return GrB_SUCCESS;
 }
