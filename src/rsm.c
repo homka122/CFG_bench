@@ -332,6 +332,7 @@ static CFG_RSM *rsm_create_aa_template(bool exploded, size_t n, SymbolList *term
     CFG_RSM *rsm = rsm_init(terms);
 
     rsm_add_nonterm(rsm, "A");
+    rsm_set_start_nonterm(rsm, "A");
 
     rsm_add_term(rsm, "a");
     if (exploded) {
@@ -416,6 +417,8 @@ static CFG_RSM *rsm_create_c_alias_template(void) {
     rsm_add_nonterm(rsm, "S");
     rsm_add_nonterm(rsm, "V");
 
+    rsm_set_start_nonterm(rsm, "S");
+
     rsm_add_term(rsm, "d_rev");
     rsm_add_term(rsm, "d");
     rsm_add_term(rsm, "a");
@@ -462,6 +465,8 @@ static CFG_RSM *rsm_create_java_points_to_template(bool exploded, size_t n, Symb
     rsm_add_nonterm(rsm, "Alias");
     rsm_add_nonterm(rsm, "PointsTo");
     rsm_add_nonterm(rsm, "FlowsTo");
+
+    rsm_set_start_nonterm(rsm, "PointsTo");
 
     rsm_add_term(rsm, "assign");
     rsm_add_term(rsm, "alloc");
@@ -517,6 +522,7 @@ static CFG_RSM *rsm_create_rdf_hierarchy_template(void) {
     CFG_RSM *rsm = rsm_init(NULL);
 
     rsm_add_nonterm(rsm, "S");
+    rsm_set_start_nonterm(rsm, "S");
 
     rsm_add_term(rsm, "type_rev");
     rsm_add_term(rsm, "type");
@@ -553,6 +559,8 @@ static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *term
 
     rsm_add_nonterm(rsm, "M");
     rsm_add_nonterm(rsm, "V");
+
+    rsm_set_start_nonterm(rsm, "V");
 
     rsm_add_term(rsm, "d_rev");
     rsm_add_term(rsm, "d");
