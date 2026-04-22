@@ -89,8 +89,8 @@ static size_t adapter_CFL_get_result() {
 //
 // this should be called after each run of the algorithm
 static GrB_Info adapter_CFL_free_outputs() {
-    TRY(GrB_free(&state.pi_type));
     TRY(adapter_CFL_free_outputs_common(&state.outputs, state.nonterms_count, state.msg));
+    TRY(GrB_free(&state.pi_type));
 
     return GrB_SUCCESS;
 }

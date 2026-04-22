@@ -64,8 +64,8 @@ static GrB_Info adapter_CFL_init_outputs() {
 //
 // this should be called after adapter_CFL_adv_init_outputs
 static GrB_Info adapter_CFL_run() {
-    TRY(LAGraph_CFL_AllPaths(state.outputs, state.adj_matrices, &state.all_path_type, state.terms_count,
-                             state.nonterms_count, state.rules, state.rules_count, state.msg));
+    TRY(LAGraph_CFL_AllPaths(state.outputs, &state.all_path_type, state.adj_matrices, state.terms_count,
+                             state.nonterms_count, state.rules, state.rules_count, state.msg, 0));
 
     return GrB_SUCCESS;
 }
@@ -90,8 +90,8 @@ static size_t adapter_CFL_get_result() {
 //
 // this should be called after each run of the algorithm
 static GrB_Info adapter_CFL_free_outputs() {
-    TRY(GrB_free(&state.all_path_type));
-    TRY(adapter_CFL_free_outputs_common(&state.outputs, state.nonterms_count, state.msg));
+    LAGraph_CFL_AllPaths_free_outputs(state.outputs, state.nonterms_count, &state.all_path_type);
+    state.outputs = NULL;
 
     return GrB_SUCCESS;
 }

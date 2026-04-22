@@ -1,4 +1,4 @@
-LIB_FLAGS = -lgraphblas -llagraph -llagraphx
+LIB_FLAGS = -L/usr/local/lib -Wl,-rpath,/usr/local/lib -lgraphblas -llagraph -llagraphx
 INCLUDE_FLAGS = -I/usr/local/include/suitesparse -I./ -I./src -I./src/adapters
 ALGO_PATH=../LAGraph/experimental/algorithm/LAGraph_CFL_reachability_advanced.c
 ALGO_OPT_PATH=../LAGraph/experimental/algorithm/LAGraph_CFL_optimized_matrix_opt.c
