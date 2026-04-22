@@ -70,3 +70,4 @@ void rsm_free(CFG_RSM *rsm);
 void rsm_print(CFG_RSM *rsm);
 RSM rsm_convert_to_lagraph(CFG_RSM *rsm);
 void rsm_lagraph_rsm_free(RSM *rsm);
+void rsm_lagraph_print(RSM *rsm);

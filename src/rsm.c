@@ -858,6 +858,19 @@ RSM rsm_convert_to_lagraph(CFG_RSM *cfg) {
     return result;
 }
 
+void rsm_lagraph_print(RSM *rsm) {
+    for (size_t i = 0; i < rsm->nonterminal_count; i++) {
+        GxB_print(rsm->nonterminal_matrices[i], 1);
+    }
+    for (size_t i = 0; i < rsm->terminal_count; i++) {
+        GxB_print(rsm->terminal_matrices[i], 1);
+    }
+    for (size_t i = 0; i < rsm->nonterminal_count; i++) {
+        printf("start state %ld: %ld\n", i, rsm->start_states[i]);
+        GxB_print(rsm->final_states[i], 1);
+    }
+}
+
 void rsm_lagraph_rsm_free(RSM *rsm) {
     if (rsm == NULL) {
         return;
