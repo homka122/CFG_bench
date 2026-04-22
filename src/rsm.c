@@ -460,6 +460,11 @@ static CFG_RSM *rsm_create_c_alias_template(void) {
 }
 
 static CFG_RSM *rsm_create_java_points_to_template(bool exploded, size_t n, SymbolList *terms) {
+    if (exploded && n == 0) {
+        fprintf(stderr, "rsm_template: n should be positive when exploded = true\n");
+        abort();
+    }
+
     CFG_RSM *rsm = rsm_init(terms);
 
     rsm_add_nonterm(rsm, "Alias");
@@ -470,12 +475,38 @@ static CFG_RSM *rsm_create_java_points_to_template(bool exploded, size_t n, Symb
 
     rsm_add_term(rsm, "assign");
     rsm_add_term(rsm, "alloc");
-    rsm_add_term(rsm, "load_i");
-    rsm_add_term(rsm, "store_i");
     rsm_add_term(rsm, "alloc_rev");
-    rsm_add_term(rsm, "store_i_rev");
-    rsm_add_term(rsm, "load_i_rev");
     rsm_add_term(rsm, "assign_rev");
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "load_%zu", i);
+            rsm_add_term(rsm, label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "store_%zu", i);
+            rsm_add_term(rsm, label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "store_%zu_rev", i);
+            rsm_add_term(rsm, label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "load_%zu_rev", i);
+            rsm_add_term(rsm, label);
+        }
+    } else {
+        rsm_add_term(rsm, "load_i");
+        rsm_add_term(rsm, "store_i");
+        rsm_add_term(rsm, "store_i_rev");
+        rsm_add_term(rsm, "load_i_rev");
+    }
 
     rsm_add_state(rsm, "Alias", "0");
     rsm_add_state(rsm, "Alias", "1");
@@ -488,32 +519,112 @@ static CFG_RSM *rsm_create_java_points_to_template(bool exploded, size_t n, Symb
     rsm_add_edge(rsm, "Alias", "1", "2", "FlowsTo");
 
     rsm_add_state(rsm, "PointsTo", "0");
-    rsm_add_state(rsm, "PointsTo", "p_i");
-    rsm_add_state(rsm, "PointsTo", "q_i");
     rsm_add_state(rsm, "PointsTo", "1");
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "p_%zu", i);
+            rsm_add_state(rsm, "PointsTo", label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "q_%zu", i);
+            rsm_add_state(rsm, "PointsTo", label);
+        }
+    } else {
+        rsm_add_state(rsm, "PointsTo", "p_i");
+        rsm_add_state(rsm, "PointsTo", "q_i");
+    }
 
     rsm_set_start_state(rsm, "PointsTo", "0");
     rsm_add_final_state(rsm, "PointsTo", "1");
 
     rsm_add_edge(rsm, "PointsTo", "0", "0", "assign");
     rsm_add_edge(rsm, "PointsTo", "0", "1", "alloc");
-    rsm_add_edge(rsm, "PointsTo", "0", "p_i", "load_i");
-    rsm_add_edge(rsm, "PointsTo", "p_i", "q_i", "Alias");
-    rsm_add_edge(rsm, "PointsTo", "q_i", "0", "store_i");
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char state_label[256];
+            char term_label[256];
+            snprintf(state_label, sizeof(state_label), "p_%zu", i);
+            snprintf(term_label, sizeof(term_label), "load_%zu", i);
+            rsm_add_edge(rsm, "PointsTo", "0", state_label, term_label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char from_label[256];
+            char to_label[256];
+            snprintf(from_label, sizeof(from_label), "p_%zu", i);
+            snprintf(to_label, sizeof(to_label), "q_%zu", i);
+            rsm_add_edge(rsm, "PointsTo", from_label, to_label, "Alias");
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char state_label[256];
+            char term_label[256];
+            snprintf(state_label, sizeof(state_label), "q_%zu", i);
+            snprintf(term_label, sizeof(term_label), "store_%zu", i);
+            rsm_add_edge(rsm, "PointsTo", state_label, "0", term_label);
+        }
+    } else {
+        rsm_add_edge(rsm, "PointsTo", "0", "p_i", "load_i");
+        rsm_add_edge(rsm, "PointsTo", "p_i", "q_i", "Alias");
+        rsm_add_edge(rsm, "PointsTo", "q_i", "0", "store_i");
+    }
 
     rsm_add_state(rsm, "FlowsTo", "0");
-    rsm_add_state(rsm, "FlowsTo", "p_i");
-    rsm_add_state(rsm, "FlowsTo", "q_i");
     rsm_add_state(rsm, "FlowsTo", "1");
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "p_%zu", i);
+            rsm_add_state(rsm, "FlowsTo", label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "q_%zu", i);
+            rsm_add_state(rsm, "FlowsTo", label);
+        }
+    } else {
+        rsm_add_state(rsm, "FlowsTo", "p_i");
+        rsm_add_state(rsm, "FlowsTo", "q_i");
+    }
 
     rsm_set_start_state(rsm, "FlowsTo", "0");
     rsm_add_final_state(rsm, "FlowsTo", "1");
 
     rsm_add_edge(rsm, "FlowsTo", "0", "1", "alloc_rev");
-    rsm_add_edge(rsm, "FlowsTo", "1", "p_i", "store_i_rev");
-    rsm_add_edge(rsm, "FlowsTo", "p_i", "q_i", "Alias");
-    rsm_add_edge(rsm, "FlowsTo", "q_i", "1", "load_i_rev");
     rsm_add_edge(rsm, "FlowsTo", "1", "1", "assign_rev");
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char state_label[256];
+            char term_label[256];
+            snprintf(state_label, sizeof(state_label), "p_%zu", i);
+            snprintf(term_label, sizeof(term_label), "store_%zu_rev", i);
+            rsm_add_edge(rsm, "FlowsTo", "1", state_label, term_label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char from_label[256];
+            char to_label[256];
+            snprintf(from_label, sizeof(from_label), "p_%zu", i);
+            snprintf(to_label, sizeof(to_label), "q_%zu", i);
+            rsm_add_edge(rsm, "FlowsTo", from_label, to_label, "Alias");
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char state_label[256];
+            char term_label[256];
+            snprintf(state_label, sizeof(state_label), "q_%zu", i);
+            snprintf(term_label, sizeof(term_label), "load_%zu_rev", i);
+            rsm_add_edge(rsm, "FlowsTo", state_label, "1", term_label);
+        }
+    } else {
+        rsm_add_edge(rsm, "FlowsTo", "1", "p_i", "store_i_rev");
+        rsm_add_edge(rsm, "FlowsTo", "p_i", "q_i", "Alias");
+        rsm_add_edge(rsm, "FlowsTo", "q_i", "1", "load_i_rev");
+    }
 
     return rsm;
 }
@@ -634,6 +745,7 @@ CFG_RSM *rsm_create_template(RSM_Template template, bool exploded, size_t n, Sym
         abort();
     }
 }
+
 
 static void rsm_validate_before_convert(const CFG_RSM *rsm) {
     rsm_check_not_null(rsm);
