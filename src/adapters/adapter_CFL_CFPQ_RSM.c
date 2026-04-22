@@ -31,7 +31,7 @@ typedef struct {
 static state_t state;
 
 static GrB_Info adapter_CFL_setup() {
-    TRY(LAGr_Init(GrB_NONBLOCKING, malloc, NULL, NULL, free, state.msg));
+    TRY(LAGr_Init(GrB_BLOCKING, malloc, NULL, NULL, free, state.msg));
 
     return GrB_SUCCESS;
 }
@@ -69,12 +69,12 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
 
     GrB_Matrix *prepared_adj_matrices = calloc(terms.count, sizeof(GrB_Matrix));
     for (size_t i = 0; i < terms.count; i++) {
-        GrB_Matrix_new(prepared_adj_matrices + i, GrB_BOOL, graph.node_count, graph.node_count);
+        TRY(GrB_Matrix_new(prepared_adj_matrices + i, GrB_BOOL, graph.node_count, graph.node_count));
     }
 
     GrB_Scalar true_scalar;
-    GrB_Scalar_new(&true_scalar, GrB_BOOL);
-    GrB_Scalar_setElement_BOOL(true_scalar, true);
+    TRY(GrB_Scalar_new(&true_scalar, GrB_BOOL));
+    TRY(GrB_Scalar_setElement_BOOL(true_scalar, true));
 
     GrB_Index *row = malloc(sizeof(GrB_Index) * graph.edge_count);
     GrB_Index *col = malloc(sizeof(GrB_Index) * graph.edge_count);
@@ -89,7 +89,7 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
             }
         }
 
-        GxB_Matrix_build_Scalar(prepared_adj_matrices[i], row, col, true_scalar, count);
+        TRY(GxB_Matrix_build_Scalar(prepared_adj_matrices[i], row, col, true_scalar, count));
 #ifdef DEBUG_parser
         GxB_print(prepared_adj_matrices[i], 1);
 #endif
