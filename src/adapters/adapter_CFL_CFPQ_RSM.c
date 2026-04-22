@@ -67,8 +67,8 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
 
     CFG_RSM *rsm = rsm_create_template(parser_result.rsm_template, true, parser_result.block_count, &terms);
 
-    GrB_Matrix *prepared_adj_matrices = calloc(terms.count, sizeof(GrB_Matrix));
-    for (size_t i = 0; i < terms.count; i++) {
+    GrB_Matrix *prepared_adj_matrices = calloc(rsm->terms.count, sizeof(GrB_Matrix));
+    for (size_t i = 0; i < rsm->terms.count; i++) {
         TRY(GrB_Matrix_new(prepared_adj_matrices + i, GrB_BOOL, graph.node_count, graph.node_count));
     }
 
@@ -78,7 +78,7 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
 
     GrB_Index *row = malloc(sizeof(GrB_Index) * graph.edge_count);
     GrB_Index *col = malloc(sizeof(GrB_Index) * graph.edge_count);
-    for (size_t i = 0; i < terms.count; i++) {
+    for (size_t i = 0; i < rsm->terms.count; i++) {
         int count = 0;
 
         for (int j = 0; j < graph.edge_count; j++) {
@@ -89,7 +89,15 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
             }
         }
 
-        TRY(GxB_Matrix_build_Scalar(prepared_adj_matrices[i], row, col, true_scalar, count));
+        {
+            GrB_Info LG_GrB_Info = GxB_Matrix_build_Scalar(prepared_adj_matrices[i], row, col, true_scalar, count);
+            if (LG_GrB_Info < GrB_SUCCESS) {
+                fprintf(stderr, "LAGraph failure (file %s, line %d): (%d, msg: %s) \n",
+                        "/home/homka/code/spbu/course_work/CFG_bench/src/adapters/adapter_CFL_CFPQ_RSM.c", 94,
+                        LG_GrB_Info, state.msg);
+                return (LG_GrB_Info);
+            }
+        }
 #ifdef DEBUG_parser
         GxB_print(prepared_adj_matrices[i], 1);
 #endif
