@@ -69,8 +69,6 @@ static GrB_Info adapter_CFL_run() {
                                          state.terms_count, state.nonterms_count, state.rules, state.rules_count,
                                          state.msg));
 
-    GxB_print(state.outputs[0], 3);
-
     return GrB_SUCCESS;
 }
 
@@ -84,9 +82,35 @@ static ResultType adapter_CFL_is_result_valid(size_t valid_result) {
 
 // TODO: now this is the same as adapter_CFL_adv_is_result_valid, make this more generic for other adapters
 static size_t adapter_CFL_get_result() {
-    // TODO: combine indexed matrices if initial nonterm is indexed
-    size_t result = 0;
-    TRY(adapter_CFL_get_result_common(state.outputs[0], &result));
+    // reduce output matrix to vector for counting reachable nodes
+    GrB_Index result = 0;
+
+    GrB_Index size = 0;
+    TRY(GrB_Matrix_ncols(&size, state.outputs[0]));
+    GrB_Vector result_vec = NULL;
+    TRY(GrB_Vector_new(&result_vec, GrB_BOOL, size));
+
+    GrB_Index nnz = 0;
+    TRY(GrB_Matrix_nvals(&nnz, state.outputs[0]));
+
+    GrB_Index *rows = calloc(nnz, sizeof(GrB_Index));
+    GrB_Index *cols = calloc(nnz, sizeof(GrB_Index));
+    bool *values = calloc(nnz, sizeof(GrB_Index));
+    TRY(GrB_Matrix_extractTuples_BOOL(rows, cols, values, &nnz, state.outputs[0]));
+
+    for (size_t i = 0; i < nnz; i++) {
+        rows[i] = 0;
+    }
+
+    TRY(GrB_Vector_build_BOOL(result_vec, cols, values, nnz, GxB_PAIR_BOOL));
+
+    TRY(GrB_Vector_nvals(&result, result_vec));
+
+    free(rows);
+    free(cols);
+    free(values);
+    TRY(GrB_Vector_free(&result_vec));
+
     return result;
 }
 
