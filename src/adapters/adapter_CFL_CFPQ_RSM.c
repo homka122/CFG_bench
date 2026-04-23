@@ -5,6 +5,7 @@
 #include "LAGraph.h"
 #include "adapter_CFL_adv.h"
 #include "adapter_CFL_common.h"
+#include "adapter_CFL_multsrc_common.h"
 #include "parser.h"
 
 #define TRY(GrB_method)                                                                                                \
@@ -107,9 +108,7 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
     state.adj_matrices = prepared_adj_matrices;
     state.V = graph.node_count;
 
-    state.sources = calloc(1, sizeof(GrB_Index));
-    state.sources[0] = 0;
-    state.sources_num = 1;
+    adapter_CFL_init_src_nodes_common(&state.sources, &state.sources_num);
 
     free(row);
     free(col);
@@ -146,8 +145,8 @@ static GrB_Info adapter_CFL_run() {
 // check if the result of the algorithm is valid
 //
 // TODO: now check only count of reachibility pairs, make this more generic for other adapters
-static bool adapter_CFL_is_result_valid(size_t valid_result) {
-    return true;
+static ResultType adapter_CFL_is_result_valid(size_t valid_result) {
+    return RESULT_UNKNOWN;
     // bool is_valid = false;
     // TRY(adapter_CFL_is_result_valid_common(state.outputs[0], valid_result, &is_valid));
     // return is_valid;
