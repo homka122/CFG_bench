@@ -666,6 +666,11 @@ static CFG_RSM *rsm_create_rdf_hierarchy_template(void) {
 }
 
 static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *terms) {
+    if (exploded && n == 0) {
+        fprintf(stderr, "rsm_template: n should be positive when exploded = true\n");
+        abort();
+    }
+
     CFG_RSM *rsm = rsm_init(terms);
 
     rsm_add_nonterm(rsm, "M");
@@ -677,8 +682,22 @@ static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *term
     rsm_add_term(rsm, "d");
     rsm_add_term(rsm, "a_rev");
     rsm_add_term(rsm, "a");
-    rsm_add_term(rsm, "f_i_rev");
-    rsm_add_term(rsm, "f_i");
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "f_%zu_rev", i);
+            rsm_add_term(rsm, label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "f_%zu", i);
+            rsm_add_term(rsm, label);
+        }
+    } else {
+        rsm_add_term(rsm, "f_i_rev");
+        rsm_add_term(rsm, "f_i");
+    }
 
     rsm_add_state(rsm, "M", "0");
     rsm_add_state(rsm, "M", "1");
@@ -698,8 +717,22 @@ static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *term
     rsm_add_state(rsm, "V", "3");
     rsm_add_state(rsm, "V", "4");
     rsm_add_state(rsm, "V", "5");
-    rsm_add_state(rsm, "V", "p_i");
-    rsm_add_state(rsm, "V", "q_i");
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "p_%zu", i);
+            rsm_add_state(rsm, "V", label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char label[256];
+            snprintf(label, sizeof(label), "q_%zu", i);
+            rsm_add_state(rsm, "V", label);
+        }
+    } else {
+        rsm_add_state(rsm, "V", "p_i");
+        rsm_add_state(rsm, "V", "q_i");
+    }
 
     rsm_set_start_state(rsm, "V", "0");
 
@@ -716,9 +749,35 @@ static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *term
     rsm_add_edge(rsm, "V", "5", "1", "V");
     rsm_add_edge(rsm, "V", "1", "2", "a");
     rsm_add_edge(rsm, "V", "2", "3", "M");
-    rsm_add_edge(rsm, "V", "0", "p_i", "f_i_rev");
-    rsm_add_edge(rsm, "V", "p_i", "q_i", "V");
-    rsm_add_edge(rsm, "V", "q_i", "3", "f_i");
+    if (exploded) {
+        for (size_t i = 0; i < n; i++) {
+            char state_label[256];
+            char term_label[256];
+            snprintf(state_label, sizeof(state_label), "p_%zu", i);
+            snprintf(term_label, sizeof(term_label), "f_%zu_rev", i);
+            rsm_add_edge(rsm, "V", "0", state_label, term_label);
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char from_label[256];
+            char to_label[256];
+            snprintf(from_label, sizeof(from_label), "p_%zu", i);
+            snprintf(to_label, sizeof(to_label), "q_%zu", i);
+            rsm_add_edge(rsm, "V", from_label, to_label, "V");
+        }
+
+        for (size_t i = 0; i < n; i++) {
+            char state_label[256];
+            char term_label[256];
+            snprintf(state_label, sizeof(state_label), "q_%zu", i);
+            snprintf(term_label, sizeof(term_label), "f_%zu", i);
+            rsm_add_edge(rsm, "V", state_label, "3", term_label);
+        }
+    } else {
+        rsm_add_edge(rsm, "V", "0", "p_i", "f_i_rev");
+        rsm_add_edge(rsm, "V", "p_i", "q_i", "V");
+        rsm_add_edge(rsm, "V", "q_i", "3", "f_i");
+    }
 
     return rsm;
 }
@@ -726,10 +785,10 @@ static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *term
 CFG_RSM *rsm_create_template(RSM_Template template, bool exploded, size_t n, SymbolList *terms) {
     switch (template) {
     case RSM_TEMPLATE_AA:
-        return rsm_create_aa_template(exploded, n, terms);
+        return rsm_create_vf_template(exploded, n, terms);
 
     case RSM_TEMPLATE_VF:
-        return rsm_create_vf_template(exploded, n, terms);
+        return rsm_create_aa_template(exploded, n, terms);
 
     case RSM_TEMPLATE_C_ALIAS:
         return rsm_create_c_alias_template();
@@ -745,7 +804,6 @@ CFG_RSM *rsm_create_template(RSM_Template template, bool exploded, size_t n, Sym
         abort();
     }
 }
-
 
 static void rsm_validate_before_convert(const CFG_RSM *rsm) {
     rsm_check_not_null(rsm);
