@@ -37,7 +37,7 @@ jobs:
 
             - name: Build benchmark
               run: |
-                  make bench-CI
+                  make bench
 
             - name: Run benchmark
               run: |
