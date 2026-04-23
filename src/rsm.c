@@ -344,12 +344,12 @@ static CFG_RSM *rsm_create_aa_template(bool exploded, size_t n, SymbolList *term
 
         for (size_t i = 0; i < n; i++) {
             char label[256];
-            snprintf(label, sizeof(label), "return_%zu", i);
+            snprintf(label, sizeof(label), "ret_%zu", i);
             rsm_add_term(rsm, label);
         }
     } else {
         rsm_add_term(rsm, "call_i");
-        rsm_add_term(rsm, "return_i");
+        rsm_add_term(rsm, "ret_i");
     }
 
     rsm_add_state(rsm, "A", "0");
@@ -401,11 +401,11 @@ static CFG_RSM *rsm_create_aa_template(bool exploded, size_t n, SymbolList *term
             char label_first[256];
             char label_second[256];
             snprintf(label_first, sizeof(label_first), "q_%zu", i);
-            snprintf(label_second, sizeof(label_second), "return_%zu", i);
+            snprintf(label_second, sizeof(label_second), "ret_%zu", i);
             rsm_add_edge(rsm, "A", label_first, "0", label_second);
         }
     } else {
-        rsm_add_edge(rsm, "A", "q_i", "0", "return_i");
+        rsm_add_edge(rsm, "A", "q_i", "0", "ret_i");
     }
 
     return rsm;
