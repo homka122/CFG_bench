@@ -139,6 +139,8 @@ static GrB_Info adapter_CFL_run() {
     TRY(LAGraph_CFPQ_RSM(state.reachable, &state.rsm, state.adj_matrices, state.sources, state.sources_num, state.V,
                          state.msg));
 
+    GxB_print(*state.reachable, 3);
+
     return GrB_SUCCESS;
 }
 
