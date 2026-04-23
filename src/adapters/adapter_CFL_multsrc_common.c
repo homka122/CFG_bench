@@ -10,7 +10,7 @@
     }
 
 GrB_Info adapter_CFL_init_src_nodes_common(GrB_Index **srcs, size_t *source_count) {
-    *source_count = 18;
+    *source_count = 5;
 
     *srcs = calloc(*source_count, sizeof(GrB_Index));
 

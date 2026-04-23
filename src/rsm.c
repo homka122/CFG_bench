@@ -678,14 +678,14 @@ static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *term
 
     rsm_set_start_nonterm(rsm, "V");
 
-    rsm_add_term(rsm, "d_rev");
+    rsm_add_term(rsm, "dbar");
     rsm_add_term(rsm, "d");
-    rsm_add_term(rsm, "a_rev");
+    rsm_add_term(rsm, "abar");
     rsm_add_term(rsm, "a");
     if (exploded) {
         for (size_t i = 0; i < n; i++) {
             char label[256];
-            snprintf(label, sizeof(label), "f_%zu_rev", i);
+            snprintf(label, sizeof(label), "fbar_%zu", i);
             rsm_add_term(rsm, label);
         }
 
@@ -695,7 +695,7 @@ static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *term
             rsm_add_term(rsm, label);
         }
     } else {
-        rsm_add_term(rsm, "f_i_rev");
+        rsm_add_term(rsm, "fbar_i");
         rsm_add_term(rsm, "f_i");
     }
 
@@ -707,7 +707,7 @@ static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *term
     rsm_set_start_state(rsm, "M", "0");
     rsm_add_final_state(rsm, "M", "3");
 
-    rsm_add_edge(rsm, "M", "0", "1", "d_rev");
+    rsm_add_edge(rsm, "M", "0", "1", "dbar");
     rsm_add_edge(rsm, "M", "1", "2", "V");
     rsm_add_edge(rsm, "M", "2", "3", "d");
 
@@ -744,8 +744,8 @@ static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *term
 
     rsm_add_edge(rsm, "V", "0", "1", "V");
     rsm_add_edge(rsm, "V", "0", "4", "M");
-    rsm_add_edge(rsm, "V", "0", "5", "a_rev");
-    rsm_add_edge(rsm, "V", "4", "5", "a_rev");
+    rsm_add_edge(rsm, "V", "0", "5", "abar");
+    rsm_add_edge(rsm, "V", "4", "5", "abar");
     rsm_add_edge(rsm, "V", "5", "1", "V");
     rsm_add_edge(rsm, "V", "1", "2", "a");
     rsm_add_edge(rsm, "V", "2", "3", "M");
@@ -754,7 +754,7 @@ static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *term
             char state_label[256];
             char term_label[256];
             snprintf(state_label, sizeof(state_label), "p_%zu", i);
-            snprintf(term_label, sizeof(term_label), "f_%zu_rev", i);
+            snprintf(term_label, sizeof(term_label), "fbar_%zu", i);
             rsm_add_edge(rsm, "V", "0", state_label, term_label);
         }
 
@@ -774,7 +774,7 @@ static CFG_RSM *rsm_create_vf_template(bool exploded, size_t n, SymbolList *term
             rsm_add_edge(rsm, "V", state_label, "3", term_label);
         }
     } else {
-        rsm_add_edge(rsm, "V", "0", "p_i", "f_i_rev");
+        rsm_add_edge(rsm, "V", "0", "p_i", "fbar_i");
         rsm_add_edge(rsm, "V", "p_i", "q_i", "V");
         rsm_add_edge(rsm, "V", "q_i", "3", "f_i");
     }
