@@ -5,6 +5,7 @@
 #include "LAGraph.h"
 #include "adapter_CFL_adv.h"
 #include "adapter_CFL_common.h"
+#include "adapter_CFL_multsrc_common.h"
 #include "parser.h"
 
 #define TRY(GrB_method)                                                                                                \
@@ -146,8 +147,8 @@ static GrB_Info adapter_CFL_run() {
 // check if the result of the algorithm is valid
 //
 // TODO: now check only count of reachibility pairs, make this more generic for other adapters
-static bool adapter_CFL_is_result_valid(size_t valid_result) {
-    return true;
+static ResultType adapter_CFL_is_result_valid(size_t valid_result) {
+    return RESULT_UNKNOWN;
     // bool is_valid = false;
     // TRY(adapter_CFL_is_result_valid_common(state.outputs[0], valid_result, &is_valid));
     // return is_valid;

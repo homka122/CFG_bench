@@ -73,6 +73,12 @@
 #include <GraphBLAS.h>
 #include <LAGraph.h>
 
+typedef enum ResultType {
+    RESULT_OK,
+    RESULT_UNKNOWN,
+    RESULT_ERROR,
+} ResultType;
+
 /**
  * @brief Function pointer type for adapter setup function.
  *
@@ -153,7 +159,7 @@ typedef GrB_Info (*AdapterCleanup)(void);
  * @param valid_result Expected result value (typically expected nnz count)
  * @return true if result is valid, false otherwise
  */
-typedef bool (*AdapterIsResultValid)(size_t valid_result);
+typedef ResultType (*AdapterIsResultValid)(size_t valid_result);
 
 /**
  * @brief Function pointer type for result retrieval.
@@ -178,7 +184,7 @@ typedef size_t (*AdapterGetResult)(void);
  *     methods.setup();
  * @endcode
  */
-typedef struct {
+typedef struct AdapterMethods {
     /** Initialize adapter and underlying libraries */
     AdapterSetup setup;
 

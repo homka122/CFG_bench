@@ -79,9 +79,14 @@ void print_list(SymbolList list, size_t *map) {
 }
 
 #define RESET "\033[0m"
-#define BLACK "\033[30m" /* Black */
-#define RED "\033[31m"   /* Red */
-#define GREEN "\033[32m" /* Green */
+#define BLACK "\033[30m"
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[33m"
+#define BLUE "\033[34m"
+#define MAGENTA "\033[35m"
+#define CYAN "\033[36m"
+#define WHITE "\033[37m"
 
 // Use your custom configuration for the benchmark (default is the xz.g graph
 // and vf.cnf grammar)
@@ -261,12 +266,24 @@ int main(int argc, char **argv) {
 
             if (is_test) {
                 size_t result = adapter.get_result();
-                if (adapter.is_result_valid(config.valid_result)) {
-                    printf("\tResult: %ld (Return code: %d)" GREEN " [OK]" RESET, result, retval);
-                } else {
-                    printf("\tResult: %ld (Return code: %d)" RED " [Wrong]" RESET " (Result must be %ld)", result,
-                           retval, config.valid_result);
+                ResultType result_type = adapter.is_result_valid(config.valid_result);
+                char status[256];
+                switch (result_type) {
+                case RESULT_OK:
+                    snprintf(status, sizeof(status), GREEN "[OK]" RESET);
+                    break;
+                case RESULT_ERROR:
+                    snprintf(status, sizeof(status), RED "[Wrong] (Result must be %ld)" RESET, config.valid_result);
+                    break;
+                case RESULT_UNKNOWN:
+                    snprintf(status, sizeof(status), YELLOW "[Unknown]" RESET);
+                    break;
+                default:
+                    fprintf(stderr, "Unknown result type: %d\n", result_type);
+                    abort();
                 }
+
+                printf("\tResult: %ld (Return code: %d) %s", result, retval, status);
 
                 if (retval != 0) {
                     printf("\t(MSG: %s)", msg);

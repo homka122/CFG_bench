@@ -69,9 +69,9 @@ static GrB_Info adapter_CFL_run() {
 // check if the result of the algorithm is valid
 //
 // TODO: now check only count of reachibility pairs, make this more generic for other adapters
-static bool adapter_CFL_is_result_valid(size_t valid_result) {
+static ResultType adapter_CFL_is_result_valid(size_t valid_result) {
     // TODO: combine indexed matrices if initial nonterm is indexed
-    bool is_valid = false;
+    ResultType is_valid = RESULT_UNKNOWN;
     TRY(adapter_CFL_is_result_valid_common(state.outputs[0], valid_result, &is_valid));
     return is_valid;
 }
