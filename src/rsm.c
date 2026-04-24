@@ -635,9 +635,9 @@ static CFG_RSM *rsm_create_rdf_hierarchy_template(void) {
     rsm_add_nonterm(rsm, "S");
     rsm_set_start_nonterm(rsm, "S");
 
-    rsm_add_term(rsm, "type_rev");
+    rsm_add_term(rsm, "type_r");
     rsm_add_term(rsm, "type");
-    rsm_add_term(rsm, "subClassOf_rev");
+    rsm_add_term(rsm, "subClassOf_r");
     rsm_add_term(rsm, "subClassOf");
 
     rsm_add_state(rsm, "S", "0");
@@ -650,10 +650,10 @@ static CFG_RSM *rsm_create_rdf_hierarchy_template(void) {
     rsm_set_start_state(rsm, "S", "0");
     rsm_add_final_state(rsm, "S", "2");
 
-    rsm_add_edge(rsm, "S", "0", "1", "type_rev");
+    rsm_add_edge(rsm, "S", "0", "1", "type_r");
     rsm_add_edge(rsm, "S", "1", "2", "type");
 
-    rsm_add_edge(rsm, "S", "0", "3", "subClassOf_rev");
+    rsm_add_edge(rsm, "S", "0", "3", "subClassOf_r");
     rsm_add_edge(rsm, "S", "3", "2", "subClassOf");
 
     rsm_add_edge(rsm, "S", "3", "5", "S");
