@@ -90,15 +90,7 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
             }
         }
 
-        {
-            GrB_Info LG_GrB_Info = GxB_Matrix_build_Scalar(prepared_adj_matrices[i], row, col, true_scalar, count);
-            if (LG_GrB_Info < GrB_SUCCESS) {
-                fprintf(stderr, "LAGraph failure (file %s, line %d): (%d, msg: %s) \n",
-                        "/home/homka/code/spbu/course_work/CFG_bench/src/adapters/adapter_CFL_CFPQ_RSM.c", 94,
-                        LG_GrB_Info, state.msg);
-                return (LG_GrB_Info);
-            }
-        }
+        TRY(GxB_Matrix_build_Scalar(prepared_adj_matrices[i], row, col, true_scalar, count));
 #ifdef DEBUG_parser
         GxB_print(prepared_adj_matrices[i], 1);
 #endif
