@@ -22,7 +22,7 @@ bench: $(TARGET)
 	./$(TARGET) -c configs/configs_my.csv -r 10 --hot
 
 CI: $(TARGET)
-	./$(TARGET) -t -c configs/configs_my.csv
+	./$(TARGET) -efblt -c configs/configs_my.csv
 
 debug: clean
 	$(MAKE) BUILD_DIR=build/debug \
