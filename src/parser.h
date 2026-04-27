@@ -86,6 +86,11 @@ typedef struct {
 Graph process_graph(FILE *graph_file, SymbolList *symbol_list);
 GrB_Matrix *get_grb_matrices_from_graph(Graph graph, SymbolList *list);
 
+// minimize graph nodes
+//
+// for example with 1000x1000 graph and only edge 0 -> 600 it makes 2x2 graph with edge 0 -> 1 with same label
+void *minimize_graph(Graph *graph);
+
 // before: homka_i
 // after: homka_1
 //        homka_2

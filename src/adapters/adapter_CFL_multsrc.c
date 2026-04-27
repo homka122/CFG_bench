@@ -44,10 +44,11 @@ static GrB_Info adapter_CFL_setup() {
 //
 // adapter_CFL_prepare should be called just once for each config
 static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_data) {
+    (void)prepare_data;
     TRY(adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count, &state.nonterms_count,
                                    &state.rules, &state.rules_count, &state.graph_size));
 
-    adapter_CFL_init_src_nodes_common(&state.srcs, &state.source_count);
+    adapter_CFL_init_src_nodes_common(&state.srcs, &state.source_count, 0);
 
     return GrB_SUCCESS;
 }
@@ -77,6 +78,7 @@ static GrB_Info adapter_CFL_run() {
 // TODO: now check only count of reachibility pairs, make this more generic for other adapters
 static ResultType adapter_CFL_is_result_valid(size_t valid_result) {
     // TODO: combine indexed matrices if initial nonterm is indexed
+    (void)valid_result;
     return RESULT_UNKNOWN;
 }
 
@@ -134,7 +136,10 @@ static GrB_Info adapter_CFL_cleanup() {
 }
 
 // free LAGraph\GraphBLAS resources
-static GrB_Info adapter_CFL_teardown() { TRY(LAGraph_Finalize(state.msg)); }
+static GrB_Info adapter_CFL_teardown() {
+    TRY(LAGraph_Finalize(state.msg));
+    return GrB_SUCCESS;
+}
 
 // get the methods of the adapter
 AdapterMethods adapter_CFL_multsrc_get_methods() {

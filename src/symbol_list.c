@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-Symbol symbol_create(char *str) {
+Symbol symbol_create(const char *str) {
     Symbol result = {0};
 
     size_t len = strlen(str);
@@ -78,7 +78,7 @@ void symbol_list_print(SymbolList list) {
     }
 }
 
-int symbol_list_get_index_str(SymbolList *list, char *str) {
+int symbol_list_get_index_str(const SymbolList *list, const char *str) {
     for (size_t i = 0; i < list->count; i++) {
         if (strcmp(list->symbols[i].label, str) == 0) {
             return i;
@@ -88,7 +88,7 @@ int symbol_list_get_index_str(SymbolList *list, char *str) {
     return -1;
 }
 
-int symbol_list_add_str(SymbolList *list, char *str, bool is_nonterm) {
+int symbol_list_add_str(SymbolList *list, const char *str, bool is_nonterm) {
     int index = symbol_list_get_index_str(list, str);
     if (index != -1) {
         if (is_nonterm)

@@ -44,6 +44,7 @@ static GrB_Info adapter_CFL_setup() {
 //
 // adapter_CFL_prepare should be called just once for each config
 static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_data) {
+    (void)prepare_data;
     Grammar grammar = parser_result.grammar;
     Graph graph = parser_result.graph;
     SymbolList list = parser_result.symbols;
@@ -90,15 +91,7 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
             }
         }
 
-        {
-            GrB_Info LG_GrB_Info = GxB_Matrix_build_Scalar(prepared_adj_matrices[i], row, col, true_scalar, count);
-            if (LG_GrB_Info < GrB_SUCCESS) {
-                fprintf(stderr, "LAGraph failure (file %s, line %d): (%d, msg: %s) \n",
-                        "/home/homka/code/spbu/course_work/CFG_bench/src/adapters/adapter_CFL_CFPQ_RSM.c", 94,
-                        LG_GrB_Info, state.msg);
-                return (LG_GrB_Info);
-            }
-        }
+        TRY(GxB_Matrix_build_Scalar(prepared_adj_matrices[i], row, col, true_scalar, count));
 #ifdef DEBUG_parser
         GxB_print(prepared_adj_matrices[i], 1);
 #endif
@@ -108,7 +101,7 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
     state.adj_matrices = prepared_adj_matrices;
     state.V = graph.node_count;
 
-    adapter_CFL_init_src_nodes_common(&state.sources, &state.sources_num);
+    adapter_CFL_init_src_nodes_common(&state.sources, &state.sources_num, 0);
 
     free(row);
     free(col);
@@ -146,6 +139,7 @@ static GrB_Info adapter_CFL_run() {
 //
 // TODO: now check only count of reachibility pairs, make this more generic for other adapters
 static ResultType adapter_CFL_is_result_valid(size_t valid_result) {
+    (void)valid_result;
     return RESULT_UNKNOWN;
     // bool is_valid = false;
     // TRY(adapter_CFL_is_result_valid_common(state.outputs[0], valid_result, &is_valid));
@@ -179,7 +173,10 @@ static GrB_Info adapter_CFL_cleanup() {
 }
 
 // free LAGraph\GraphBLAS resources
-static GrB_Info adapter_CFL_teardown() { TRY(LAGraph_Finalize(state.msg)); }
+static GrB_Info adapter_CFL_teardown() {
+    TRY(LAGraph_Finalize(state.msg));
+    return GrB_SUCCESS;
+}
 
 // get the methods of the adapter
 AdapterMethods adapter_CFL_CFPQ_RSM_get_methods() {

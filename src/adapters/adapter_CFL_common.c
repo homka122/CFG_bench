@@ -235,6 +235,7 @@ GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj
 }
 
 GrB_Info adapter_CFL_init_outputs_common(GrB_Matrix **outputs, size_t nonterms_count, size_t graph_size, char *msg) {
+    (void)graph_size;
     TRY(LAGraph_Calloc((void **)outputs, nonterms_count, sizeof(GrB_Matrix), msg));
 
     // for (size_t i = 0; i < nonterms_count; i++) {
