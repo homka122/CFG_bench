@@ -168,7 +168,11 @@ static GrB_Info adapter_CFL_adv_run() {
 // TODO: now check only count of reachibility pairs, make this more generic for other adapters
 static ResultType adapter_CFL_adv_is_result_valid(size_t valid_result) {
     ResultType is_valid = RESULT_UNKNOWN;
-    TRY(adapter_CFL_is_result_valid_common(state.outputs[0], valid_result, &is_valid));
+    GrB_Info info = adapter_CFL_is_result_valid_common(state.outputs[0], valid_result, &is_valid);
+    if (info < GrB_SUCCESS) {
+        fprintf(stderr, "LAGraph failure (file %s, line %d): (%d, msg: %s) \n", __FILE__, __LINE__, info, state.msg);
+        return RESULT_UNKNOWN;
+    }
     return is_valid;
 }
 

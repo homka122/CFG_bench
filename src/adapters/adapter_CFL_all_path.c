@@ -45,6 +45,7 @@ static GrB_Info adapter_CFL_setup() {
 //
 // adapter_CFL_prepare should be called just once for each config
 static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_data) {
+    (void)prepare_data;
     TRY(adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count, &state.nonterms_count,
                                    &state.rules, &state.rules_count, &state.graph_size));
 
@@ -75,7 +76,11 @@ static GrB_Info adapter_CFL_run() {
 // TODO: now check only count of reachibility pairs, make this more generic for other adapters
 static ResultType adapter_CFL_is_result_valid(size_t valid_result) {
     ResultType is_valid = RESULT_UNKNOWN;
-    TRY(adapter_CFL_is_result_valid_common(state.outputs[0], valid_result, &is_valid));
+    GrB_Info info = adapter_CFL_is_result_valid_common(state.outputs[0], valid_result, &is_valid);
+    if (info < GrB_SUCCESS) {
+        fprintf(stderr, "LAGraph failure (file %s, line %d): (%d, msg: %s) \n", __FILE__, __LINE__, info, state.msg);
+        return RESULT_UNKNOWN;
+    }
     return is_valid;
 }
 
@@ -106,7 +111,10 @@ static GrB_Info adapter_CFL_cleanup() {
 }
 
 // free LAGraph\GraphBLAS resources
-static GrB_Info adapter_CFL_teardown() { TRY(LAGraph_Finalize(state.msg)); }
+static GrB_Info adapter_CFL_teardown() {
+    TRY(LAGraph_Finalize(state.msg));
+    return GrB_SUCCESS;
+}
 
 // get the methods of the adapter
 AdapterMethods adapter_CFL_all_paths_get_methods() {

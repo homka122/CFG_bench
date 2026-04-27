@@ -24,7 +24,7 @@ typedef struct {
     size_t capacity;
 } SymbolData;
 
-Symbol symbol_create(char *str);
+Symbol symbol_create(const char *str);
 void symbol_free(Symbol *sym);
 
 // return new string with numeration
@@ -36,7 +36,7 @@ void symbol_list_print(SymbolList list);
 
 // return index of Symbol with "str" label in SymbolList
 // return -1 if Symbol with "str" label not found
-int symbol_list_get_index_str(SymbolList *list, char *str);
+int symbol_list_get_index_str(const SymbolList *list, const char *str);
 
 // return label of Symbol with "index" in SymbolList
 // raise error if Symbol with "index" not found
@@ -46,7 +46,7 @@ const char *symbol_list_get_str(const SymbolList *list, size_t index);
 // if Symbol with "str" label already exists in SymbolList, return its index
 //
 // change nonterm field if fount term symbol with "str" label and "is_nonterm" is true
-int symbol_list_add_str(SymbolList *list, char *str, bool is_nonterm);
+int symbol_list_add_str(SymbolList *list, const char *str, bool is_nonterm);
 void symbol_list_swap(SymbolList *list, size_t i1, size_t i2);
 void symbol_list_free(SymbolList *list);
 

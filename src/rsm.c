@@ -75,14 +75,14 @@ static void rsm_box_print(CFG_RSM_Box *box, SymbolList *terms, SymbolList *nonte
     printf("    start_state: %s\n", symbol_list_get_str(&box->states, box->start_state));
     printf("    edges:\n");
     for (size_t i = 0; i < box->edges.count; i++) {
-        char *start_state = symbol_list_get_str(&box->states, box->edges.data[i].start);
-        char *label = NULL;
+        const char *start_state = symbol_list_get_str(&box->states, box->edges.data[i].start);
+        const char *label = NULL;
         if (box->edges.data[i].is_term) {
             label = symbol_list_get_str(terms, box->edges.data[i].label);
         } else {
             label = symbol_list_get_str(nonterms, box->edges.data[i].label);
         }
-        char *end_state = symbol_list_get_str(&box->states, box->edges.data[i].end);
+        const char *end_state = symbol_list_get_str(&box->states, box->edges.data[i].end);
         printf("        %s -[%s]-> %s\n", start_state, label, end_state);
     }
     printf("    final_states:");
