@@ -411,18 +411,18 @@ static CFG_RSM *rsm_create_aa_template(bool exploded, size_t n, SymbolList *term
     return rsm;
 }
 
-static CFG_RSM *rsm_create_c_alias_template(void) {
-    CFG_RSM *rsm = rsm_init(NULL);
+static CFG_RSM *rsm_create_c_alias_template(SymbolList *terms) {
+    CFG_RSM *rsm = rsm_init(terms);
 
     rsm_add_nonterm(rsm, "S");
     rsm_add_nonterm(rsm, "V");
 
     rsm_set_start_nonterm(rsm, "S");
 
-    rsm_add_term(rsm, "d_rev");
+    rsm_add_term(rsm, "d_r");
     rsm_add_term(rsm, "d");
     rsm_add_term(rsm, "a");
-    rsm_add_term(rsm, "a_rev");
+    rsm_add_term(rsm, "a_r");
 
     rsm_add_state(rsm, "S", "0");
     rsm_add_state(rsm, "S", "1");
@@ -432,7 +432,7 @@ static CFG_RSM *rsm_create_c_alias_template(void) {
     rsm_set_start_state(rsm, "S", "0");
     rsm_add_final_state(rsm, "S", "3");
 
-    rsm_add_edge(rsm, "S", "0", "1", "d_rev");
+    rsm_add_edge(rsm, "S", "0", "1", "d_r");
     rsm_add_edge(rsm, "S", "1", "2", "V");
     rsm_add_edge(rsm, "S", "2", "3", "d");
 
@@ -448,9 +448,9 @@ static CFG_RSM *rsm_create_c_alias_template(void) {
     rsm_add_final_state(rsm, "V", "3");
 
     rsm_add_edge(rsm, "V", "0", "2", "a");
-    rsm_add_edge(rsm, "V", "0", "0", "a_rev");
+    rsm_add_edge(rsm, "V", "0", "0", "a_r");
     rsm_add_edge(rsm, "V", "0", "1", "S");
-    rsm_add_edge(rsm, "V", "1", "0", "a_rev");
+    rsm_add_edge(rsm, "V", "1", "0", "a_r");
     rsm_add_edge(rsm, "V", "1", "2", "a");
     rsm_add_edge(rsm, "V", "2", "2", "a");
     rsm_add_edge(rsm, "V", "2", "3", "S");
@@ -629,8 +629,8 @@ static CFG_RSM *rsm_create_java_points_to_template(bool exploded, size_t n, Symb
     return rsm;
 }
 
-static CFG_RSM *rsm_create_rdf_hierarchy_template(void) {
-    CFG_RSM *rsm = rsm_init(NULL);
+static CFG_RSM *rsm_create_rdf_hierarchy_template(SymbolList *terms) {
+    CFG_RSM *rsm = rsm_init(terms);
 
     rsm_add_nonterm(rsm, "S");
     rsm_set_start_nonterm(rsm, "S");
@@ -791,13 +791,13 @@ CFG_RSM *rsm_create_template(RSM_Template template, bool exploded, size_t n, Sym
         return rsm_create_aa_template(exploded, n, terms);
 
     case RSM_TEMPLATE_C_ALIAS:
-        return rsm_create_c_alias_template();
+        return rsm_create_c_alias_template(terms);
 
     case RSM_TEMPLATE_JAVA_POINTS_TO:
         return rsm_create_java_points_to_template(exploded, n, terms);
 
     case RSM_TEMPLATE_RDF_HIERARCHY:
-        return rsm_create_rdf_hierarchy_template();
+        return rsm_create_rdf_hierarchy_template(terms);
 
     default:
         fprintf(stderr, "unknown RSM template: %d\n", (int)template);
