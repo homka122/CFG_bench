@@ -31,15 +31,15 @@ jobs:
                   git clone https://github.com/SparseLinearAlgebra/LAGraph.git
                   cd LAGraph
                   git switch homka122/all_algorithms_benchmark
-                  make
+                  CMAKE_OPTIONS="-G Ninja" make
                   sudo make install
                   cd ..
 
             - name: Build benchmark
               run: |
-                  make bench
+                  make
 
             - name: Run benchmark
               run: |
                   export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-                  ./build/test -efblt -c configs/configs_my.csv -a CFL_adv -r 3 --hot
+                  make CI
