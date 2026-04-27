@@ -212,6 +212,58 @@ void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list) {
     return;
 }
 
+// minimize graph nodes
+//
+// for example with 1000x1000 graph and only edge 0 -> 600 it makes 2x2 graph with edge 0 -> 1 with same label
+void *minimize_graph(Graph *graph) {
+    if (graph == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m graph is NULL\n");
+        exit(-1);
+    }
+
+    size_t old_node_count = graph->node_count;
+    for (size_t i = 0; i < graph->edge_count; i++) {
+        old_node_count = MAX(old_node_count, graph->edges[i].u + 1);
+        old_node_count = MAX(old_node_count, graph->edges[i].v + 1);
+    }
+
+    if (old_node_count == 0) {
+        graph->node_count = 0;
+        return NULL;
+    }
+
+    size_t *map = malloc(old_node_count * sizeof(*map));
+    if (map == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m out of memory\n");
+        abort();
+    }
+
+    for (size_t i = 0; i < old_node_count; i++) {
+        map[i] = (size_t)-1;
+    }
+
+    for (size_t i = 0; i < graph->edge_count; i++) {
+        map[graph->edges[i].u] = 0;
+        map[graph->edges[i].v] = 0;
+    }
+
+    size_t new_node_count = 0;
+    for (size_t i = 0; i < old_node_count; i++) {
+        if (map[i] != (size_t)-1) {
+            map[i] = new_node_count++;
+        }
+    }
+
+    for (size_t i = 0; i < graph->edge_count; i++) {
+        graph->edges[i].u = map[graph->edges[i].u];
+        graph->edges[i].v = map[graph->edges[i].v];
+    }
+
+    graph->node_count = new_node_count;
+
+    return map;
+}
+
 GrB_Matrix *get_grb_matrices_from_graph(Graph graph, SymbolList *list) {
     explode_indices(&(Grammar){.rules = NULL, .rules_count = 0}, &graph, list);
     SymbolData *symbol_datas = calloc(list->count, sizeof(SymbolData));
