@@ -1,86 +1,32 @@
-LIB_FLAGS = -L/usr/local/lib -Wl,-rpath,/usr/local/lib -lgraphblas -llagraph -llagraphx
-INCLUDE_FLAGS = -I/usr/local/include/suitesparse -I./ -I./src -I./src/adapters
-ALGO_PATH=../LAGraph/experimental/algorithm/LAGraph_CFL_reachability_advanced.c
-ALGO_OPT_PATH=../LAGraph/experimental/algorithm/LAGraph_CFL_optimized_matrix_opt.c
-ALGO_I=-I../LAGraph/src/utility
-ALGO_OBJ = LAGraph_CFL_reachability_advanced.o
-ALGO_OPT_OBJ=LAGraph_CFL_optimized_matrix_opt.o
-ALGO_OBJ_V = LAGraph_CFL_reachability_advanced_V.o
+CC ?= gcc
+SRC_DIR := src
 
-all: bench_compile_v
+BUILD_DIR ?= build
+TARGET := $(BUILD_DIR)/cfg_bench
 
-LAGraph_CFL_optimized_matrix_opt.o: ../LAGraph/experimental/algorithm/LAGraph_CFL_optimized_matrix_opt.c
+CFLAGS ?= -O2 -Wall -Wextra -Wpedantic -Wno-sign-compare
+INCLUDES := -I/usr/local/include/suitesparse -I$(SRC_DIR) -I$(SRC_DIR)/adapters
+LDLIBS := -lgraphblas -llagraph -llagraphx
 
-$(ALGO_OBJ): ${ALGO_PATH} ${ALGO_OPT_OBJ}
-	gcc ${ALGO_PATH} ${ALGO_OPT_PATH}  ${INCLUDE_FLAGS} ${ALGO_I} -o $@
+SRCS := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/adapters/*.c)
 
-$(ALGO_OPT_OBJ): ${ALGO_OPT_PATH}
-	gcc -c ${ALGO_OPT_PATH} ${INCLUDE_FLAGS} ${ALGO_I} -o $@
+.PHONY: all clean bench debug
 
-$(ALGO_OBJ_V): ${ALGO_PATH}
-	gcc -c -g  ${ALGO_PATH} -DBENCH_CFL_REACHBILITY ${INCLUDE_FLAGS} ${ALGO_I} -o $@
+all: $(TARGET)
 
-build: test.c parser.c
-	gcc test.c parser.c ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} \
- -o test -O2 -Wextra -Wno-sign-compare -pedantic \
+$(TARGET): $(SRCS)
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) $^ $(LDLIBS) -o $@
 
-build-debug: test.c parser.c
-	gcc test.c parser.c ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} \
- -o test -g -Wextra -Wno-sign-compare -pedantic -fsanitize=undefined \
- 
+bench: $(TARGET)
+	./$(TARGET) -c configs/configs_my.csv -r 10 --hot
 
-run: test.c parser.c
-	gcc test.c parser.c ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} \
- -o test -Wextra -Wno-sign-compare -pedantic -fsanitize=undefined -DDEBUG_parser \
- && ./test
+CI: $(TARGET)
+	./$(TARGET) -t -c configs/configs_my.csv
 
-bench: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c
-	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
+debug: clean
+	$(MAKE) BUILD_DIR=build/debug \
+		CFLAGS="-g -O0 -Wall -Wextra -Wpedantic -Wno-sign-compare"
 
-bench_compile: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c ${ALGO_PATH} ${ALGO_OPT_PATH}
-	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O2 ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
-
-bench_debug: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c ${ALGO_PATH} ${ALGO_OPT_PATH}
-	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c ${ALGO_PATH} ${ALGO_OPT_PATH} ${ALGO_I} -O0 -g ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
-
-bench-CI: src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c
-	gcc src/test.c src/parser.c src/adapters/*.c src/symbol_list.c src/grammar.c src/memory.c src/result_manager.c src/rsm.c -O2 -DCI ${LIB_FLAGS} ${INCLUDE_FLAGS} -o build/test
-
-test_compile: test.c parser.c ${ALGO_OBJ}
-	gcc test.c parser.c ${ALGO_OBJ} -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
-		-o test && ./test -${FLAGS}t
-
-bench_compile_v: test.c parser.c ${ALGO_OBJ_V}
-	gcc test.c parser.c ${ALGO_OBJ_V} -O2 -g ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
-		-o test && ./test -${FLAGS}
-
-bench_compile_v_leak: test.c parser.c
-	gcc test.c parser.c -fsanitize=address,leak ${ALGO_PATH} ${ALGO_OPT_PATH} -g -O2 ${ALGO} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} \
-		-o test && ./test -${FLAGS}
-
-deb: test.c parser.c ${ALGO_PATH}
-	gcc test.c parser.c -DBENCH_CFL_REACHBILITY -DDEBUG_parser -o test -O0 -g -Wextra -Wall -pedantic ${ALGO_PATH} ${LIB_FLAGS} ${INCLUDE_FLAGS} ${ALGO_I} && echo OK
-
-debug: test.c parser.c
-	gcc test.c parser.c  ${ALGO} \
-${LIB_FLAGS} ${INCLUDE_FLAGS} \
- -g -o test -Wextra -Wall -pedantic -fsanitize=address,undefined -DDEBUG \
- && ./test
-
-debug-info: test.c parser.c
-	gcc test.c parser.c  ${ALGO} \
-${LIB_FLAGS} ${INCLUDE_FLAGS} \
- -g -o test -Wno-sign-compare -pedantic -DDEBUG \
- && ./test
-
-convert: convert.c
-	gcc convert.c -o convert -Wextra -Wall -pedantic && time ./convert
-
-# Code formatting with clang-format
-FORMAT_SOURCES = src/*.c src/*.h src/adapters/*.c src/adapters/*.h tests/*.c
-
-format:
-	clang-format -i $(FORMAT_SOURCES)
-
-format-check:
-	clang-format --dry-run -Werror $(FORMAT_SOURCES)
+clean:
+	rm -rf build
