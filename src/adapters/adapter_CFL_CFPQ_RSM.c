@@ -100,7 +100,7 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
     state.adj_matrices = prepared_adj_matrices;
     state.V = graph.node_count;
 
-    adapter_CFL_init_src_nodes_common(&state.sources, &state.sources_num);
+    adapter_CFL_init_src_nodes_common(&state.sources, &state.sources_num, 0);
 
     free(row);
     free(col);
