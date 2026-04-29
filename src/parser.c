@@ -116,100 +116,72 @@ Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
     return result;
 }
 
-static int rule_new_index(size_t *map, Symbol *sym, int index, size_t offset) {
-    if (index == -1) {
-        return -1;
+/*
+ * build the matrix-space view of a SymbolList.
+ *
+ * public metadata is stored as matrix_id -> {symbol_index, block_index}
+ *
+ * when first_matrix_by_symbol_arg is not NULL, this helper also builds the
+ * private forward index symbol_index -> first matrix_id for that symbol:
+ *
+ *   matrix_id = first_matrix_by_symbol[edge.term_index]
+ *   if symbol is indexed, matrix_id += edge.index
+ */
+static ExplodedIndices build_exploded_indices(const SymbolList *list, size_t block_count,
+                                              size_t **first_matrix_by_symbol_p) {
+    if (list == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m symbol_list is NULL\n");
+        exit(-1);
     }
 
-    if (sym->is_indexed) {
-        return map[index] + offset;
-    } else {
-        return map[index];
+    if (block_count == 0) {
+        block_count = 1;
     }
-}
 
-static bool is_rule_has_indexed_symb(Rule rule, SymbolList list) {
-    bool first = rule.first != -1 && (list.symbols[rule.first].is_indexed);
-    bool second = rule.second != -1 && (list.symbols[rule.second].is_indexed);
-    bool third = rule.third != -1 && (list.symbols[rule.third].is_indexed);
+    size_t count = 0;
+    for (size_t i = 0; i < list->count; i++) {
+        count += list->symbols[i].is_indexed ? block_count : 1;
+    }
 
-    return first || second || third;
-}
+    ExplodedIndices result = {.items = calloc(count, sizeof(MatrixSymbolInfo)), .count = count};
+    size_t *first_matrix_by_symbol = NULL;
+    if (first_matrix_by_symbol_p != NULL) {
+        first_matrix_by_symbol = calloc(list->count, sizeof(size_t));
+    }
 
-// before: homka_i
-// after: homka_1
-//        homka_2
-//        homka_3
-void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list) {
-    size_t *map = NULL;
-    size_t map_size = 0;
-    SymbolList new_list = symbol_list_create();
-    SymbolList old_list = *list;
-
+    size_t matrix_index = 0;
     for (size_t i = 0; i < list->count; i++) {
         Symbol sym = list->symbols[i];
+        size_t symbol_matrix_count = sym.is_indexed ? block_count : 1;
 
-        if (map_size == i) {
-            map_size = map_size * 2 + 1;
-            map = realloc(map, map_size * sizeof(size_t));
+        if (first_matrix_by_symbol != NULL) {
+            first_matrix_by_symbol[i] = matrix_index;
         }
 
-        // just add to new list and map to it
-        if (!sym.is_indexed) {
-            map[i] = symbol_list_add_str(&new_list, sym.label, sym.is_nonterm);
-            continue;
-        }
-
-        map[i] = symbol_list_add_str(&new_list, symbol_numerate(&sym, 0), sym.is_nonterm);
-        for (size_t j = 1; j < graph->block_count; j++) {
-            char *new_label = symbol_numerate(&sym, j);
-            symbol_list_add_str(&new_list, new_label, sym.is_nonterm);
+        for (size_t block_index = 0; block_index < symbol_matrix_count; block_index++) {
+            result.items[matrix_index++] = (MatrixSymbolInfo){.symbol_index = i, .block_index = block_index};
         }
     }
-    *list = new_list;
 
-    Rule *new_rules = NULL;
-    size_t rules_size = 0;
-    size_t rules_count = 0;
-    for (size_t i = 0; i < grammar->rules_count; i++) {
-        if (rules_size + graph->block_count + 2 >= rules_count) {
-            rules_size = rules_size * 2 + graph->block_count + 2;
-            new_rules = realloc(new_rules, rules_size * sizeof(Rule));
-        }
-
-        Rule rule = grammar->rules[i];
-        Symbol *first = rule.first == -1 ? NULL : &old_list.symbols[rule.first];
-        Symbol *second = rule.second == -1 ? NULL : &old_list.symbols[rule.second];
-        Symbol *third = rule.third == -1 ? NULL : &old_list.symbols[rule.third];
-        if (!is_rule_has_indexed_symb(rule, old_list)) {
-            new_rules[rules_count] =
-                (Rule){rule_new_index(map, first, rule.first, 0), rule_new_index(map, second, rule.second, 0),
-                       rule_new_index(map, third, rule.third, 0)};
-            rules_count++;
-            continue;
-        }
-
-        for (size_t j = 0; j < graph->block_count; j++) {
-            new_rules[rules_count] =
-                (Rule){rule_new_index(map, first, rule.first, j), rule_new_index(map, second, rule.second, j),
-                       rule_new_index(map, third, rule.third, j)};
-            rules_count++;
-        }
+    if (first_matrix_by_symbol_p != NULL) {
+        *first_matrix_by_symbol_p = first_matrix_by_symbol;
     }
-    grammar->rules = new_rules;
-    grammar->rules_count = rules_count;
 
-    for (size_t i = 0; i < graph->edge_count; i++) {
-        GraphEdge *edge = &graph->edges[i];
+    return result;
+}
 
-        edge->term_index = map[edge->term_index] + edge->index;
-        edge->index = 0;
+ExplodedIndices explode_indices(const SymbolList *list, size_t block_count) {
+    return build_exploded_indices(list, block_count, NULL);
+}
+
+void exploded_indices_free(ExplodedIndices *indices) {
+    if (indices == NULL) {
+        return;
     }
-    graph->block_count = 1;
 
-    free(map);
-
-    return;
+    free(indices->items);
+    indices->items = NULL;
+    indices->count = 0;
 }
 
 // minimize graph nodes
@@ -264,20 +236,40 @@ void *minimize_graph(Graph *graph) {
     return map;
 }
 
-GrB_Matrix *get_grb_matrices_from_graph(Graph graph, SymbolList *list) {
-    explode_indices(&(Grammar){.rules = NULL, .rules_count = 0}, &graph, list);
-    SymbolData *symbol_datas = calloc(list->count, sizeof(SymbolData));
-    for (size_t i = 0; i < list->count; i++) {
+GraphMatrices get_grb_matrices_from_graph(Graph graph, const SymbolList *list) {
+    size_t block_count = graph.block_count == 0 ? 1 : graph.block_count;
+    size_t *first_matrix_by_symbol = NULL;
+    ExplodedIndices indices = build_exploded_indices(list, block_count, &first_matrix_by_symbol);
+    SymbolData *symbol_datas = calloc(indices.count, sizeof(SymbolData));
+    for (size_t i = 0; i < indices.count; i++) {
         symbol_datas[i] = symbol_data_create();
     }
 
     for (size_t i = 0; i < graph.edge_count; i++) {
         GraphEdge edge = graph.edges[i];
-        symbol_data_add(&symbol_datas[edge.term_index], edge.u, edge.v, edge.index);
+        if (edge.term_index >= list->count) {
+            fprintf(stderr, "\x1B[31m[ERROR]\033[0m graph edge term index out of bounds: index=%zu, count=%zu\n",
+                    edge.term_index, list->count);
+            exit(-1);
+        }
+
+        Symbol symbol = list->symbols[edge.term_index];
+        if (symbol.is_indexed && edge.index >= block_count) {
+            fprintf(stderr, "\x1B[31m[ERROR]\033[0m graph edge block index out of bounds: index=%zu, count=%zu\n",
+                    edge.index, block_count);
+            exit(-1);
+        }
+
+        size_t matrix_index = first_matrix_by_symbol[edge.term_index];
+        if (symbol.is_indexed) {
+            matrix_index += edge.index;
+        }
+
+        symbol_data_add(&symbol_datas[matrix_index], edge.u, edge.v, edge.index);
     }
 
-    GrB_Matrix *matrices = malloc(sizeof(GrB_Matrix) * list->count);
-    for (size_t i = 0; i < list->count; i++) {
+    GrB_Matrix *matrices = malloc(sizeof(GrB_Matrix) * indices.count);
+    for (size_t i = 0; i < indices.count; i++) {
         SymbolData data = symbol_datas[i];
         GrB_Index nrows = graph.node_count;
 
@@ -295,13 +287,32 @@ GrB_Matrix *get_grb_matrices_from_graph(Graph graph, SymbolList *list) {
         MY_GRB_TRY(GrB_free(&true_scalar));
     }
 
-    for (size_t i = 0; i < list->count; i++) {
+    for (size_t i = 0; i < indices.count; i++) {
         symbol_data_free(&symbol_datas[i]);
     }
 
     free(symbol_datas);
+    free(first_matrix_by_symbol);
 
-    return matrices;
+    return (GraphMatrices){.matrices = matrices, .matrix_symbols = indices.items, .count = indices.count};
+}
+
+void graph_matrices_free(GraphMatrices *result) {
+    if (result == NULL) {
+        return;
+    }
+
+    if (result->matrices != NULL) {
+        for (size_t i = 0; i < result->count; i++) {
+            GrB_free(&result->matrices[i]);
+        }
+    }
+
+    free(result->matrices);
+    free(result->matrix_symbols);
+    result->matrices = NULL;
+    result->matrix_symbols = NULL;
+    result->count = 0;
 }
 
 static const char *basename(const char *path) {

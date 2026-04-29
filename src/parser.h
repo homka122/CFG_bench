@@ -61,6 +61,37 @@ typedef struct {
 } Graph;
 
 typedef struct {
+    // index into the original SymbolList.
+    size_t symbol_index;
+    // original graph block index represented by this matrix.
+    size_t block_index;
+} MatrixSymbolInfo;
+
+// matrix-space view of SymbolList after block expansion
+//
+// the original SymbolList stays unchanged
+// each item describes one matrix:
+//   - non-indexed symbol "a" produces one item: {a, 0}
+//   - indexed symbol "op_i" with block_count = n produces n items:
+//     {op_i, 0}, {op_i, 1}, ..., {op_i, n - 1}
+typedef struct {
+    MatrixSymbolInfo *items;
+    size_t count;
+} ExplodedIndices;
+
+// adjacency matrices plus metadata for mapping a matrix back to the source label
+//
+// for matrix i:
+//   MatrixSymbolInfo info = result.matrix_symbols[i];
+//   const char *label = symbol_list_get_str(list, info.symbol_index);
+//   size_t block = info.block_index;
+typedef struct {
+    GrB_Matrix *matrices;
+    MatrixSymbolInfo *matrix_symbols;
+    size_t count;
+} GraphMatrices;
+
+typedef struct {
     size_t node_count;
     size_t block_count;
     Grammar grammar;
@@ -84,18 +115,22 @@ typedef struct {
 //
 // output is Graph structure and modified symbol_list
 Graph process_graph(FILE *graph_file, SymbolList *symbol_list);
-GrB_Matrix *get_grb_matrices_from_graph(Graph graph, SymbolList *list);
+
+// returns adjacency matrices and metadata that maps each matrix back to the original symbol and block index
+// does not mutate graph or list, and does not encode block indices into symbol labels
+// caller owns the result and must release it with graph_matrices_free()
+GraphMatrices get_grb_matrices_from_graph(Graph graph, const SymbolList *list);
+void graph_matrices_free(GraphMatrices *result);
 
 // minimize graph nodes
 //
 // for example with 1000x1000 graph and only edge 0 -> 600 it makes 2x2 graph with edge 0 -> 1 with same label
 void *minimize_graph(Graph *graph);
 
-// before: homka_i
-// after: homka_1
-//        homka_2
-//        homka_3
-void explode_indices(Grammar *grammar, Graph *graph, SymbolList *list);
+// builds matrix metadata without allocating GraphBLAS matrices.
+// caller owns the returned items array and must release it with exploded_indices_free().
+ExplodedIndices explode_indices(const SymbolList *list, size_t block_count);
+void exploded_indices_free(ExplodedIndices *indices);
 
 ParserResult parser(config_row config_i);
 
