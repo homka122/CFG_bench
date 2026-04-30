@@ -9,7 +9,7 @@ bool initialized = false;
 char file_name[256];
 
 // generate csv file name based on current date and time
-static void _init_file_name() {
+static void _init_file_name(void) {
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     sprintf(file_name, "results/results_%d-%02d-%02d_%02d-%02d-%02d.csv", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
