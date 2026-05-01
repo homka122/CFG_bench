@@ -4,6 +4,7 @@
 #include "adapter_CFL_all_path.h"
 #include "adapter_CFL_multsrc.h"
 #include "adapter_CFL_single_path.h"
+#include "adapter_CFL_all_path_adv.h"
 #include "memory.h"
 #include "parser.h"
 #include "result_manager.h"
@@ -111,7 +112,7 @@ static void print_usage(const char *program_name) {
             "  -r <rounds>       Number of benchmark rounds (default: 10)\n"
             "  --hot             Enable HOT launch (warm-up run before measurements)\n"
             "  -a <algorithm>    Algorithm to use "
-            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path)\n"
+            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv)\n"
             "\n"
             "Optimization flags:\n"
             "  -e                Enable empty optimization\n"
@@ -197,6 +198,8 @@ int main(int argc, char **argv) {
                 adapter = adapter_CFL_CFPQ_RSM_get_methods();
             } else if (strcmp(algo, "CFL_multsrc") == 0) {
                 adapter = adapter_CFL_multsrc_get_methods();
+            } else if (strcmp(algo, "CFL_all_path_adv") == 0) {
+                adapter = adapter_CFL_all_path_adv_get_methods();
             } else {
                 fprintf(stderr, "Unknown algorithm: %s\n", algo);
                 exit(EXIT_FAILURE);
