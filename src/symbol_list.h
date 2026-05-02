@@ -31,7 +31,7 @@ void symbol_free(Symbol *sym);
 // if symbol is not indexed, return its label
 char *symbol_numerate(Symbol *sym, size_t num);
 
-SymbolList symbol_list_create();
+SymbolList symbol_list_create(void);
 void symbol_list_print(SymbolList list);
 
 // return index of Symbol with "str" label in SymbolList

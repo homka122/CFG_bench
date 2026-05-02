@@ -112,7 +112,7 @@ static void print_usage(const char *program_name) {
             "  -r <rounds>       Number of benchmark rounds (default: 10)\n"
             "  --hot             Enable HOT launch (warm-up run before measurements)\n"
             "  -a <algorithm>    Algorithm to use "
-            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv)\n"
+            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc)\n"
             "\n"
             "Optimization flags:\n"
             "  -e                Enable empty optimization\n"
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
     bool is_hot_enabled = false;
     bool is_config = false;
     char *algo = NULL;
-    bool is_algo_choosed = false;
+    bool is_algo_chosen = false;
     char *input_config = NULL;
     size_t rounds_count = 10;
 
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
             printf("Choosen config: %s\n", input_config);
             break;
         case 'a':
-            is_algo_choosed = true;
+            is_algo_chosen = true;
             algo = optarg;
             printf("Choosen algorithm: %s\n", algo);
 
@@ -211,10 +211,10 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (!is_algo_choosed) {
+    if (!is_algo_chosen) {
         adapter = adapter_CFL_adv_get_methods();
         algo = "CFL_adv";
-        printf("No algorithm choosed, using CFL_adv by default\n");
+        printf("No algorithm chosen, using CFL_adv by default\n");
     }
 
     TRY(adapter.setup());
