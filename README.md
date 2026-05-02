@@ -30,6 +30,10 @@
     make
     ./build/cfg_bench -c configs/configs_my.csv -r 10 --hot
     ```
+    If `gdown` hangs or fails to download the archive, use the direct Google Drive link instead:
+    ```bash
+    curl -L "https://drive.usercontent.google.com/download?id=12Qhc6XNXYbpPbZGp-lo30NsywFELAFhu&export=download&confirm=t" -o CFPQ_eval.zip
+    ```
     After unpacking, the benchmark data will be available in the `data` folder.
     Run `./build/cfg_bench -h` to print the CLI help message with descriptions of all available options.
 4. _(Optional)_ To use different graphs and grammars, upload the required files to the `data` folder.
