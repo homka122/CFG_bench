@@ -68,7 +68,7 @@ static GrB_Matrix *get_matrices_from_graph(Graph graph, size_t *map_base_indecie
 }
 
 // initialize LAGraph\GraphBLAS
-static GrB_Info adapter_CFL_adv_setup() {
+static GrB_Info adapter_CFL_adv_setup(void) {
     TRY(LAGr_Init(GrB_NONBLOCKING, malloc, NULL, NULL, free, state.msg));
     return GrB_SUCCESS;
 }
@@ -147,7 +147,7 @@ static GrB_Info adapter_CFL_adv_prepare(ParserResult parser_result, void *prepar
 // initialize output matrices
 //
 // this should be called before each run of the algorithm
-static GrB_Info adapter_CFL_adv_init_outputs() {
+static GrB_Info adapter_CFL_adv_init_outputs(void) {
     TRY(adapter_CFL_init_outputs_common(&state.outputs, state.symbols_amount, state.graph_size, state.msg));
 
     return GrB_SUCCESS;
@@ -156,7 +156,7 @@ static GrB_Info adapter_CFL_adv_init_outputs() {
 // run the algorithm
 //
 // this should be called after adapter_CFL_adv_init_outputs
-static GrB_Info adapter_CFL_adv_run() {
+static GrB_Info adapter_CFL_adv_run(void) {
     TRY(LAGraph_CFL_reachability_adv(state.outputs, state.adj_matrices, state.symbols_amount, state.rules,
                                      state.rules_count, state.msg, state.optimizations));
 
@@ -177,7 +177,7 @@ static ResultType adapter_CFL_adv_is_result_valid(size_t valid_result) {
 }
 
 // TODO: now this is the same as adapter_CFL_adv_is_result_valid, make this more generic for other adapters
-static size_t adapter_CFL_adv_get_result() {
+static size_t adapter_CFL_adv_get_result(void) {
     size_t result = 0;
     TRY(adapter_CFL_get_result_common(state.outputs[0], &result));
     return result;
@@ -186,7 +186,7 @@ static size_t adapter_CFL_adv_get_result() {
 // free output matrices
 //
 // this should be called after each run of the algorithm
-static GrB_Info adapter_CFL_adv_free_outputs() {
+static GrB_Info adapter_CFL_adv_free_outputs(void) {
     TRY(adapter_CFL_free_outputs_common(&state.outputs, state.symbols_amount, state.msg));
 
     return GrB_SUCCESS;
@@ -195,20 +195,20 @@ static GrB_Info adapter_CFL_adv_free_outputs() {
 // free all resources allocated by the adapter except outputs
 //
 // this should be called after all runs of the algorithm for the given config
-static GrB_Info adapter_CFL_adv_cleanup() {
+static GrB_Info adapter_CFL_adv_cleanup(void) {
     TRY(adapter_CFL_cleanup_common(&state.adj_matrices, state.symbols_amount, (void **)&state.rules));
 
     return GrB_SUCCESS;
 }
 
 // free LAGraph\GraphBLAS resources
-static GrB_Info adapter_CFL_adv_teardown() {
+static GrB_Info adapter_CFL_adv_teardown(void) {
     TRY(LAGraph_Finalize(state.msg));
     return GrB_SUCCESS;
 }
 
 // get the methods of the adapter
-AdapterMethods adapter_CFL_adv_get_methods() {
+AdapterMethods adapter_CFL_adv_get_methods(void) {
     AdapterMethods methods = {.setup = adapter_CFL_adv_setup,
                               .teardown = adapter_CFL_adv_teardown,
                               .init_outputs = adapter_CFL_adv_init_outputs,

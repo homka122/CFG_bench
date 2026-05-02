@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../parser.h"
-#include "adapter.h"
 #include <GraphBLAS.h>
 #include <LAGraph.h>
 #include <stdbool.h>

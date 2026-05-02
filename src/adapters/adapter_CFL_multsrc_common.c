@@ -1,4 +1,4 @@
-#include "adapter_CFL_common.h"
+#include "GraphBLAS.h"
 
 #define TRY(GrB_method)                                                                                                \
     {                                                                                                                  \

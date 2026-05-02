@@ -41,5 +41,11 @@ debug: clean
 	$(MAKE) BUILD_DIR=build/debug \
 		CFLAGS="-g -O0 -Wall -Wextra -Wpedantic -Wno-sign-compare"
 
+# Code formatting with clang-format
+FORMAT_SOURCES = src/*.c src/*.h src/adapters/*.c src/adapters/*.h tests/*.c
+
+format:
+	clang-format -i $(FORMAT_SOURCES)
+
 clean:
 	rm -rf build

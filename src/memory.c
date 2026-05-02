@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-ssize_t mem_get_peak_kb() {
+ssize_t mem_get_peak_kb(void) {
     FILE *file = fopen("/proc/self/status", "r");
     if (file == NULL) {
         fprintf(stderr, "Error opening /proc/self/status\n");
@@ -23,7 +23,7 @@ ssize_t mem_get_peak_kb() {
 }
 
 // reset peak memory usage by writing to /proc/self/clear_refs
-int mem_peak_reset() {
+int mem_peak_reset(void) {
     FILE *file = fopen("/proc/self/clear_refs", "w");
     if (file == NULL) {
         fprintf(stderr, "Error opening /proc/self/clear_refs\n");

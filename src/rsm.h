@@ -1,6 +1,5 @@
 #pragma once
 
-#include "LAGraph.h"
 #include "LAGraphX.h"
 #include "symbol_list.h"
 

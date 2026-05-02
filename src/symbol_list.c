@@ -1,5 +1,4 @@
 #include "symbol_list.h"
-#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +45,7 @@ char *symbol_numerate(Symbol *sym, size_t num) {
     }
 }
 
-SymbolList symbol_list_create() {
+SymbolList symbol_list_create(void) {
     SymbolList result;
 
     result.symbols = calloc(128, sizeof(Symbol));
