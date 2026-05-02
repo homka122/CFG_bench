@@ -2,6 +2,33 @@
 
 **CFG_bench** is a tool for benchmarking the CFL algorithm from LAGraph.
 
+## CLI Help
+
+```text
+Usage: ./build/cfg_bench -c <config file> [options]
+
+Required:
+  -c <config file>  Path to benchmark config file
+
+Benchmark options:
+  -r <rounds>       Number of benchmark rounds (default: 10)
+  --hot             Enable HOT launch (warm-up run before measurements)
+  -a <algorithm>    Algorithm to use (default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_CFPQ_RSM, CFL_multsrc)
+
+Optimization flags:
+  -e                Enable empty optimization
+  -f                Enable format optimization
+  -l                Enable lazy optimization
+  -b                Enable block optimization
+
+Other:
+  -t                Enable test mode
+  -h                Print this help message
+
+Example:
+  ./build/cfg_bench -c configs/configs_my.csv -r 10 --hot
+```
+
 ## Usage
 
 1. Install **GraphBLAS**:
