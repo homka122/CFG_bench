@@ -48,6 +48,21 @@ The benchmark reads its input set from a CSV file passed with `-c`:
 
 Use `-r` to set the number of benchmark rounds and `--hot` to enable the HOT launch warm-up run.
 
+The `CFL_adv` algorithm also supports optimization flags:
+
+| Flag | Optimization |
+| ---- | ------------ |
+| `-e` | empty |
+| `-f` | format |
+| `-l` | lazy |
+| `-b` | block |
+
+These flags can be combined. For example, to enable all optimizations, run:
+
+```bash
+./build/cfg_bench -efbl -c configs/configs_my.csv -r 10 --hot
+```
+
 Each row in the config file has this format:
 
 ```text
@@ -58,6 +73,54 @@ Example from `configs/configs_my.csv`:
 
 ```text
 data/graphs/c_alias/init.g,data/grammars/c_alias.cnf,3783769
+```
+
+## Grammar Format
+
+Grammar files contain one production rule per line:
+
+```text
+<LEFT_SYMBOL>	[RIGHT_SYMBOL_1]	[RIGHT_SYMBOL_2]
+```
+
+- `<LEFT_SYMBOL>` is the nonterminal on the left-hand side of the rule.
+- `[RIGHT_SYMBOL_1]` and `[RIGHT_SYMBOL_2]` are optional right-hand side symbols.
+- Symbols are separated by tabs.
+- The `Count:` line is required. The start symbol must be placed on the next line.
+- Indexed symbols must end with `_i`, for example `a_i` or `AS_i`.
+
+Example:
+
+```text
+S	AS_i	b_i
+AS_i	a_i	S
+S	c
+
+Count:
+S
+```
+
+## Graph Format
+
+Graph files contain one edge per line:
+
+```text
+<EDGE_SOURCE>	<EDGE_DESTINATION>	<EDGE_LABEL>	[LABEL_INDEX]
+```
+
+- `<EDGE_SOURCE>` and `<EDGE_DESTINATION>` are zero-based vertex ids.
+- `<EDGE_LABEL>` is the terminal label on the edge.
+- `[LABEL_INDEX]` is optional and specifies the concrete index for labels ending with `_i`.
+- Values are separated by tabs.
+- For example, an edge labeled `x_9` is written as `x_i 9`.
+
+Example:
+
+```text
+1	2	a_i	1
+2	3	b_i	1
+2	4	b_i	2
+1	5	c
 ```
 
 ## Adding a New Configuration
