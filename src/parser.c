@@ -1,6 +1,7 @@
 #include "parser.h"
 #include <LAGraph.h>
 #include <LAGraphX.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +31,17 @@ char *read_entire_file(char *path) {
     fclose(file);
 
     return buffer;
+}
+
+static FILE *open_parser_file(const char *path, const char *kind) {
+    FILE *file = fopen(path, "r");
+    if (file == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m Problem with opening %s file by %s path: %s\n", kind, path,
+                strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    return file;
 }
 
 size_t get_text_lines(char *text, char ***lines_arg) {
@@ -376,7 +388,7 @@ ParserResult parser(config_row config_i) {
     SymbolList list = symbol_list_create();
 
     // printf("Process grammar...");
-    FILE *grammar_file = fopen(config_grammar, "r");
+    FILE *grammar_file = open_parser_file(config_grammar, "grammar");
     Grammar _grammar = process_grammar(grammar_file, &list);
     grammar_swap_symbols(&_grammar, 0, _grammar.start_nonterm);
     symbol_list_swap(&list, 0, _grammar.start_nonterm);
@@ -384,7 +396,7 @@ ParserResult parser(config_row config_i) {
     // printf("OK\n");
 
     // printf("Process graph...");
-    FILE *graph_file = fopen(config_graph, "r");
+    FILE *graph_file = open_parser_file(config_graph, "graph");
     Graph graph = process_graph(graph_file, &list);
     // printf("OK\n");
 
