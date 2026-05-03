@@ -6,9 +6,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+static int is_blank_line(const char *line) {
+    return line[strspn(line, " \t\r\n")] == '\0';
+}
+
+static int parse_size_token(const char *token, size_t *out) {
+    char *end = NULL;
+    unsigned long long value;
+
+    if (token == NULL || token[0] == '\0') {
+        return 1;
+    }
+
+    for (size_t i = 0; token[i] != '\0'; i++) {
+        if (token[i] < '0' || token[i] > '9') {
+            return 1;
+        }
+    }
+
+    errno = 0;
+    value = strtoull(token, &end, 10);
+    if (errno != 0 || end == token || *end != '\0') {
+        return 1;
+    }
+
+    *out = (size_t)value;
+    return 0;
+}
 
 char *read_entire_file(char *path) {
 
@@ -80,10 +109,12 @@ Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
 
     char line[1024];
     size_t capacity = 128;
+    size_t line_number = 0;
     result.edges = calloc(capacity, sizeof(GraphEdge));
 
     while (fgets(line, sizeof(line), graph_file)) {
-        if (line[0] == '\n') {
+        line_number++;
+        if (is_blank_line(line)) {
             continue;
         }
 
@@ -95,20 +126,18 @@ Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
         char *rest = strtok_r(NULL, " \t\n", &saveptr);
 
         if (!u_str || !a_str || !v_str || rest != NULL) {
-            continue;
+            fprintf(stderr, "\x1B[31m[ERROR]\033[0m wrong graph format at line %zu\n", line_number);
+            exit(EXIT_FAILURE);
         }
 
-        // JUST BELIEVE THAT USER DON'T USE INSTEAD OF NUMBERS SOMETHING ELSE
-        // cause this check is really expensive
-        //
-        // if (!is_number(u_str) || !is_number(v_str) || (index_str != NULL && !is_number(index_str))) {
-        //     fprintf(stderr, "error: %s, %s, %s", u_str, v_str, index_str);
-        //     exit(-1);
-        // }
-
-        size_t u = (size_t)atoi(u_str);
-        size_t v = (size_t)atoi(v_str);
-        size_t index = index_str == NULL ? 0 : (size_t)atoi(index_str);
+        size_t u;
+        size_t v;
+        size_t index = 0;
+        if (parse_size_token(u_str, &u) != 0 || parse_size_token(v_str, &v) != 0 ||
+            (index_str != NULL && parse_size_token(index_str, &index) != 0)) {
+            fprintf(stderr, "\x1B[31m[ERROR]\033[0m wrong graph format at line %zu\n", line_number);
+            exit(EXIT_FAILURE);
+        }
 
         int term_index = symbol_list_add_str(symbol_list, a_str, false);
 

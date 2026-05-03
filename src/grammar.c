@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
+static int is_blank_line(const char *line) { return line[strspn(line, " \t\r\n")] == '\0'; }
+
 void grammar_print(Grammar grammar, SymbolList list) {
     printf("Grammar:\n");
 
@@ -73,20 +75,44 @@ Grammar process_grammar(FILE *grammar_file, SymbolList *symbol_list) {
 
     int start_nonterm = -1;
     char line[1024];
+    size_t line_number = 0;
 
     while (fgets(line, sizeof(line), grammar_file)) {
-        if (line[0] == '\n') {
+        line_number++;
+        if (is_blank_line(line)) {
             continue;
         }
 
         char *first = strtok(line, " \t\n");
         char *second = strtok(NULL, " \t\n");
         char *third = strtok(NULL, " \t\n");
+        char *rest = strtok(NULL, " \t\n");
+
+        if (rest != NULL) {
+            fprintf(stderr, "\x1B[31m[ERROR]\033[0m wrong grammar format at line %zu\n", line_number);
+            exit(EXIT_FAILURE);
+        }
 
         if (strcmp(first, "Count:") == 0) {
-            fgets(line, sizeof(line), grammar_file);
-            char *first = strtok(line, " \t\n");
-            start_nonterm = symbol_list_add_str(symbol_list, first, true);
+            if (second != NULL || third != NULL) {
+                fprintf(stderr, "\x1B[31m[ERROR]\033[0m wrong grammar format at line %zu\n", line_number);
+                exit(EXIT_FAILURE);
+            }
+
+            line_number++;
+            if (fgets(line, sizeof(line), grammar_file) == NULL || is_blank_line(line)) {
+                fprintf(stderr, "\x1B[31m[ERROR]\033[0m no start nonterminal in grammar file\n");
+                exit(EXIT_FAILURE);
+            }
+
+            char *start = strtok(line, " \t\n");
+            char *extra = strtok(NULL, " \t\n");
+            if (extra != NULL) {
+                fprintf(stderr, "\x1B[31m[ERROR]\033[0m wrong grammar format at line %zu\n", line_number);
+                exit(EXIT_FAILURE);
+            }
+
+            start_nonterm = symbol_list_add_str(symbol_list, start, true);
 
             break;
         }
