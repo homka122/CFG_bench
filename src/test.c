@@ -99,7 +99,7 @@ void print_list(SymbolList list, size_t *map) {
 #define OPT_LAZY (1 << 2)
 #define OPT_BLOCK (1 << 3)
 
-enum { HOT_OPTION = 1000 };
+enum { HOT_OPTION = 1000, BENCH_PARSE_OPTION = 1001 };
 
 static void print_usage(const char *program_name) {
     fprintf(stderr,
@@ -136,6 +136,7 @@ int main(int argc, char **argv) {
     int opt;
     bool is_test = false;
     bool is_hot_enabled = false;
+    bool is_bench_parse_enabled = false;
     bool is_config = false;
     char *algo = NULL;
     bool is_algo_chosen = false;
@@ -144,7 +145,8 @@ int main(int argc, char **argv) {
 
     AdapterMethods adapter = {0};
 
-    static struct option long_options[] = {{"hot", no_argument, 0, HOT_OPTION}, {0, 0, 0, 0}};
+    static struct option long_options[] = {
+        {"hot", no_argument, 0, HOT_OPTION}, {"bench-parse", no_argument, 0, BENCH_PARSE_OPTION}, {0, 0, 0, 0}};
 
     while ((opt = getopt_long(argc, argv, "eflbthr:c:a:", long_options, NULL)) != -1) {
         switch (opt) {
@@ -165,6 +167,9 @@ int main(int argc, char **argv) {
             exit(EXIT_SUCCESS);
         case HOT_OPTION:
             is_hot_enabled = true;
+            break;
+        case BENCH_PARSE_OPTION:
+            is_bench_parse_enabled = true;
             break;
         case 't':
             is_test = true;
@@ -247,9 +252,13 @@ int main(int argc, char **argv) {
         printf("CONFIG: grammar: %s, graph: %s\n", config.grammar, config.graph);
         fflush(stdout);
 
-        ParserResult parser_result = parser(config);
+        ParserResult parser_result = parser(config, is_bench_parse_enabled);
         adapter.prepare(parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
         free_parser_result(&parser_result);
+
+        if (is_bench_parse_enabled) {
+            continue;
+        }
 
         bool is_hot = is_hot_enabled;
 

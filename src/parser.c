@@ -8,9 +8,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+static double now_sec(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec + ts.tv_nsec * 1e-9;
+}
 
 static int is_blank_line(const char *line) { return line[strspn(line, " \t\r\n")] == '\0'; }
 
@@ -416,7 +423,7 @@ bool rsm_template_from_string(const char *name, RSM_Template *out) {
     return false;
 }
 
-ParserResult parser(config_row config_i) {
+ParserResult parser(config_row config_i, bool is_bench_parse_enabled) {
     char *config_graph = strdup(config_i.graph);
     char *config_grammar = strdup(config_i.grammar);
 
@@ -431,16 +438,20 @@ ParserResult parser(config_row config_i) {
     SymbolList list = symbol_list_create();
 
     // printf("Process grammar...");
+    double grammar_start = now_sec();
     FILE *grammar_file = open_parser_file(config_grammar, "grammar");
     Grammar _grammar = process_grammar(grammar_file, &list);
     grammar_swap_symbols(&_grammar, 0, _grammar.start_nonterm);
     symbol_list_swap(&list, 0, _grammar.start_nonterm);
     _grammar.start_nonterm = 0;
+    double grammar_end = now_sec();
     // printf("OK\n");
 
     // printf("Process graph...");
+    double graph_start = now_sec();
     FILE *graph_file = open_parser_file(config_graph, "graph");
     Graph graph = process_graph(graph_file, &list);
+    double graph_end = now_sec();
     // printf("OK\n");
 
 #if false
@@ -457,6 +468,10 @@ ParserResult parser(config_row config_i) {
     fclose(grammar_file);
     free(config_grammar);
     free(config_graph);
+
+    if (is_bench_parse_enabled) {
+        printf("\tgrammar: %.6f, graph: %.6f\n", grammar_end - grammar_start, graph_end - graph_start);
+    }
 
     return (ParserResult){
         .block_count = graph.block_count,

@@ -133,7 +133,7 @@ void *minimize_graph(Graph *graph);
 ExplodedIndices explode_indices(const SymbolList *list, size_t block_count);
 void exploded_indices_free(ExplodedIndices *indices);
 
-ParserResult parser(config_row config_i);
+ParserResult parser(config_row config_i, bool is_bench_parse_enabled);
 void free_parser_result(ParserResult *result);
 
 void grammar_print(Grammar grammar, SymbolList list);
