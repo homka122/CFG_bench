@@ -1,19 +1,18 @@
 #include "parser.h"
+#include "symbol_list.h"
 #include <LAGraph.h>
 #include <LAGraphX.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-static int is_blank_line(const char *line) {
-    return line[strspn(line, " \t\r\n")] == '\0';
-}
+static int is_blank_line(const char *line) { return line[strspn(line, " \t\r\n")] == '\0'; }
 
 static int parse_size_token(const char *token, size_t *out) {
     char *end = NULL;
@@ -154,6 +153,21 @@ Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
     }
 
     return result;
+}
+
+void graph_free(Graph *graph) {
+    if (graph == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m graph is NULL\n");
+        abort();
+    }
+
+    free(graph->edges);
+    graph->edges = NULL;
+    graph->edge_count = 0;
+    graph->node_count = 0;
+    graph->block_count = 0;
+
+    return;
 }
 
 /*
@@ -452,6 +466,19 @@ ParserResult parser(config_row config_i) {
         .graph = graph,
         .rsm_template = template,
     };
+}
+
+void free_parser_result(ParserResult *result) {
+    if (result == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m Parser result is NULL\n");
+        abort();
+    }
+
+    grammar_free(&result->grammar);
+    symbol_list_free(&result->symbols);
+    graph_free(&result->graph);
+
+    return;
 }
 
 void get_configs_from_file(char *path, size_t *configs_count, config_row *configs, char **text_p) {

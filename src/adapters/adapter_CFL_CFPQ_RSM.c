@@ -106,10 +106,7 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
     free(col);
     GrB_free(&true_scalar);
 
-    free(graph.edges);
-    free(grammar.rules);
     symbol_list_free(&nonterms);
-    symbol_list_free(&list);
 
     rsm_free(rsm);
 

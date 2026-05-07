@@ -2,9 +2,9 @@
 #include "adapter_CFL_CFPQ_RSM.h"
 #include "adapter_CFL_adv.h"
 #include "adapter_CFL_all_path.h"
+#include "adapter_CFL_all_path_adv.h"
 #include "adapter_CFL_multsrc.h"
 #include "adapter_CFL_single_path.h"
-#include "adapter_CFL_all_path_adv.h"
 #include "memory.h"
 #include "parser.h"
 #include "result_manager.h"
@@ -112,7 +112,8 @@ static void print_usage(const char *program_name) {
             "  -r <rounds>       Number of benchmark rounds (default: 10)\n"
             "  --hot             Enable HOT launch (warm-up run before measurements)\n"
             "  -a <algorithm>    Algorithm to use "
-            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc)\n"
+            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, "
+            "CFL_multsrc)\n"
             "\n"
             "Optimization flags:\n"
             "  -e                Enable empty optimization\n"
@@ -248,6 +249,7 @@ int main(int argc, char **argv) {
 
         ParserResult parser_result = parser(config);
         adapter.prepare(parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
+        free_parser_result(&parser_result);
 
         bool is_hot = is_hot_enabled;
 

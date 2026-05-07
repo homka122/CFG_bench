@@ -225,11 +225,8 @@ GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj
     *rules_count = grammar.rules_count;
     *graph_size = graph.node_count;
 
-    free(graph.edges);
-    free(grammar.rules);
     symbol_list_free(&terms);
     symbol_list_free(&nonterms);
-    symbol_list_free(&list);
 
     return GrB_SUCCESS;
 }

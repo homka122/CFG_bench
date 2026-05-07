@@ -38,7 +38,7 @@ test-explode-indices-leaks: $(BUILD_DIR)/test_explode_indices
 	$(VALGRIND) $(VALGRIND_OPTS) ./$(BUILD_DIR)/test_explode_indices
 
 debug: clean
-	$(MAKE) BUILD_DIR=build/debug \
+	$(MAKE) BUILD_DIR=build \
 		CFLAGS="-g -O0 -Wall -Wextra -Wpedantic -Wno-sign-compare"
 
 # Code formatting with clang-format
@@ -48,4 +48,5 @@ format:
 	clang-format -i $(FORMAT_SOURCES)
 
 clean:
-	rm -rf build
+	rm -rf build/*
+	touch build/.gitkeep

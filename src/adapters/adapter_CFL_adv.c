@@ -134,13 +134,6 @@ static GrB_Info adapter_CFL_adv_prepare(ParserResult parser_result, void *prepar
     state.optimizations = optimizations;
     state.graph_size = graph.node_count;
 
-    free(graph.edges);
-    free(grammar.rules);
-    for (size_t i = 0; i < list.count; i++) {
-        free(list.symbols[i].label);
-    }
-    free(list.symbols);
-
     return GrB_SUCCESS;
 }
 

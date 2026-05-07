@@ -135,13 +135,6 @@ static GrB_Info adapter_CFL_all_path_adv_prepare(ParserResult parser_result, voi
     state.optimizations = optimizations;
     state.graph_size = graph.node_count;
 
-    free(graph.edges);
-    free(grammar.rules);
-    for (size_t i = 0; i < list.count; i++) {
-        free(list.symbols[i].label);
-    }
-    free(list.symbols);
-
     return GrB_SUCCESS;
 }
 
@@ -158,8 +151,8 @@ static GrB_Info adapter_CFL_all_path_adv_init_outputs() {
 //
 // this should be called after adapter_CFL_all_path_adv_init_outputs
 static GrB_Info adapter_CFL_all_path_adv_run() {
-    TRY(LAGraph_CFL_AllPaths_adv(state.outputs, &state.all_path_type, state.adj_matrices, state.symbols_amount, state.rules,
-                                     state.rules_count, state.msg, state.optimizations));
+    TRY(LAGraph_CFL_AllPaths_adv(state.outputs, &state.all_path_type, state.adj_matrices, state.symbols_amount,
+                                 state.rules, state.rules_count, state.msg, state.optimizations));
 
     return GrB_SUCCESS;
 }

@@ -269,3 +269,17 @@ void grammar_split_terms_nonterms(Grammar *grammar, SymbolList *list, SymbolList
 
     grammar->start_nonterm = symbol_list_get_index_str(nonterms, list->symbols[grammar->start_nonterm].label);
 }
+
+void grammar_free(Grammar *grammar) {
+    if (grammar == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m grammar is NULL\n");
+        abort();
+    }
+
+    free(grammar->rules);
+    grammar->rules = NULL;
+    grammar->rules_count = 0;
+    grammar->rules_capacity = 0;
+
+    return;
+}
