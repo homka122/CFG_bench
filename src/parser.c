@@ -162,6 +162,26 @@ Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
     return result;
 }
 
+Graph graph_copy(const Graph *graph) {
+    if (graph == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m graph is NULL\n");
+        abort();
+    }
+
+    Graph copy = {
+        .edge_count = graph->edge_count,
+        .node_count = graph->node_count,
+        .block_count = graph->block_count,
+    };
+
+    if (copy.edge_count > 0) {
+        copy.edges = malloc(copy.edge_count * sizeof(GraphEdge));
+        memcpy(copy.edges, graph->edges, copy.edge_count * sizeof(GraphEdge));
+    }
+
+    return copy;
+}
+
 void graph_free(Graph *graph) {
     if (graph == NULL) {
         fprintf(stderr, "\x1B[31m[ERROR]\033[0m graph is NULL\n");
@@ -494,6 +514,24 @@ void free_parser_result(ParserResult *result) {
     graph_free(&result->graph);
 
     return;
+}
+
+ParserResult parser_result_copy(const ParserResult *result) {
+    if (result == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m Parser result is NULL\n");
+        abort();
+    }
+
+    ParserResult copy = {
+        .node_count = result->node_count,
+        .block_count = result->block_count,
+        .grammar = grammar_copy(&result->grammar),
+        .symbols = symbol_list_copy(&result->symbols),
+        .graph = graph_copy(&result->graph),
+        .rsm_template = result->rsm_template,
+    };
+
+    return copy;
 }
 
 void get_configs_from_file(char *path, size_t *configs_count, config_row *configs, char **text_p) {

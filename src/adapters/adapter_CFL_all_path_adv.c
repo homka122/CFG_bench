@@ -83,12 +83,12 @@ typedef CFL_all_path_adv_PrepareData PrepareData;
 // this modify ther inner state of the adapter
 //
 // adapter_CFL_all_path_adv_prepare should be called just once for each config
-static GrB_Info adapter_CFL_all_path_adv_prepare(ParserResult parser_result, void *prepare_data) {
+static GrB_Info adapter_CFL_all_path_adv_prepare(const ParserResult *parser_result, void *prepare_data) {
     PrepareData *data = (PrepareData *)prepare_data;
     int8_t optimizations = data->optimizations;
-    Grammar grammar = parser_result.grammar;
-    Graph graph = parser_result.graph;
-    SymbolList list = parser_result.symbols;
+    Grammar grammar = parser_result->grammar;
+    Graph graph = parser_result->graph;
+    SymbolList list = parser_result->symbols;
 
     // indexed symbols must be each enumerate
     size_t *map = calloc(list.count * graph.block_count, sizeof(size_t));

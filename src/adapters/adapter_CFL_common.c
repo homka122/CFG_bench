@@ -160,50 +160,51 @@ void explode_indices_CFL(Grammar *grammar, Graph *graph, SymbolList *nonterms, S
     symbol_list_free(&old_list_nonterms);
 }
 
-GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj_matrices, size_t *terms_count,
+GrB_Info adapter_CFL_prepare_common(const ParserResult *parser_result, GrB_Matrix **adj_matrices, size_t *terms_count,
                                     size_t *nonterms_count, LAGraph_rule_WCNF **rules, size_t *rules_count,
                                     size_t *graph_size) {
-    Grammar grammar = parser_result.grammar;
-    Graph graph = parser_result.graph;
-    SymbolList list = parser_result.symbols;
+    ParserResult working_copy = parser_result_copy(parser_result);
+    Grammar *grammar = &working_copy.grammar;
+    Graph *graph = &working_copy.graph;
+    SymbolList *list = &working_copy.symbols;
 
-    grammar_to_WCNF(&grammar, &list);
+    grammar_to_WCNF(grammar, list);
     SymbolList terms = symbol_list_create();
     SymbolList nonterms = symbol_list_create();
 
-    grammar_split_terms_nonterms(&grammar, &list, &terms, &nonterms);
+    grammar_split_terms_nonterms(grammar, list, &terms, &nonterms);
 
     // change term indecies in graph
-    for (size_t i = 0; i < graph.edge_count; i++) {
-        graph.edges[i].term_index = symbol_list_get_index_str(&terms, list.symbols[graph.edges[i].term_index].label);
+    for (size_t i = 0; i < graph->edge_count; i++) {
+        graph->edges[i].term_index = symbol_list_get_index_str(&terms, list->symbols[graph->edges[i].term_index].label);
     }
 
-    explode_indices_CFL(&grammar, &graph, &nonterms, &terms);
+    explode_indices_CFL(grammar, graph, &nonterms, &terms);
 
-    LAGraph_rule_WCNF *rules_WCNF = calloc(grammar.rules_count, sizeof(LAGraph_rule_WCNF));
-    for (int i = 0; i < grammar.rules_count; ++i) {
-        Rule r = grammar.rules[i];
+    LAGraph_rule_WCNF *rules_WCNF = calloc(grammar->rules_count, sizeof(LAGraph_rule_WCNF));
+    for (int i = 0; i < grammar->rules_count; ++i) {
+        Rule r = grammar->rules[i];
         rules_WCNF[i] = (LAGraph_rule_WCNF){r.first, r.second, r.third, 0};
     }
 
     GrB_Matrix *prepared_adj_matrices = calloc(terms.count, sizeof(GrB_Matrix));
     for (size_t i = 0; i < terms.count; i++) {
-        GrB_Matrix_new(prepared_adj_matrices + i, GrB_BOOL, graph.node_count, graph.node_count);
+        GrB_Matrix_new(prepared_adj_matrices + i, GrB_BOOL, graph->node_count, graph->node_count);
     }
 
     GrB_Scalar true_scalar;
     GrB_Scalar_new(&true_scalar, GrB_BOOL);
     GrB_Scalar_setElement_BOOL(true_scalar, true);
 
-    GrB_Index *row = malloc(sizeof(GrB_Index) * graph.edge_count);
-    GrB_Index *col = malloc(sizeof(GrB_Index) * graph.edge_count);
+    GrB_Index *row = malloc(sizeof(GrB_Index) * graph->edge_count);
+    GrB_Index *col = malloc(sizeof(GrB_Index) * graph->edge_count);
     for (size_t i = 0; i < terms.count; i++) {
         int count = 0;
 
-        for (int j = 0; j < graph.edge_count; j++) {
-            if (i == graph.edges[j].term_index) {
-                row[count] = graph.edges[j].u;
-                col[count] = graph.edges[j].v;
+        for (int j = 0; j < graph->edge_count; j++) {
+            if (i == graph->edges[j].term_index) {
+                row[count] = graph->edges[j].u;
+                col[count] = graph->edges[j].v;
                 count++;
             }
         }
@@ -222,11 +223,12 @@ GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj
     *terms_count = terms.count;
     *nonterms_count = nonterms.count;
     *rules = rules_WCNF;
-    *rules_count = grammar.rules_count;
-    *graph_size = graph.node_count;
+    *rules_count = grammar->rules_count;
+    *graph_size = graph->node_count;
 
     symbol_list_free(&terms);
     symbol_list_free(&nonterms);
+    free_parser_result(&working_copy);
 
     return GrB_SUCCESS;
 }

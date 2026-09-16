@@ -115,6 +115,7 @@ typedef struct {
 //
 // output is Graph structure and modified symbol_list
 Graph process_graph(FILE *graph_file, SymbolList *symbol_list);
+Graph graph_copy(const Graph *graph);
 void graph_free(Graph *graph);
 
 // returns adjacency matrices and metadata that maps each matrix back to the original symbol and block index
@@ -134,6 +135,7 @@ ExplodedIndices explode_indices(const SymbolList *list, size_t block_count);
 void exploded_indices_free(ExplodedIndices *indices);
 
 ParserResult parser(config_row config_i, bool is_bench_parse_enabled);
+ParserResult parser_result_copy(const ParserResult *result);
 void free_parser_result(ParserResult *result);
 
 void grammar_print(Grammar grammar, SymbolList list);

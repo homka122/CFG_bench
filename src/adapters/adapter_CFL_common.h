@@ -6,7 +6,7 @@
 #include <LAGraph.h>
 #include <stdbool.h>
 
-GrB_Info adapter_CFL_prepare_common(ParserResult parser_result, GrB_Matrix **adj_matrices, size_t *terms_count,
+GrB_Info adapter_CFL_prepare_common(const ParserResult *parser_result, GrB_Matrix **adj_matrices, size_t *terms_count,
                                     size_t *nonterms_count, LAGraph_rule_WCNF **rules, size_t *rules_count,
                                     size_t *graph_size);
 

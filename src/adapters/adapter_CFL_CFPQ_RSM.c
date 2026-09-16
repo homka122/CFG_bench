@@ -42,50 +42,51 @@ static GrB_Info adapter_CFL_setup(void) {
 // this modify ther inner state of the adapter
 //
 // adapter_CFL_prepare should be called just once for each config
-static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_data) {
+static GrB_Info adapter_CFL_prepare(const ParserResult *parser_result, void *prepare_data) {
     (void)prepare_data;
-    Grammar grammar = parser_result.grammar;
-    Graph graph = parser_result.graph;
-    SymbolList list = parser_result.symbols;
+    ParserResult working_copy = parser_result_copy(parser_result);
+    Grammar *grammar = &working_copy.grammar;
+    Graph *graph = &working_copy.graph;
+    SymbolList *list = &working_copy.symbols;
 
-    grammar_to_WCNF(&grammar, &list);
+    grammar_to_WCNF(grammar, list);
     SymbolList terms = symbol_list_create();
     SymbolList nonterms = symbol_list_create();
 
-    grammar_split_terms_nonterms(&grammar, &list, &terms, &nonterms);
+    grammar_split_terms_nonterms(grammar, list, &terms, &nonterms);
 
     // change term indecies in graph
-    for (size_t i = 0; i < graph.edge_count; i++) {
-        graph.edges[i].term_index = symbol_list_get_index_str(&terms, list.symbols[graph.edges[i].term_index].label);
+    for (size_t i = 0; i < graph->edge_count; i++) {
+        graph->edges[i].term_index = symbol_list_get_index_str(&terms, list->symbols[graph->edges[i].term_index].label);
     }
 
-    explode_indices_CFL(&grammar, &graph, &nonterms, &terms);
+    explode_indices_CFL(grammar, graph, &nonterms, &terms);
 
-    if (parser_result.rsm_template == RSM_NO_TEMPLATE) {
+    if (parser_result->rsm_template == RSM_NO_TEMPLATE) {
         fprintf(stderr, "RSM template not found\n");
         abort();
     }
 
-    CFG_RSM *rsm = rsm_create_template(parser_result.rsm_template, true, parser_result.block_count, &terms);
+    CFG_RSM *rsm = rsm_create_template(parser_result->rsm_template, true, parser_result->block_count, &terms);
 
     GrB_Matrix *prepared_adj_matrices = calloc(rsm->terms.count, sizeof(GrB_Matrix));
     for (size_t i = 0; i < rsm->terms.count; i++) {
-        TRY(GrB_Matrix_new(prepared_adj_matrices + i, GrB_BOOL, graph.node_count, graph.node_count));
+        TRY(GrB_Matrix_new(prepared_adj_matrices + i, GrB_BOOL, graph->node_count, graph->node_count));
     }
 
     GrB_Scalar true_scalar;
     TRY(GrB_Scalar_new(&true_scalar, GrB_BOOL));
     TRY(GrB_Scalar_setElement_BOOL(true_scalar, true));
 
-    GrB_Index *row = malloc(sizeof(GrB_Index) * graph.edge_count);
-    GrB_Index *col = malloc(sizeof(GrB_Index) * graph.edge_count);
+    GrB_Index *row = malloc(sizeof(GrB_Index) * graph->edge_count);
+    GrB_Index *col = malloc(sizeof(GrB_Index) * graph->edge_count);
     for (size_t i = 0; i < rsm->terms.count; i++) {
         int count = 0;
 
-        for (int j = 0; j < graph.edge_count; j++) {
-            if (i == graph.edges[j].term_index) {
-                row[count] = graph.edges[j].u;
-                col[count] = graph.edges[j].v;
+        for (int j = 0; j < graph->edge_count; j++) {
+            if (i == graph->edges[j].term_index) {
+                row[count] = graph->edges[j].u;
+                col[count] = graph->edges[j].v;
                 count++;
             }
         }
@@ -98,7 +99,7 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
 
     state.rsm = rsm_convert_to_lagraph(rsm);
     state.adj_matrices = prepared_adj_matrices;
-    state.V = graph.node_count;
+    state.V = graph->node_count;
 
     adapter_CFL_init_src_nodes_common(&state.sources, &state.sources_num, 0);
 
@@ -109,6 +110,7 @@ static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_da
     symbol_list_free(&nonterms);
 
     rsm_free(rsm);
+    free_parser_result(&working_copy);
 
     return GrB_SUCCESS;
 }

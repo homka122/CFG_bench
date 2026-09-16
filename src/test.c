@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
         fflush(stdout);
 
         ParserResult parser_result = parser(config, is_bench_parse_enabled);
-        adapter.prepare(parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
+        adapter.prepare(&parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
         free_parser_result(&parser_result);
 
         if (is_bench_parse_enabled) {

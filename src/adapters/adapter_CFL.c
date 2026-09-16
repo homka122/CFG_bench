@@ -39,7 +39,7 @@ static GrB_Info adapter_CFL_setup(void) {
 // this modify ther inner state of the adapter
 //
 // adapter_CFL_prepare should be called just once for each config
-static GrB_Info adapter_CFL_prepare(ParserResult parser_result, void *prepare_data) {
+static GrB_Info adapter_CFL_prepare(const ParserResult *parser_result, void *prepare_data) {
     (void)prepare_data;
     TRY(adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count, &state.nonterms_count,
                                    &state.rules, &state.rules_count, &state.graph_size));
