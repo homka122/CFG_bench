@@ -111,6 +111,7 @@ static void print_usage(const char *program_name) {
             "Benchmark options:\n"
             "  -r <rounds>       Number of benchmark rounds (default: 10)\n"
             "  --hot             Enable HOT launch (warm-up run before measurements)\n"
+            "  --bench-parse     Print grammar and graph parsing times only\n"
             "  -a <algorithm>    Algorithm to use "
             "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, "
             "CFL_multsrc)\n"
