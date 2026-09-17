@@ -239,6 +239,16 @@ int main(int argc, char **argv) {
     fflush(stdout);
 
     for (size_t i = 0; i < configs_count; i++) {
+        config_row config = configs[i];
+        printf("CONFIG: grammar: %s, graph: %s\n", config.grammar, config.graph);
+        fflush(stdout);
+
+        ParserResult parser_result = parser(config, is_bench_parse_enabled);
+        if (is_bench_parse_enabled) {
+            free_parser_result(&parser_result);
+            continue;
+        }
+
         double *start = calloc(rounds_count, sizeof(double));
         double *end = calloc(rounds_count, sizeof(double));
         if (start == NULL || end == NULL) {
@@ -248,17 +258,8 @@ int main(int argc, char **argv) {
             exit(EXIT_FAILURE);
         }
 
-        config_row config = configs[i];
-        printf("CONFIG: grammar: %s, graph: %s\n", config.grammar, config.graph);
-        fflush(stdout);
-
-        ParserResult parser_result = parser(config, is_bench_parse_enabled);
         adapter.prepare(&parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
         free_parser_result(&parser_result);
-
-        if (is_bench_parse_enabled) {
-            continue;
-        }
 
         bool is_hot = is_hot_enabled;
 
