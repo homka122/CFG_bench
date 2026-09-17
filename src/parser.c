@@ -1,19 +1,25 @@
 #include "parser.h"
+#include "symbol_list.h"
 #include <LAGraph.h>
 #include <LAGraphX.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
+#include <time.h>
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-static int is_blank_line(const char *line) {
-    return line[strspn(line, " \t\r\n")] == '\0';
+static double now_sec(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec + ts.tv_nsec * 1e-9;
 }
+
+static int is_blank_line(const char *line) { return line[strspn(line, " \t\r\n")] == '\0'; }
 
 static int parse_size_token(const char *token, size_t *out) {
     char *end = NULL;
@@ -154,6 +160,41 @@ Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
     }
 
     return result;
+}
+
+Graph graph_copy(const Graph *graph) {
+    if (graph == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m graph is NULL\n");
+        abort();
+    }
+
+    Graph copy = {
+        .edge_count = graph->edge_count,
+        .node_count = graph->node_count,
+        .block_count = graph->block_count,
+    };
+
+    if (copy.edge_count > 0) {
+        copy.edges = malloc(copy.edge_count * sizeof(GraphEdge));
+        memcpy(copy.edges, graph->edges, copy.edge_count * sizeof(GraphEdge));
+    }
+
+    return copy;
+}
+
+void graph_free(Graph *graph) {
+    if (graph == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m graph is NULL\n");
+        abort();
+    }
+
+    free(graph->edges);
+    graph->edges = NULL;
+    graph->edge_count = 0;
+    graph->node_count = 0;
+    graph->block_count = 0;
+
+    return;
 }
 
 /*
@@ -402,7 +443,7 @@ bool rsm_template_from_string(const char *name, RSM_Template *out) {
     return false;
 }
 
-ParserResult parser(config_row config_i) {
+ParserResult parser(config_row config_i, bool is_bench_parse_enabled) {
     char *config_graph = strdup(config_i.graph);
     char *config_grammar = strdup(config_i.grammar);
 
@@ -417,16 +458,20 @@ ParserResult parser(config_row config_i) {
     SymbolList list = symbol_list_create();
 
     // printf("Process grammar...");
+    double grammar_start = now_sec();
     FILE *grammar_file = open_parser_file(config_grammar, "grammar");
     Grammar _grammar = process_grammar(grammar_file, &list);
     grammar_swap_symbols(&_grammar, 0, _grammar.start_nonterm);
     symbol_list_swap(&list, 0, _grammar.start_nonterm);
     _grammar.start_nonterm = 0;
+    double grammar_end = now_sec();
     // printf("OK\n");
 
     // printf("Process graph...");
+    double graph_start = now_sec();
     FILE *graph_file = open_parser_file(config_graph, "graph");
     Graph graph = process_graph(graph_file, &list);
+    double graph_end = now_sec();
     // printf("OK\n");
 
 #if false
@@ -444,6 +489,10 @@ ParserResult parser(config_row config_i) {
     free(config_grammar);
     free(config_graph);
 
+    if (is_bench_parse_enabled) {
+        printf("\tgrammar: %.6f, graph: %.6f\n", grammar_end - grammar_start, graph_end - graph_start);
+    }
+
     return (ParserResult){
         .block_count = graph.block_count,
         .node_count = graph.node_count,
@@ -452,6 +501,37 @@ ParserResult parser(config_row config_i) {
         .graph = graph,
         .rsm_template = template,
     };
+}
+
+void free_parser_result(ParserResult *result) {
+    if (result == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m Parser result is NULL\n");
+        abort();
+    }
+
+    grammar_free(&result->grammar);
+    symbol_list_free(&result->symbols);
+    graph_free(&result->graph);
+
+    return;
+}
+
+ParserResult parser_result_copy(const ParserResult *result) {
+    if (result == NULL) {
+        fprintf(stderr, "\x1B[31m[ERROR]\033[0m Parser result is NULL\n");
+        abort();
+    }
+
+    ParserResult copy = {
+        .node_count = result->node_count,
+        .block_count = result->block_count,
+        .grammar = grammar_copy(&result->grammar),
+        .symbols = symbol_list_copy(&result->symbols),
+        .graph = graph_copy(&result->graph),
+        .rsm_template = result->rsm_template,
+    };
+
+    return copy;
 }
 
 void get_configs_from_file(char *path, size_t *configs_count, config_row *configs, char **text_p) {

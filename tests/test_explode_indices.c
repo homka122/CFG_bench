@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "../src/parser.h"
 #include <GraphBLAS.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -69,8 +69,44 @@ static void test_graph_matrices_metadata(void) {
     symbol_list_free(&list);
 }
 
+static void test_parser_result_copy_is_deep(void) {
+    ParserResult original = {0};
+    original.symbols = symbol_list_create();
+    int nonterm = symbol_list_add_str(&original.symbols, "S", true);
+    int term = symbol_list_add_str(&original.symbols, "a", false);
+    grammar_add_rule(&original.grammar, nonterm, term, -1);
+    original.grammar.start_nonterm = nonterm;
+
+    original.graph.edges = malloc(sizeof(GraphEdge));
+    original.graph.edges[0] = (GraphEdge){.u = 0, .v = 1, .term_index = (size_t)term, .index = 0};
+    original.graph.edge_count = 1;
+    original.graph.node_count = 2;
+    original.graph.block_count = 1;
+    original.node_count = 2;
+    original.block_count = 1;
+
+    ParserResult copy = parser_result_copy(&original);
+
+    assert(copy.grammar.rules != original.grammar.rules);
+    assert(copy.symbols.symbols != original.symbols.symbols);
+    assert(copy.symbols.symbols[0].label != original.symbols.symbols[0].label);
+    assert(copy.graph.edges != original.graph.edges);
+
+    copy.grammar.rules[0].first = -1;
+    copy.symbols.symbols[0].label[0] = 'X';
+    copy.graph.edges[0].u = 42;
+
+    assert(original.grammar.rules[0].first == nonterm);
+    assert(strcmp(original.symbols.symbols[0].label, "S") == 0);
+    assert(original.graph.edges[0].u == 0);
+
+    free_parser_result(&copy);
+    free_parser_result(&original);
+}
+
 int main(void) {
     test_explode_indices_metadata();
+    test_parser_result_copy_is_deep();
 
     GrB_init(GrB_NONBLOCKING);
     test_graph_matrices_metadata();

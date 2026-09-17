@@ -139,7 +139,7 @@ typedef GrB_Info (*AdapterRun)(void);
  * @param prepare_data Optional adapter-specific configuration data
  * @return GrB_SUCCESS on success, error code otherwise
  */
-typedef GrB_Info (*AdapterPrepare)(ParserResult parser_result, void *prepare_data);
+typedef GrB_Info (*AdapterPrepare)(const ParserResult *parser_result, void *prepare_data);
 
 /**
  * @brief Function pointer type for resource cleanup.

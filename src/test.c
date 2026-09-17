@@ -2,9 +2,9 @@
 #include "adapter_CFL_CFPQ_RSM.h"
 #include "adapter_CFL_adv.h"
 #include "adapter_CFL_all_path.h"
+#include "adapter_CFL_all_path_adv.h"
 #include "adapter_CFL_multsrc.h"
 #include "adapter_CFL_single_path.h"
-#include "adapter_CFL_all_path_adv.h"
 #include "memory.h"
 #include "parser.h"
 #include "result_manager.h"
@@ -99,7 +99,7 @@ void print_list(SymbolList list, size_t *map) {
 #define OPT_LAZY (1 << 2)
 #define OPT_BLOCK (1 << 3)
 
-enum { HOT_OPTION = 1000 };
+enum { HOT_OPTION = 1000, BENCH_PARSE_OPTION = 1001 };
 
 static void print_usage(const char *program_name) {
     fprintf(stderr,
@@ -111,8 +111,10 @@ static void print_usage(const char *program_name) {
             "Benchmark options:\n"
             "  -r <rounds>       Number of benchmark rounds (default: 10)\n"
             "  --hot             Enable HOT launch (warm-up run before measurements)\n"
+            "  --bench-parse     Print grammar and graph parsing times only\n"
             "  -a <algorithm>    Algorithm to use "
-            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc)\n"
+            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, "
+            "CFL_multsrc)\n"
             "\n"
             "Optimization flags:\n"
             "  -e                Enable empty optimization\n"
@@ -135,6 +137,7 @@ int main(int argc, char **argv) {
     int opt;
     bool is_test = false;
     bool is_hot_enabled = false;
+    bool is_bench_parse_enabled = false;
     bool is_config = false;
     char *algo = NULL;
     bool is_algo_chosen = false;
@@ -143,7 +146,8 @@ int main(int argc, char **argv) {
 
     AdapterMethods adapter = {0};
 
-    static struct option long_options[] = {{"hot", no_argument, 0, HOT_OPTION}, {0, 0, 0, 0}};
+    static struct option long_options[] = {
+        {"hot", no_argument, 0, HOT_OPTION}, {"bench-parse", no_argument, 0, BENCH_PARSE_OPTION}, {0, 0, 0, 0}};
 
     while ((opt = getopt_long(argc, argv, "eflbthr:c:a:", long_options, NULL)) != -1) {
         switch (opt) {
@@ -164,6 +168,9 @@ int main(int argc, char **argv) {
             exit(EXIT_SUCCESS);
         case HOT_OPTION:
             is_hot_enabled = true;
+            break;
+        case BENCH_PARSE_OPTION:
+            is_bench_parse_enabled = true;
             break;
         case 't':
             is_test = true;
@@ -233,6 +240,16 @@ int main(int argc, char **argv) {
     fflush(stdout);
 
     for (size_t i = 0; i < configs_count; i++) {
+        config_row config = configs[i];
+        printf("CONFIG: grammar: %s, graph: %s\n", config.grammar, config.graph);
+        fflush(stdout);
+
+        ParserResult parser_result = parser(config, is_bench_parse_enabled);
+        if (is_bench_parse_enabled) {
+            free_parser_result(&parser_result);
+            continue;
+        }
+
         double *start = calloc(rounds_count, sizeof(double));
         double *end = calloc(rounds_count, sizeof(double));
         if (start == NULL || end == NULL) {
@@ -242,12 +259,8 @@ int main(int argc, char **argv) {
             exit(EXIT_FAILURE);
         }
 
-        config_row config = configs[i];
-        printf("CONFIG: grammar: %s, graph: %s\n", config.grammar, config.graph);
-        fflush(stdout);
-
-        ParserResult parser_result = parser(config);
-        adapter.prepare(parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
+        adapter.prepare(&parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
+        free_parser_result(&parser_result);
 
         bool is_hot = is_hot_enabled;
 

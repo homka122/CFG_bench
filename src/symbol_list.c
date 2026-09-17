@@ -130,6 +130,28 @@ void symbol_list_swap(SymbolList *list, size_t i1, size_t i2) {
     list->symbols[i2] = temp;
 }
 
+SymbolList symbol_list_copy(const SymbolList *list) {
+    if (list == NULL) {
+        fprintf(stderr, "symbol_list_copy: list is NULL\n");
+        abort();
+    }
+
+    SymbolList copy = {
+        .count = list->count,
+        .capacity = list->capacity,
+    };
+
+    if (copy.capacity > 0) {
+        copy.symbols = calloc(copy.capacity, sizeof(Symbol));
+        for (size_t i = 0; i < copy.count; i++) {
+            copy.symbols[i] = list->symbols[i];
+            copy.symbols[i].label = strdup(list->symbols[i].label);
+        }
+    }
+
+    return copy;
+}
+
 SymbolData symbol_data_create(void) {
     SymbolData data = {0};
     return data;

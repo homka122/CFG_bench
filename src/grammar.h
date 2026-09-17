@@ -24,3 +24,5 @@ void grammar_swap_symbols(Grammar *grammar, int sym1, int sym2);
 void grammar_add_rule(Grammar *grammar, int first, int second, int third);
 void grammar_to_WCNF(Grammar *grammar, SymbolList *list);
 void grammar_split_terms_nonterms(Grammar *grammar, SymbolList *list, SymbolList *terms, SymbolList *nonterms);
+Grammar grammar_copy(const Grammar *grammar);
+void grammar_free(Grammar *grammar);

@@ -48,6 +48,7 @@ const char *symbol_list_get_str(const SymbolList *list, size_t index);
 // change nonterm field if fount term symbol with "str" label and "is_nonterm" is true
 int symbol_list_add_str(SymbolList *list, const char *str, bool is_nonterm);
 void symbol_list_swap(SymbolList *list, size_t i1, size_t i2);
+SymbolList symbol_list_copy(const SymbolList *list);
 void symbol_list_free(SymbolList *list);
 
 // split SymbolList into two lists: one with terminal symbols and another with nonterminal symbols
