@@ -94,6 +94,8 @@ typedef struct {
 typedef struct {
     size_t node_count;
     size_t block_count;
+    GrB_Index *start_nodes;
+    size_t start_nodes_count;
     Grammar grammar;
     SymbolList symbols;
     Graph graph;
