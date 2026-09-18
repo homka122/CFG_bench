@@ -550,13 +550,19 @@ void get_configs_from_file(char *path, size_t *configs_count, config_row *config
         char *graph = strtok(line, ",");
         char *grammar = strtok(NULL, ",");
         char *valid_result_str = strtok(NULL, ",");
+        char *start_nodes_path = strtok(NULL, ",");
 
         if (graph == NULL || grammar == NULL || valid_result_str == NULL)
             break;
 
         size_t valid_result = atoi(valid_result_str);
 
-        configs[(*configs_count)++] = (config_row){.grammar = grammar, .graph = graph, .valid_result = valid_result};
+        configs[(*configs_count)++] = (config_row){
+            .grammar = grammar,
+            .graph = graph,
+            .valid_result = valid_result,
+            .start_nodes_path = start_nodes_path,
+        };
         line = end + 1;
     }
 }
