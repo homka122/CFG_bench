@@ -175,3 +175,26 @@ To add a custom benchmark configuration:
    ```
 
 No source code changes are required.
+
+## Reachable Pair Extraction
+
+Build and run the standalone extractor. The output directory must already
+exist:
+
+    make pairs-extractor
+    ./build/pairs_extractor -c configs/configs_my.csv -o results
+
+The extractor runs CFL_adv with all four optimizations enabled and writes the
+start-symbol matrix tuples without a header, one pair per line. It creates one
+file per config row named `<grammar>_<graph>.result`; for example,
+`aa_x264.result`:
+
+    0 1
+    2 5
+
+Use `--start-only` to write only the unique vertices from the left side of
+reachable pairs, one vertex per line:
+
+    ./build/pairs_extractor -c configs/configs_my.csv -o results --start-only
+
+In this mode, files are named `<grammar>_<graph>_start.result`.
