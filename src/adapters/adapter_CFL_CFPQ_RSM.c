@@ -31,7 +31,7 @@ typedef struct {
 static state_t state;
 
 static GrB_Info adapter_CFL_setup(void) {
-    TRY(LAGr_Init(GrB_BLOCKING, malloc, NULL, NULL, free, state.msg));
+    TRY(LAGr_Init(GrB_NONBLOCKING, malloc, NULL, NULL, free, state.msg));
 
     return GrB_SUCCESS;
 }
