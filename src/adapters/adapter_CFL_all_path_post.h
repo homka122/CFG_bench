@@ -1,7 +1,0 @@
-#pragma once
-
-#include "adapter.h"
-#include <GraphBLAS.h>
-#include <LAGraph.h>
-
-AdapterMethods adapter_CFL_all_paths_postprocessing_get_methods(void);

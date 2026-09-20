@@ -2,7 +2,6 @@
 #include "adapter_CFL_CFPQ_RSM.h"
 #include "adapter_CFL_adv.h"
 #include "adapter_CFL_all_path.h"
-#include "adapter_CFL_all_path_post.h"
 #include "adapter_CFL_all_path_adv.h"
 #include "adapter_CFL_multsrc.h"
 #include "adapter_CFL_single_path.h"
@@ -100,7 +99,7 @@ void print_list(SymbolList list, size_t *map) {
 #define OPT_LAZY (1 << 2)
 #define OPT_BLOCK (1 << 3)
 
-enum { HOT_OPTION = 1000, BENCH_PARSE_OPTION = 1001 };
+enum { HOT_OPTION = 1000, BENCH_PARSE_OPTION = 1001, CFL_ALL_PATH_USE_POST_OPTION = 1002};
 
 static void print_usage(const char *program_name) {
     fprintf(stderr,
@@ -114,7 +113,7 @@ static void print_usage(const char *program_name) {
             "  --hot             Enable HOT launch (warm-up run before measurements)\n"
             "  --bench-parse     Print grammar and graph parsing times only\n"
             "  -a <algorithm>    Algorithm to use "
-            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_post, CFL_all_path_adv, CFL_CFPQ_RSM, "
+            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, "
             "CFL_multsrc)\n"
             "\n"
             "Optimization flags:\n"
@@ -126,6 +125,7 @@ static void print_usage(const char *program_name) {
             "Other:\n"
             "  -t                Enable test mode\n"
             "  -h                Print this help message\n"
+            "  --CFL-all-path-use-post      Use postprocessing mode in CFL_all_path algorithm\n"
             "\n"
             "Example:\n"
             "  %s -c configs/configs_my.csv -r 10 --hot\n",
@@ -144,11 +144,12 @@ int main(int argc, char **argv) {
     bool is_algo_chosen = false;
     char *input_config = NULL;
     size_t rounds_count = 10;
+    bool use_post = false;
 
     AdapterMethods adapter = {0};
 
     static struct option long_options[] = {
-        {"hot", no_argument, 0, HOT_OPTION}, {"bench-parse", no_argument, 0, BENCH_PARSE_OPTION}, {0, 0, 0, 0}};
+        {"hot", no_argument, 0, HOT_OPTION}, {"bench-parse", no_argument, 0, BENCH_PARSE_OPTION}, {"CFL-all-path-use-post", no_argument, 0, CFL_ALL_PATH_USE_POST_OPTION}, {0, 0, 0, 0}};
 
     while ((opt = getopt_long(argc, argv, "eflbthr:c:a:", long_options, NULL)) != -1) {
         switch (opt) {
@@ -202,8 +203,6 @@ int main(int argc, char **argv) {
                 adapter = adapter_CFL_single_path_get_methods();
             } else if (strcmp(algo, "CFL_all_path") == 0) {
                 adapter = adapter_CFL_all_paths_get_methods();
-            } else if (strcmp(algo, "CFL_all_path_post") == 0) {
-                adapter = adapter_CFL_all_paths_postprocessing_get_methods();
             } else if (strcmp(algo, "CFL_CFPQ_RSM") == 0) {
                 adapter = adapter_CFL_CFPQ_RSM_get_methods();
             } else if (strcmp(algo, "CFL_multsrc") == 0) {
@@ -214,6 +213,9 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "Unknown algorithm: %s\n", algo);
                 exit(EXIT_FAILURE);
             }
+            break;
+        case CFL_ALL_PATH_USE_POST_OPTION:
+            use_post = true;
             break;
         default:
             print_usage(argv[0]);
@@ -262,7 +264,12 @@ int main(int argc, char **argv) {
             exit(EXIT_FAILURE);
         }
 
-        adapter.prepare(&parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
+        if (strcmp(algo, "CFL_all_path") == 0) {
+            adapter.prepare(&parser_result, &(CFL_all_path_PrepareData){.use_post = use_post});
+        } else {
+            adapter.prepare(&parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
+        }
+        
         free_parser_result(&parser_result);
 
         bool is_hot = is_hot_enabled;
