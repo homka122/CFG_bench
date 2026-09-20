@@ -2,6 +2,7 @@
 #include "adapter_CFL_CFPQ_RSM.h"
 #include "adapter_CFL_adv.h"
 #include "adapter_CFL_all_path.h"
+#include "adapter_CFL_all_path_post.h"
 #include "adapter_CFL_all_path_adv.h"
 #include "adapter_CFL_multsrc.h"
 #include "adapter_CFL_single_path.h"
@@ -113,7 +114,7 @@ static void print_usage(const char *program_name) {
             "  --hot             Enable HOT launch (warm-up run before measurements)\n"
             "  --bench-parse     Print grammar and graph parsing times only\n"
             "  -a <algorithm>    Algorithm to use "
-            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, "
+            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_post, CFL_all_path_adv, CFL_CFPQ_RSM, "
             "CFL_multsrc)\n"
             "\n"
             "Optimization flags:\n"
@@ -201,6 +202,8 @@ int main(int argc, char **argv) {
                 adapter = adapter_CFL_single_path_get_methods();
             } else if (strcmp(algo, "CFL_all_path") == 0) {
                 adapter = adapter_CFL_all_paths_get_methods();
+            } else if (strcmp(algo, "CFL_all_path_post") == 0) {
+                adapter = adapter_CFL_all_paths_postprocessing_get_methods();
             } else if (strcmp(algo, "CFL_CFPQ_RSM") == 0) {
                 adapter = adapter_CFL_CFPQ_RSM_get_methods();
             } else if (strcmp(algo, "CFL_multsrc") == 0) {

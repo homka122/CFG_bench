@@ -65,7 +65,7 @@ static GrB_Info adapter_CFL_init_outputs(void) {
 // this should be called after adapter_CFL_adv_init_outputs
 static GrB_Info adapter_CFL_run(void) {
     TRY(LAGraph_CFL_AllPaths(state.outputs, &state.all_path_type, state.adj_matrices, state.terms_count,
-                             state.nonterms_count, state.rules, state.rules_count, state.msg, 1));
+                             state.nonterms_count, state.rules, state.rules_count, state.msg, 0));
 
     return GrB_SUCCESS;
 }
@@ -116,7 +116,7 @@ static GrB_Info adapter_CFL_teardown(void) {
 }
 
 // get the methods of the adapter
-AdapterMethods adapter_CFL_all_paths_get_methods(void) {
+AdapterMethods adapter_CFL_all_paths_postprocessing_get_methods(void) {
     AdapterMethods methods = {.setup = adapter_CFL_setup,
                               .teardown = adapter_CFL_teardown,
                               .init_outputs = adapter_CFL_init_outputs,
