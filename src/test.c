@@ -99,7 +99,7 @@ void print_list(SymbolList list, size_t *map) {
 #define OPT_LAZY (1 << 2)
 #define OPT_BLOCK (1 << 3)
 
-enum { HOT_OPTION = 1000, BENCH_PARSE_OPTION = 1001, CFL_ALL_PATH_USE_POST_OPTION = 1002};
+enum { HOT_OPTION = 1000, BENCH_PARSE_OPTION = 1001, CFL_ALL_PATH_USE_CFPQ = 1002};
 
 static void print_usage(const char *program_name) {
     fprintf(stderr,
@@ -125,7 +125,7 @@ static void print_usage(const char *program_name) {
             "Other:\n"
             "  -t                Enable test mode\n"
             "  -h                Print this help message\n"
-            "  --CFL-all-path-use-post      Use postprocessing mode in CFL_all_path algorithm\n"
+            "  --CFL-all-path-use-CFPQ-Core      Use CFPQ_Core in CFL_all_path algorithm\n"
             "\n"
             "Example:\n"
             "  %s -c configs/configs_my.csv -r 10 --hot\n",
@@ -144,12 +144,12 @@ int main(int argc, char **argv) {
     bool is_algo_chosen = false;
     char *input_config = NULL;
     size_t rounds_count = 10;
-    bool use_post = false;
+    bool use_cfpq = false;
 
     AdapterMethods adapter = {0};
 
     static struct option long_options[] = {
-        {"hot", no_argument, 0, HOT_OPTION}, {"bench-parse", no_argument, 0, BENCH_PARSE_OPTION}, {"CFL-all-path-use-post", no_argument, 0, CFL_ALL_PATH_USE_POST_OPTION}, {0, 0, 0, 0}};
+        {"hot", no_argument, 0, HOT_OPTION}, {"bench-parse", no_argument, 0, BENCH_PARSE_OPTION}, {"CFL-all-path-use-CFPQ-Core", no_argument, 0, CFL_ALL_PATH_USE_CFPQ}, {0, 0, 0, 0}};
 
     while ((opt = getopt_long(argc, argv, "eflbthr:c:a:", long_options, NULL)) != -1) {
         switch (opt) {
@@ -214,8 +214,8 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
             break;
-        case CFL_ALL_PATH_USE_POST_OPTION:
-            use_post = true;
+        case CFL_ALL_PATH_USE_CFPQ:
+            use_cfpq = true;
             break;
         default:
             print_usage(argv[0]);
@@ -265,7 +265,7 @@ int main(int argc, char **argv) {
         }
 
         if (strcmp(algo, "CFL_all_path") == 0) {
-            adapter.prepare(&parser_result, &(CFL_all_path_PrepareData){.use_post = use_post});
+            adapter.prepare(&parser_result, &(CFL_all_path_PrepareData){.use_cfpq = use_cfpq});
         } else {
             adapter.prepare(&parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
         }

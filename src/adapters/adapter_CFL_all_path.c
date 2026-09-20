@@ -28,7 +28,7 @@ typedef struct {
     size_t nonterms_count;
     size_t graph_size;
     char msg[LAGRAPH_MSG_LEN];
-    bool use_post;
+    bool use_cfpq;
 } state_t;
 
 static state_t state;
@@ -48,7 +48,7 @@ typedef CFL_all_path_PrepareData PrepareData;
 // adapter_CFL_prepare should be called just once for each config
 static GrB_Info adapter_CFL_prepare(const ParserResult *parser_result, void *prepare_data) {
     CFL_all_path_PrepareData *data = (CFL_all_path_PrepareData *)prepare_data;
-    state.use_post = data->use_post;
+    state.use_cfpq = data->use_cfpq;
     TRY(adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count,
                                    &state.nonterms_count, &state.rules, &state.rules_count,
                                    &state.graph_size));
@@ -70,7 +70,7 @@ static GrB_Info adapter_CFL_init_outputs(void) {
 // this should be called after adapter_CFL_adv_init_outputs
 static GrB_Info adapter_CFL_run(void) {
     TRY(LAGraph_CFL_AllPaths(state.outputs, &state.all_path_type, state.adj_matrices, state.terms_count,
-                             state.nonterms_count, state.rules, state.rules_count, state.msg, state.use_post ? 0 : 1));
+                             state.nonterms_count, state.rules, state.rules_count, state.msg, state.use_cfpq ? 1 : 0));
 
     return GrB_SUCCESS;
 }
