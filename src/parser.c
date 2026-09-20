@@ -79,6 +79,46 @@ static FILE *open_parser_file(const char *path, const char *kind) {
     return file;
 }
 
+static GrB_Index *process_start_nodes(FILE *start_nodes_file, size_t *start_nodes_count) {
+    size_t capacity = 128;
+    size_t line_number = 0;
+    GrB_Index *start_nodes = malloc(capacity * sizeof(*start_nodes));
+
+    *start_nodes_count = 0;
+
+    char line[1024];
+    while (fgets(line, sizeof(line), start_nodes_file)) {
+        line_number++;
+        if (is_blank_line(line)) {
+            continue;
+        }
+
+        char *saveptr;
+        char *node_str = strtok_r(line, " \t\r\n", &saveptr);
+        char *extra = strtok_r(NULL, " \t\r\n", &saveptr);
+        size_t node;
+
+        if (extra != NULL || parse_size_token(node_str, &node) != 0 || (size_t)(GrB_Index)node != node) {
+            fprintf(stderr, "\x1B[31m[ERROR]\033[0m wrong start nodes format at line %zu\n", line_number);
+            exit(EXIT_FAILURE);
+        }
+
+        if (*start_nodes_count == capacity) {
+            capacity *= 2;
+            start_nodes = realloc(start_nodes, capacity * sizeof(*start_nodes));
+        }
+
+        start_nodes[(*start_nodes_count)++] = (GrB_Index)node;
+    }
+
+    if (*start_nodes_count == 0) {
+        free(start_nodes);
+        return NULL;
+    }
+
+    return realloc(start_nodes, *start_nodes_count * sizeof(*start_nodes));
+}
+
 size_t get_text_lines(char *text, char ***lines_arg) {
     size_t lines_count = 0;
     size_t capacity = 1024;
@@ -474,6 +514,14 @@ ParserResult parser(config_row config_i, bool is_bench_parse_enabled) {
     double graph_end = now_sec();
     // printf("OK\n");
 
+    GrB_Index *start_nodes = NULL;
+    size_t start_nodes_count = 0;
+    if (config_i.start_nodes_path != NULL) {
+        FILE *start_nodes_file = open_parser_file(config_i.start_nodes_path, "start nodes");
+        start_nodes = process_start_nodes(start_nodes_file, &start_nodes_count);
+        fclose(start_nodes_file);
+    }
+
 #if false
     symbol_list_print(list);
     printf("\n");
@@ -496,6 +544,8 @@ ParserResult parser(config_row config_i, bool is_bench_parse_enabled) {
     return (ParserResult){
         .block_count = graph.block_count,
         .node_count = graph.node_count,
+        .start_nodes = start_nodes,
+        .start_nodes_count = start_nodes_count,
         .grammar = _grammar,
         .symbols = list,
         .graph = graph,
@@ -512,6 +562,9 @@ void free_parser_result(ParserResult *result) {
     grammar_free(&result->grammar);
     symbol_list_free(&result->symbols);
     graph_free(&result->graph);
+    free(result->start_nodes);
+    result->start_nodes = NULL;
+    result->start_nodes_count = 0;
 
     return;
 }
@@ -522,9 +575,17 @@ ParserResult parser_result_copy(const ParserResult *result) {
         abort();
     }
 
+    GrB_Index *start_nodes = NULL;
+    if (result->start_nodes_count > 0) {
+        start_nodes = malloc(result->start_nodes_count * sizeof(*start_nodes));
+        memcpy(start_nodes, result->start_nodes, result->start_nodes_count * sizeof(*start_nodes));
+    }
+
     ParserResult copy = {
         .node_count = result->node_count,
         .block_count = result->block_count,
+        .start_nodes = start_nodes,
+        .start_nodes_count = result->start_nodes_count,
         .grammar = grammar_copy(&result->grammar),
         .symbols = symbol_list_copy(&result->symbols),
         .graph = graph_copy(&result->graph),
@@ -550,13 +611,26 @@ void get_configs_from_file(char *path, size_t *configs_count, config_row *config
         char *graph = strtok(line, ",");
         char *grammar = strtok(NULL, ",");
         char *valid_result_str = strtok(NULL, ",");
+        char *start_nodes_path = strtok(NULL, ",");
+
+        if (start_nodes_path != NULL) {
+            start_nodes_path[strcspn(start_nodes_path, "\r")] = '\0';
+            if (start_nodes_path[0] == '\0') {
+                start_nodes_path = NULL;
+            }
+        }
 
         if (graph == NULL || grammar == NULL || valid_result_str == NULL)
             break;
 
         size_t valid_result = atoi(valid_result_str);
 
-        configs[(*configs_count)++] = (config_row){.grammar = grammar, .graph = graph, .valid_result = valid_result};
+        configs[(*configs_count)++] = (config_row){
+            .grammar = grammar,
+            .graph = graph,
+            .valid_result = valid_result,
+            .start_nodes_path = start_nodes_path,
+        };
         line = end + 1;
     }
 }

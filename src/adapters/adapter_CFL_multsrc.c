@@ -1,8 +1,11 @@
+#include "adapter_CFL_multsrc.h"
 #include "GraphBLAS.h"
 #include "LAGraph.h"
 #include "adapter_CFL_common.h"
 #include "adapter_CFL_multsrc_common.h"
 #include "parser.h"
+#include <stdlib.h>
+#include <string.h>
 
 #define TRY(GrB_method)                                                                                                \
     {                                                                                                                  \
@@ -43,11 +46,25 @@ static GrB_Info adapter_CFL_setup(void) {
 //
 // adapter_CFL_prepare should be called just once for each config
 static GrB_Info adapter_CFL_prepare(const ParserResult *parser_result, void *prepare_data) {
-    (void)prepare_data;
+    CFL_multsrc_PrepareData *data = (CFL_multsrc_PrepareData *)prepare_data;
     TRY(adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count, &state.nonterms_count,
                                    &state.rules, &state.rules_count, &state.graph_size));
 
-    adapter_CFL_init_src_nodes_common(&state.srcs, &state.source_count, 0);
+    if (data->use_start_nodes) {
+        state.source_count = parser_result->start_nodes_count;
+        state.srcs = NULL;
+
+        if (state.source_count > 0) {
+            state.srcs = malloc(state.source_count * sizeof(*state.srcs));
+            if (state.srcs == NULL) {
+                fprintf(stderr, "out of memory\n");
+                abort();
+            }
+            memcpy(state.srcs, parser_result->start_nodes, state.source_count * sizeof(*state.srcs));
+        }
+    } else {
+        TRY(adapter_CFL_init_src_nodes_common(&state.srcs, &state.source_count, state.graph_size));
+    }
 
     return GrB_SUCCESS;
 }

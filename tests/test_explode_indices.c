@@ -84,6 +84,10 @@ static void test_parser_result_copy_is_deep(void) {
     original.graph.block_count = 1;
     original.node_count = 2;
     original.block_count = 1;
+    original.start_nodes = malloc(2 * sizeof(*original.start_nodes));
+    original.start_nodes[0] = 3;
+    original.start_nodes[1] = 7;
+    original.start_nodes_count = 2;
 
     ParserResult copy = parser_result_copy(&original);
 
@@ -91,14 +95,20 @@ static void test_parser_result_copy_is_deep(void) {
     assert(copy.symbols.symbols != original.symbols.symbols);
     assert(copy.symbols.symbols[0].label != original.symbols.symbols[0].label);
     assert(copy.graph.edges != original.graph.edges);
+    assert(copy.start_nodes != original.start_nodes);
+    assert(copy.start_nodes_count == original.start_nodes_count);
+    assert(copy.start_nodes[0] == 3);
+    assert(copy.start_nodes[1] == 7);
 
     copy.grammar.rules[0].first = -1;
     copy.symbols.symbols[0].label[0] = 'X';
     copy.graph.edges[0].u = 42;
+    copy.start_nodes[0] = 11;
 
     assert(original.grammar.rules[0].first == nonterm);
     assert(strcmp(original.symbols.symbols[0].label, "S") == 0);
     assert(original.graph.edges[0].u == 0);
+    assert(original.start_nodes[0] == 3);
 
     free_parser_result(&copy);
     free_parser_result(&original);

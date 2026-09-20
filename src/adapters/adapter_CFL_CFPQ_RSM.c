@@ -1,11 +1,14 @@
 // code from DanyaLitva's CFG_Bench fork
 // https://github.com/DanyaLitva/CFG_bench/blob/main/testAP.c
 
+#include "adapter_CFL_CFPQ_RSM.h"
 #include "GraphBLAS.h"
 #include "LAGraph.h"
 #include "adapter_CFL_common.h"
 #include "adapter_CFL_multsrc_common.h"
 #include "parser.h"
+#include <stdlib.h>
+#include <string.h>
 
 #define TRY(GrB_method)                                                                                                \
     {                                                                                                                  \
@@ -31,7 +34,7 @@ typedef struct {
 static state_t state;
 
 static GrB_Info adapter_CFL_setup(void) {
-    TRY(LAGr_Init(GrB_BLOCKING, malloc, NULL, NULL, free, state.msg));
+    TRY(LAGr_Init(GrB_NONBLOCKING, malloc, NULL, NULL, free, state.msg));
 
     return GrB_SUCCESS;
 }
@@ -43,7 +46,7 @@ static GrB_Info adapter_CFL_setup(void) {
 //
 // adapter_CFL_prepare should be called just once for each config
 static GrB_Info adapter_CFL_prepare(const ParserResult *parser_result, void *prepare_data) {
-    (void)prepare_data;
+    CFL_CFPQ_RSM_PrepareData *data = (CFL_CFPQ_RSM_PrepareData *)prepare_data;
     ParserResult working_copy = parser_result_copy(parser_result);
     Grammar *grammar = &working_copy.grammar;
     Graph *graph = &working_copy.graph;
@@ -101,7 +104,21 @@ static GrB_Info adapter_CFL_prepare(const ParserResult *parser_result, void *pre
     state.adj_matrices = prepared_adj_matrices;
     state.V = graph->node_count;
 
-    adapter_CFL_init_src_nodes_common(&state.sources, &state.sources_num, 0);
+    if (data->use_start_nodes) {
+        state.sources_num = parser_result->start_nodes_count;
+        state.sources = NULL;
+
+        if (state.sources_num > 0) {
+            state.sources = malloc(state.sources_num * sizeof(*state.sources));
+            if (state.sources == NULL) {
+                fprintf(stderr, "out of memory\n");
+                abort();
+            }
+            memcpy(state.sources, parser_result->start_nodes, state.sources_num * sizeof(*state.sources));
+        }
+    } else {
+        TRY(adapter_CFL_init_src_nodes_common(&state.sources, &state.sources_num, graph->node_count));
+    }
 
     free(row);
     free(col);
@@ -166,6 +183,9 @@ static GrB_Info adapter_CFL_free_outputs(void) {
 // this should be called after all runs of the algorithm for the given config
 static GrB_Info adapter_CFL_cleanup(void) {
     TRY(adapter_CFL_cleanup_common(&state.adj_matrices, state.rsm.terminal_count, (void **)NULL));
+    free(state.sources);
+    state.sources = NULL;
+    state.sources_num = 0;
 
     return GrB_SUCCESS;
 }
