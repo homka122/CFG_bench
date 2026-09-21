@@ -99,7 +99,7 @@ void print_list(SymbolList list, size_t *map) {
 #define OPT_LAZY (1 << 2)
 #define OPT_BLOCK (1 << 3)
 
-enum { HOT_OPTION = 1000, BENCH_PARSE_OPTION = 1001, USE_START_NODES_OPTION = 1002 };
+enum { HOT_OPTION = 1000, BENCH_PARSE_OPTION = 1001, CFL_ALL_PATH_USE_CFPQ = 1002, USE_START_NODES_OPTION = 1003};
 
 static void print_usage(const char *program_name) {
     fprintf(stderr,
@@ -126,6 +126,7 @@ static void print_usage(const char *program_name) {
             "Other:\n"
             "  -t                Enable test mode\n"
             "  -h                Print this help message\n"
+            "  --CFL-all-path-use-CFPQ-Core      Use CFPQ_Core in CFL_all_path algorithm\n"
             "\n"
             "Example:\n"
             "  %s -c configs/configs_my.csv -r 10 --hot\n",
@@ -145,6 +146,7 @@ int main(int argc, char **argv) {
     bool is_algo_chosen = false;
     char *input_config = NULL;
     size_t rounds_count = 10;
+    bool use_cfpq = false;
 
     AdapterMethods adapter = {0};
 
@@ -152,6 +154,7 @@ int main(int argc, char **argv) {
         {"hot", no_argument, 0, HOT_OPTION},
         {"bench-parse", no_argument, 0, BENCH_PARSE_OPTION},
         {"use-start-nodes", no_argument, 0, USE_START_NODES_OPTION},
+        {"CFL-all-path-use-CFPQ-Core", no_argument, 0, CFL_ALL_PATH_USE_CFPQ},
         {0, 0, 0, 0}};
 
     while ((opt = getopt_long(argc, argv, "eflbthr:c:a:", long_options, NULL)) != -1) {
@@ -220,6 +223,9 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
             break;
+        case CFL_ALL_PATH_USE_CFPQ:
+            use_cfpq = true;
+            break;
         default:
             print_usage(argv[0]);
             exit(EXIT_FAILURE);
@@ -266,11 +272,13 @@ int main(int argc, char **argv) {
             free(end);
             exit(EXIT_FAILURE);
         }
-
+        
         if (strcmp(algo, "CFL_multsrc") == 0) {
             adapter.prepare(&parser_result, &(CFL_multsrc_PrepareData){.use_start_nodes = use_start_nodes});
         } else if (strcmp(algo, "CFL_CFPQ_RSM") == 0) {
             adapter.prepare(&parser_result, &(CFL_CFPQ_RSM_PrepareData){.use_start_nodes = use_start_nodes});
+        } else if (strcmp(algo, "CFL_all_path") == 0) {
+            adapter.prepare(&parser_result, &(CFL_all_path_PrepareData){.use_cfpq = use_cfpq});
         } else {
             adapter.prepare(&parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
         }

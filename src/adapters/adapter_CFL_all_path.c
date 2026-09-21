@@ -5,6 +5,7 @@
 #include "LAGraph.h"
 #include "adapter_CFL_common.h"
 #include "parser.h"
+#include "adapter_CFL_all_path.h"
 
 #define TRY(GrB_method)                                                                                                \
     {                                                                                                                  \
@@ -27,6 +28,7 @@ typedef struct {
     size_t nonterms_count;
     size_t graph_size;
     char msg[LAGRAPH_MSG_LEN];
+    bool use_cfpq;
 } state_t;
 
 static state_t state;
@@ -37,6 +39,7 @@ static GrB_Info adapter_CFL_setup(void) {
     return GrB_SUCCESS;
 }
 
+typedef CFL_all_path_PrepareData PrepareData;
 // prepare the adapter for use with the given parser result
 // this may include converting the grammar and graph into a format suitable for the algorithm
 //
@@ -44,9 +47,11 @@ static GrB_Info adapter_CFL_setup(void) {
 //
 // adapter_CFL_prepare should be called just once for each config
 static GrB_Info adapter_CFL_prepare(const ParserResult *parser_result, void *prepare_data) {
-    (void)prepare_data;
-    TRY(adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count, &state.nonterms_count,
-                                   &state.rules, &state.rules_count, &state.graph_size));
+    CFL_all_path_PrepareData *data = (CFL_all_path_PrepareData *)prepare_data;
+    state.use_cfpq = data->use_cfpq;
+    TRY(adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count,
+                                   &state.nonterms_count, &state.rules, &state.rules_count,
+                                   &state.graph_size));
 
     return GrB_SUCCESS;
 }
@@ -65,7 +70,7 @@ static GrB_Info adapter_CFL_init_outputs(void) {
 // this should be called after adapter_CFL_adv_init_outputs
 static GrB_Info adapter_CFL_run(void) {
     TRY(LAGraph_CFL_AllPaths(state.outputs, &state.all_path_type, state.adj_matrices, state.terms_count,
-                             state.nonterms_count, state.rules, state.rules_count, state.msg, 0));
+                             state.nonterms_count, state.rules, state.rules_count, state.msg, state.use_cfpq ? 1 : 0));
 
     return GrB_SUCCESS;
 }
