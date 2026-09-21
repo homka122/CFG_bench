@@ -42,7 +42,7 @@ jobs:
               run: |
                   git clone "$GRAPHBLAS_REPOSITORY" GraphBLAS
                   git -C GraphBLAS checkout "$GRAPHBLAS_REF"
-                  CMAKE_OPTIONS="-G Ninja" make -C GraphBLAS compact
+                  CMAKE_OPTIONS="-G Ninja" make -C GraphBLAS
 
             - name: Install GraphBLAS
               run: sudo make -C GraphBLAS install
