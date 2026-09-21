@@ -12,6 +12,7 @@ jobs:
         env:
             GRAPHBLAS_REPOSITORY: https://github.com/DrTimothyAldenDavis/GraphBLAS.git
             GRAPHBLAS_REF: afbe9aaefe5df7632ca82b478d65d0f6c1e14db0
+            GRAPHBLAS_CACHE_PATH: ${{ github.workspace }}/.cache/graphblas-jit
             LAGRAPH_REPOSITORY: https://github.com/SparseLinearAlgebra/LAGraph.git
             LAGRAPH_REF: homka122/all_algorithms_benchmark
         steps:
@@ -35,14 +36,14 @@ jobs:
               uses: actions/cache@v4
               with:
                   path: GraphBLAS
-                  key: ${{ runner.os }}-${{ runner.arch }}-graphblas-${{ env.GRAPHBLAS_REF }}
+                  key: ${{ runner.os }}-${{ runner.arch }}-graphblas-compact-${{ env.GRAPHBLAS_REF }}
 
             - name: Build GraphBLAS
               if: steps.cache-graphblas.outputs.cache-hit != 'true'
               run: |
                   git clone "$GRAPHBLAS_REPOSITORY" GraphBLAS
                   git -C GraphBLAS checkout "$GRAPHBLAS_REF"
-                  CMAKE_OPTIONS="-G Ninja" make -C GraphBLAS
+                  CMAKE_OPTIONS="-G Ninja" make -C GraphBLAS compact
 
             - name: Install GraphBLAS
               run: sudo make -C GraphBLAS install
@@ -64,16 +65,16 @@ jobs:
             - name: Install LAGraph
               run: sudo make -C LAGraph install
 
-            - name: Cache benchmark build
-              id: cache-benchmark
+            - name: Build benchmark
+              run: make
+
+            - name: Cache GraphBLAS JIT kernels
               uses: actions/cache@v4
               with:
-                  path: build
-                  key: ${{ runner.os }}-${{ runner.arch }}-cfg-bench-${{ env.GRAPHBLAS_REF }}-${{ steps.dependency-revisions.outputs.lagraph }}-${{ hashFiles('Makefile', 'src/**/*.c', 'src/**/*.h') }}
-
-            - name: Build benchmark
-              if: steps.cache-benchmark.outputs.cache-hit != 'true'
-              run: make
+                  path: ${{ env.GRAPHBLAS_CACHE_PATH }}
+                  key: ${{ runner.os }}-${{ runner.arch }}-graphblas-jit-${{ env.GRAPHBLAS_REF }}-${{ steps.dependency-revisions.outputs.lagraph }}-${{ hashFiles('Makefile', 'src/**/*.c', 'src/**/*.h', 'configs/for_test.csv', 'data/grammars/**', 'data/graphs/**') }}
+                  restore-keys: |
+                      ${{ runner.os }}-${{ runner.arch }}-graphblas-jit-${{ env.GRAPHBLAS_REF }}-
 
             - name: Run benchmark
               run: |
