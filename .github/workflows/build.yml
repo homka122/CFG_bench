@@ -9,35 +9,69 @@ on:
 jobs:
     build:
         runs-on: ubuntu-latest
+        env:
+            GRAPHBLAS_REPOSITORY: https://github.com/DrTimothyAldenDavis/GraphBLAS.git
+            GRAPHBLAS_REF: afbe9aaefe5df7632ca82b478d65d0f6c1e14db0
+            LAGRAPH_REPOSITORY: https://github.com/SparseLinearAlgebra/LAGraph.git
+            LAGRAPH_REF: homka122/all_algorithms_benchmark
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v4
 
             - name: Install depends
               run: |
                   sudo apt-get update
                   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc make git ninja-build
 
-            - name: Build and install GraphBLAS
+            - name: Resolve dependency revisions
+              id: dependency-revisions
               run: |
-                  git clone https://github.com/DrTimothyAldenDavis/GraphBLAS.git
-                  cd GraphBLAS
-                  CMAKE_OPTIONS="-G Ninja" make compact
-                  sudo make install
-                  cd ..
+                  git ls-remote "$LAGRAPH_REPOSITORY" "refs/heads/$LAGRAPH_REF" | awk '{print "lagraph=" $1}' >> "$GITHUB_OUTPUT"
 
-            - name: Build and install LAGraph benchmark branch
+            - name: Cache GraphBLAS build
+              id: cache-graphblas
+              uses: actions/cache@v4
+              with:
+                  path: GraphBLAS
+                  key: ${{ runner.os }}-${{ runner.arch }}-graphblas-${{ env.GRAPHBLAS_REF }}
+
+            - name: Build GraphBLAS
+              if: steps.cache-graphblas.outputs.cache-hit != 'true'
               run: |
-                  git clone https://github.com/SparseLinearAlgebra/LAGraph.git
-                  cd LAGraph
-                  git switch homka122/all_algorithms_benchmark
-                  CMAKE_OPTIONS="-G Ninja" make
-                  sudo make install
-                  cd ..
+                  git clone "$GRAPHBLAS_REPOSITORY" GraphBLAS
+                  git -C GraphBLAS checkout "$GRAPHBLAS_REF"
+                  CMAKE_OPTIONS="-G Ninja" make -C GraphBLAS compact
+
+            - name: Install GraphBLAS
+              run: sudo make -C GraphBLAS install
+
+            - name: Cache LAGraph build
+              id: cache-lagraph
+              uses: actions/cache@v4
+              with:
+                  path: LAGraph
+                  key: ${{ runner.os }}-${{ runner.arch }}-lagraph-${{ env.GRAPHBLAS_REF }}-${{ steps.dependency-revisions.outputs.lagraph }}
+
+            - name: Build LAGraph benchmark branch
+              if: steps.cache-lagraph.outputs.cache-hit != 'true'
+              run: |
+                  git clone "$LAGRAPH_REPOSITORY" LAGraph
+                  git -C LAGraph checkout "${{ steps.dependency-revisions.outputs.lagraph }}"
+                  CMAKE_OPTIONS="-G Ninja" make -C LAGraph
+
+            - name: Install LAGraph
+              run: sudo make -C LAGraph install
+
+            - name: Cache benchmark build
+              id: cache-benchmark
+              uses: actions/cache@v4
+              with:
+                  path: build
+                  key: ${{ runner.os }}-${{ runner.arch }}-cfg-bench-${{ env.GRAPHBLAS_REF }}-${{ steps.dependency-revisions.outputs.lagraph }}-${{ hashFiles('Makefile', 'src/**/*.c', 'src/**/*.h') }}
 
             - name: Build benchmark
-              run: |
-                  make
+              if: steps.cache-benchmark.outputs.cache-hit != 'true'
+              run: make
 
             - name: Run benchmark
               run: |
