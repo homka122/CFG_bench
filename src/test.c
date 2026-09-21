@@ -138,6 +138,7 @@ int main(int argc, char **argv) {
     int8_t optimizations = 0;
     int opt;
     bool is_test = false;
+    bool has_test_failure = false;
     bool is_hot_enabled = false;
     bool is_bench_parse_enabled = false;
     bool use_start_nodes = false;
@@ -314,6 +315,7 @@ int main(int argc, char **argv) {
                     snprintf(status, sizeof(status), GREEN "[OK]" RESET);
                     break;
                 case RESULT_ERROR:
+                    has_test_failure = true;
                     snprintf(status, sizeof(status), RED "[Wrong] (Result must be %ld)" RESET, config.valid_result);
                     break;
                 case RESULT_UNKNOWN:
@@ -382,5 +384,5 @@ int main(int argc, char **argv) {
     free(configs);
     free(config_text);
     TRY(adapter.teardown());
-    return 0;
+    return has_test_failure ? EXIT_FAILURE : EXIT_SUCCESS;
 }
