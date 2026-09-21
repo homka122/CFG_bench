@@ -8,7 +8,7 @@ on:
 
 jobs:
     build:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         env:
             GRAPHBLAS_REPOSITORY: https://github.com/DrTimothyAldenDavis/GraphBLAS.git
             GRAPHBLAS_REF: afbe9aaefe5df7632ca82b478d65d0f6c1e14db0
@@ -18,10 +18,12 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Install depends
+            - name: Check build tools
               run: |
-                  sudo apt-get update
-                  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc make git ninja-build
+                  gcc --version
+                  make --version
+                  git --version
+                  ninja --version
 
             - name: Resolve dependency revisions
               id: dependency-revisions
