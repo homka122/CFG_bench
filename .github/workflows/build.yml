@@ -9,6 +9,7 @@ on:
 jobs:
     build:
         runs-on: ubuntu-24.04
+        timeout-minutes: 10
         env:
             GRAPHBLAS_REPOSITORY: https://github.com/DrTimothyAldenDavis/GraphBLAS.git
             GRAPHBLAS_REF: afbe9aaefe5df7632ca82b478d65d0f6c1e14db0
