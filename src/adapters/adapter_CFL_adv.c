@@ -176,6 +176,48 @@ static size_t adapter_CFL_adv_get_result(void) {
     return result;
 }
 
+GrB_Info adapter_CFL_adv_get_reachable_pairs(GrB_Index **sources, GrB_Index **destinations,
+                                              GrB_Index *pair_count) {
+    if (sources == NULL || destinations == NULL || pair_count == NULL) {
+        return GrB_NULL_POINTER;
+    }
+
+    *sources = NULL;
+    *destinations = NULL;
+    *pair_count = 0;
+
+    if (state.outputs == NULL || state.outputs[0] == NULL) {
+        return GrB_UNINITIALIZED_OBJECT;
+    }
+
+    GrB_Index count = 0;
+    GrB_Info info = GrB_Matrix_nvals(&count, state.outputs[0]);
+    if (info < GrB_SUCCESS || count == 0) {
+        return info;
+    }
+
+    GrB_Index *result_sources = malloc(count * sizeof(*result_sources));
+    GrB_Index *result_destinations = malloc(count * sizeof(*result_destinations));
+    if (result_sources == NULL || result_destinations == NULL) {
+        free(result_sources);
+        free(result_destinations);
+        return GrB_OUT_OF_MEMORY;
+    }
+
+    info = GrB_Matrix_extractTuples_BOOL(result_sources, result_destinations, NULL, &count, state.outputs[0]);
+    if (info < GrB_SUCCESS) {
+        free(result_sources);
+        free(result_destinations);
+        return info;
+    }
+
+    *sources = result_sources;
+    *destinations = result_destinations;
+    *pair_count = count;
+    return GrB_SUCCESS;
+}
+
+
 // free output matrices
 //
 // this should be called after each run of the algorithm

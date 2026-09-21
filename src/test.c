@@ -99,7 +99,7 @@ void print_list(SymbolList list, size_t *map) {
 #define OPT_LAZY (1 << 2)
 #define OPT_BLOCK (1 << 3)
 
-enum { HOT_OPTION = 1000, BENCH_PARSE_OPTION = 1001, CFL_ALL_PATH_USE_CFPQ = 1002};
+enum { HOT_OPTION = 1000, BENCH_PARSE_OPTION = 1001, CFL_ALL_PATH_USE_CFPQ = 1002, USE_START_NODES_OPTION = 1003};
 
 static void print_usage(const char *program_name) {
     fprintf(stderr,
@@ -112,6 +112,7 @@ static void print_usage(const char *program_name) {
             "  -r <rounds>       Number of benchmark rounds (default: 10)\n"
             "  --hot             Enable HOT launch (warm-up run before measurements)\n"
             "  --bench-parse     Print grammar and graph parsing times only\n"
+            "  --use-start-nodes Use start vertices from the path specified in the config\n"
             "  -a <algorithm>    Algorithm to use "
             "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, "
             "CFL_multsrc)\n"
@@ -139,6 +140,7 @@ int main(int argc, char **argv) {
     bool is_test = false;
     bool is_hot_enabled = false;
     bool is_bench_parse_enabled = false;
+    bool use_start_nodes = false;
     bool is_config = false;
     char *algo = NULL;
     bool is_algo_chosen = false;
@@ -149,7 +151,11 @@ int main(int argc, char **argv) {
     AdapterMethods adapter = {0};
 
     static struct option long_options[] = {
-        {"hot", no_argument, 0, HOT_OPTION}, {"bench-parse", no_argument, 0, BENCH_PARSE_OPTION}, {"CFL-all-path-use-CFPQ-Core", no_argument, 0, CFL_ALL_PATH_USE_CFPQ}, {0, 0, 0, 0}};
+        {"hot", no_argument, 0, HOT_OPTION},
+        {"bench-parse", no_argument, 0, BENCH_PARSE_OPTION},
+        {"use-start-nodes", no_argument, 0, USE_START_NODES_OPTION},
+        {"CFL-all-path-use-CFPQ-Core", no_argument, 0, CFL_ALL_PATH_USE_CFPQ},
+        {0, 0, 0, 0}};
 
     while ((opt = getopt_long(argc, argv, "eflbthr:c:a:", long_options, NULL)) != -1) {
         switch (opt) {
@@ -173,6 +179,9 @@ int main(int argc, char **argv) {
             break;
         case BENCH_PARSE_OPTION:
             is_bench_parse_enabled = true;
+            break;
+        case USE_START_NODES_OPTION:
+            use_start_nodes = true;
             break;
         case 't':
             is_test = true;
@@ -263,13 +272,16 @@ int main(int argc, char **argv) {
             free(end);
             exit(EXIT_FAILURE);
         }
-
-        if (strcmp(algo, "CFL_all_path") == 0) {
+        
+        if (strcmp(algo, "CFL_multsrc") == 0) {
+            adapter.prepare(&parser_result, &(CFL_multsrc_PrepareData){.use_start_nodes = use_start_nodes});
+        } else if (strcmp(algo, "CFL_CFPQ_RSM") == 0) {
+            adapter.prepare(&parser_result, &(CFL_CFPQ_RSM_PrepareData){.use_start_nodes = use_start_nodes});
+        } else if (strcmp(algo, "CFL_all_path") == 0) {
             adapter.prepare(&parser_result, &(CFL_all_path_PrepareData){.use_cfpq = use_cfpq});
         } else {
             adapter.prepare(&parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
         }
-        
         free_parser_result(&parser_result);
 
         bool is_hot = is_hot_enabled;
