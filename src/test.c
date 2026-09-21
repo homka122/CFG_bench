@@ -315,7 +315,7 @@ int main(int argc, char **argv) {
 
             if (is_hot) {
                 is_hot = false;
-                i--;
+                j--;
                 TRY(adapter.free_outputs());
                 continue;
             }
