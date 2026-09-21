@@ -289,7 +289,7 @@ int main(int argc, char **argv) {
 
         size_t result = 0;
         ssize_t max_memory_kb = 0;
-        for (size_t i = 0; i < rounds_count; i++) {
+        for (size_t j = 0; j < rounds_count; j++) {
             TRY(adapter.init_outputs());
 
             // in some cases free don't change memory usage, so we need to reset it manually
@@ -299,11 +299,11 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
 
-            start[i] = LAGraph_WallClockTime();
+            start[j] = LAGraph_WallClockTime();
 #ifndef CI
             retval = adapter.run();
 #endif
-            end[i] = LAGraph_WallClockTime();
+            end[j] = LAGraph_WallClockTime();
             max_memory_kb = mem_get_peak_kb();
 
             if (is_test) {
@@ -331,7 +331,7 @@ int main(int argc, char **argv) {
                 if (retval != 0) {
                     printf("\t(MSG: %s)", msg);
                 }
-                printf(" (%.4f sec)", end[i] - start[i]);
+                printf(" (%.4f sec)", end[j] - start[j]);
 
                 TRY(adapter.free_outputs());
                 break;
@@ -339,18 +339,18 @@ int main(int argc, char **argv) {
 
             if (is_hot) {
                 is_hot = false;
-                i--;
+                j--;
                 TRY(adapter.free_outputs());
                 continue;
             }
 
-            printf("\t%.3fs", end[i] - start[i]);
+            printf("\t%.3fs", end[j] - start[j]);
             fflush(stdout);
 
             result = adapter.get_result();
             TRY(adapter.free_outputs());
             save_result(algo, config.grammar, config.graph, result, max_memory_kb,
-                        (size_t)((end[i] - start[i]) * 1000));
+                        (size_t)((end[j] - start[j]) * 1000));
             // in some cases free don't change memory usage, so we need to reset it manually
             malloc_trim(0);
         }
@@ -366,8 +366,8 @@ int main(int argc, char **argv) {
         }
 
         double sum = 0;
-        for (size_t i = 0; i < rounds_count; i++) {
-            sum += end[i] - start[i];
+        for (size_t j = 0; j < rounds_count; j++) {
+            sum += end[j] - start[j];
         }
         printf("\tTime elapsed (avg): %.6f seconds. %zd KB max memory. Result: %ld (return code "
                "%d) (%s)\n\n",
