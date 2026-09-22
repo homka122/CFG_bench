@@ -12,3 +12,4 @@ data.back
 data.old
 build
 .cache
+.venv/

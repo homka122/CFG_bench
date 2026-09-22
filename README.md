@@ -65,6 +65,16 @@ Example:
     Run `./build/cfg_bench -h` to print the CLI help message with descriptions of all available options.
 4. _(Optional)_ To use different graphs and grammars, upload the required files to the `data` folder.
 
+## CFPQ_Data Python environment
+
+With [uv](https://docs.astral.sh/uv/) installed, set up CFPQ_Data and its Python dependencies:
+
+```bash
+uv run --locked python -c "import cfpq_data; print(cfpq_data.__version__)"
+```
+
+This prepares the local `.venv` environment; it does not download graphs.
+
 ## Benchmark Configuration
 
 The benchmark reads its input set from a CSV file passed with `-c`:
