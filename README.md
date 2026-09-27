@@ -52,66 +52,67 @@ Example:
     ```bash
     git clone https://github.com/homka122/CFG_bench.git
     cd CFG_bench
-    gdown 12Qhc6XNXYbpPbZGp-lo30NsywFELAFhu
-    unzip CFPQ_eval.zip -d .
     make
-    ./build/cfg_bench -c configs/configs_my.csv -r 10 --hot
+    ./build/cfg_bench -c configs/configs_my.csv -efbl -a CFL_adv
     ```
-    If `gdown` hangs or fails to download the archive, use the direct Google Drive link instead:
-    ```bash
-    curl -L "https://drive.usercontent.google.com/download?id=12Qhc6XNXYbpPbZGp-lo30NsywFELAFhu&export=download&confirm=t" -o CFPQ_eval.zip
-    ```
-    After unpacking, the benchmark data will be available in the `data` folder.
     Run `./build/cfg_bench -h` to print the CLI help message with descriptions of all available options.
-4. _(Optional)_ To use different graphs and grammars, upload the required files to the `data` folder.
 
-## Downloading CFPQ_Data graphs
+## Downloading new graphs
 
-With [uv](https://docs.astral.sh/uv/) installed, prepare the Python environment:
+With [uv](https://docs.astral.sh/uv/) installed, download a dataset and run the
+benchmark with the generated config:
 
 ```bash
-uv run --locked python -c "import cfpq_data; print(cfpq_data.__version__)"
+uv run --locked python tools/download_graph.py --out-dir data --dataset c_alias
+./build/cfg_bench -c data/configs/c_alias.csv -efbl -a CFL_adv
 ```
 
-This prepares the local `.venv` environment without downloading graphs.
-
-To download one graph and its grammars:
+To download just one graph and its grammars:
 
 ```bash
 uv run --locked python tools/download_graph.py --out-dir data --graph bzip
 ```
 
-This writes `data/graphs/c_alias/bzip.g` and copies the grammars to
+Dataset choices are `c_alias`, `rdf`, `java`, `field_sensitive_alias`,
+`context_sensitive_data_flow`, `data_provenance`, `name_resolution`, `uniprot`,
+or `all` (every dataset).
+
+Graphs are saved to `<out-dir>/graphs/<dataset>/<graph>.g`; all grammars for
+each graph are copied to `<out-dir>/grammars/<dataset>/<graph>/`. For example,
+`--graph bzip --out-dir data` creates `data/graphs/c_alias/bzip.g` and
 `data/grammars/c_alias/bzip/`.
 
-To download a dataset into `out/`:
+With `--dataset`, the downloader also writes a headerless config to
+`<out-dir>/configs/<dataset>.csv`. It uses the default grammar for the dataset
+and published reachable-pair counts, omitting graphs without a published count.
+`--graph` does not generate a config.
 
-```bash
-uv run --locked python tools/download_graph.py --out-dir out --dataset java
-```
-
-To download RDF into `data/`, run
-`uv run --locked python tools/download_graph.py --out-dir data --dataset rdf`.
-
-Available datasets: `c_alias`, `rdf`, `java`, `field_sensitive_alias`,
-`context_sensitive_data_flow`, `data_provenance`, `name_resolution`, `uniprot`,
-and `all` (every dataset).
-
-Graphs and grammars are grouped by dataset, for example
-`out/graphs/java/gson.g` and `out/grammars/java/gson/`. The downloader copies
-all grammars for each graph. After downloading a dataset, it also writes a
-headerless benchmark config to `<out-dir>/configs/<dataset>.csv`, using the
-grammar in `DEFAULT_GRAMMARS` and the published reachable-pair counts. Graphs
-without a published count are omitted. Downloading one graph with `--graph`
-does not write a dataset config.
+The converter adds missing reverse edges. Indexed labels are written with an
+`_i` suffix and a separate index, as described in [Graph Format](#graph-format).
 
 The selected Java grammar uses indexed labels (`_i`), while the grammars
 bundled with 14 Java graphs use unindexed labels. Their published counts have
 not been verified against the selected grammar.
 
-Downloaded `.g` files use the benchmark's
-`<source> <target> <label> [index]` format described below. The converter adds
-missing reverse edges and writes indexed labels as `_i` with a separate index.
+### Legacy dataset archive
+
+As a second way to obtain benchmark data, download and unpack the existing
+`CFPQ_eval` archive into the repository root:
+
+```bash
+gdown 12Qhc6XNXYbpPbZGp-lo30NsywFELAFhu
+unzip CFPQ_eval.zip -d .
+```
+
+If `gdown` fails, download the same archive directly:
+
+```bash
+curl -L "https://drive.usercontent.google.com/download?id=12Qhc6XNXYbpPbZGp-lo30NsywFELAFhu&export=download&confirm=t" -o CFPQ_eval.zip
+unzip CFPQ_eval.zip -d .
+```
+
+The archive places its benchmark data in `data/`. It is not needed to run the
+included `configs/configs_my.csv` example.
 
 ## Benchmark Configuration
 
@@ -147,7 +148,7 @@ Each row in the config file has this format:
 Example from `configs/configs_my.csv`:
 
 ```text
-data/graphs/c_alias/init.g,data/grammars/c_alias.cnf,3783769
+data/graphs/vf/xz.g,data/grammars/vf.cnf,358834
 ```
 
 ## Grammar Format
