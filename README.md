@@ -81,7 +81,7 @@ To download one graph and its grammars:
 uv run --locked python tools/download_graph.py --out-dir data --graph bzip
 ```
 
-This writes `data/graphs/c_alias/bzip.txt` and copies the grammars to
+This writes `data/graphs/c_alias/bzip.g` and copies the grammars to
 `data/grammars/c_alias/bzip/`.
 
 To download a dataset into `out/`:
@@ -98,13 +98,20 @@ Available datasets: `c_alias`, `rdf`, `java`, `field_sensitive_alias`,
 and `all` (every dataset).
 
 Graphs and grammars are grouped by dataset, for example
-`out/graphs/java/gson.txt` and `out/grammars/java/gson/`. The downloader copies
-all grammars for each graph; `DEFAULT_GRAMMARS` in the script only records
-preferred choices.
+`out/graphs/java/gson.g` and `out/grammars/java/gson/`. The downloader copies
+all grammars for each graph. After downloading a dataset, it also writes a
+headerless benchmark config to `<out-dir>/configs/<dataset>.csv`, using the
+grammar in `DEFAULT_GRAMMARS` and the published reachable-pair counts. Graphs
+without a published count are omitted. Downloading one graph with `--graph`
+does not write a dataset config.
 
-Downloaded `.txt` files use `<source> <label> <target>`. The benchmark expects
-`<source> <target> <label> [index]` as described below, so these files need
-conversion before use in a benchmark config.
+The selected Java grammar uses indexed labels (`_i`), while the grammars
+bundled with 14 Java graphs use unindexed labels. Their published counts have
+not been verified against the selected grammar.
+
+Downloaded `.g` files use the benchmark's
+`<source> <target> <label> [index]` format described below. The converter adds
+missing reverse edges and writes indexed labels as `_i` with a separate index.
 
 ## Benchmark Configuration
 

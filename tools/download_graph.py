@@ -1,4 +1,4 @@
-"""Download graphs and their grammars into a directory."""
+"""Download graphs, grammars, and dataset configs into a directory."""
 
 import argparse
 import logging
@@ -199,13 +199,28 @@ REACHABLE_PAIR_COUNTS = {
 }
 
 
-def mtx_dir_to_txt(source_dir: Path, destination: Path) -> None:
-    """Stream labeled MatrixMarket edges to TXT without building a graph."""
+def mtx_dir_to_g(source_dir: Path, destination: Path) -> None:
+    """Stream MatrixMarket edges into the benchmark's graph format."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary_name = tempfile.mkstemp(dir=destination.parent, prefix=f".{destination.name}.")
     try:
         with os.fdopen(fd, "w") as output:
-            for mtx_file in sorted(source_dir.glob("*.mtx")):
+            mtx_files = sorted(source_dir.glob("*.mtx"))
+            if not mtx_files:
+                raise ValueError(f"No MatrixMarket files in {source_dir}")
+            labels = {mtx_file.stem for mtx_file in mtx_files}
+            for mtx_file in mtx_files:
+                label = mtx_file.stem
+                base, separator, suffix = label.rpartition("_")
+                indexed = bool(separator and suffix.isdecimal())
+                label_base = base if indexed else label
+                reverse_base = (label_base[:-2] if label_base.endswith("_r")
+                                else f"{label_base}_r")
+                terminal = f"{label_base}_i" if indexed else label_base
+                reverse_terminal = f"{reverse_base}_i" if indexed else reverse_base
+                reverse_label = f"{reverse_base}_{suffix}" if indexed else reverse_base
+                index = f"\t{suffix}" if indexed else ""
+                add_reverse = reverse_label not in labels
                 with mtx_file.open() as source:
                     lines = (line.strip() for line in source if line.strip())
                     header = (next(lines, None), next(lines, None))
@@ -222,7 +237,9 @@ def mtx_dir_to_txt(source_dir: Path, destination: Path) -> None:
                     count = 0
                     for line in lines:
                         u, v = map(int, line.split())
-                        output.write(f"{u} {mtx_file.stem} {v}\n")
+                        output.write(f"{u}\t{v}\t{terminal}{index}\n")
+                        if add_reverse:
+                            output.write(f"{v}\t{u}\t{reverse_terminal}{index}\n")
                         count += 1
                     if count != expected:
                         raise ValueError(
@@ -234,7 +251,7 @@ def mtx_dir_to_txt(source_dir: Path, destination: Path) -> None:
 
 
 def download_graph(directory: Path, graph_name: str, progress: str = "", verbose: bool = False) -> None:
-    """Save one dataset graph as TXT and copy its entire grammar directory."""
+    """Save one dataset graph as .g and copy its entire grammar directory."""
     dataset = next(name for name, graphs in DATASETS.items() if graph_name in graphs)
     interactive = sys.stdout.isatty() and not verbose
 
@@ -246,16 +263,40 @@ def download_graph(directory: Path, graph_name: str, progress: str = "", verbose
     show("downloading")
     source = cfpq_data.download(graph_name)
     graph_dir = directory / "graphs" / dataset
-    cfpq_data.graph_from_mtx_dir
     grammar_dir = directory / "grammars" / dataset / graph_name
     graph_dir.mkdir(parents=True, exist_ok=True)
 
     show("saving graph")
-    mtx_dir_to_txt(source / "graph", graph_dir / f"{graph_name}.txt")
+    mtx_dir_to_g(source / "graph", graph_dir / f"{graph_name}.g")
     if (source / "grammar").is_dir():
         show("copying grammar")
         shutil.copytree(source / "grammar", grammar_dir, dirs_exist_ok=True)
     show("done", done=True)
+
+
+def write_dataset_config(directory: Path, dataset: str) -> Path:
+    """Write a benchmark config for graphs with published reachable-pair counts."""
+    config_dir = directory / "configs"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    destination = config_dir / f"{dataset}.csv"
+    grammar = directory / "grammars" / dataset / DEFAULT_GRAMMARS[dataset]
+    if not grammar.is_file():
+        raise FileNotFoundError(f"Default grammar is missing: {grammar}")
+    fd, temporary_name = tempfile.mkstemp(dir=config_dir, prefix=f".{destination.name}.")
+    try:
+        with os.fdopen(fd, "w") as output:
+            for graph_name in DATASETS[dataset]:
+                count = REACHABLE_PAIR_COUNTS[dataset][graph_name]
+                if count is None:
+                    continue
+                graph = directory / "graphs" / dataset / f"{graph_name}.g"
+                if not graph.is_file():
+                    raise FileNotFoundError(f"Graph is missing: {graph}")
+                output.write(f"{graph},{grammar},{count}\n")
+        os.replace(temporary_name, destination)
+    finally:
+        Path(temporary_name).unlink(missing_ok=True)
+    return destination
 
 
 def main() -> None:
@@ -289,6 +330,10 @@ def main() -> None:
         print(f"Downloading dataset {args.dataset}: {len(graph_names)} graphs")
     for index, graph_name in enumerate(graph_names, 1):
         download_graph(args.out_dir, graph_name, f"[{index}/{len(graph_names)}] ", args.verbose)
+    if args.dataset:
+        datasets = DATASETS if args.dataset == "all" else {args.dataset: DATASETS[args.dataset]}
+        for dataset in datasets:
+            print(f"Wrote {write_dataset_config(args.out_dir, dataset)}")
 
 
 if __name__ == "__main__":

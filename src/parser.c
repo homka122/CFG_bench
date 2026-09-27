@@ -623,7 +623,11 @@ void get_configs_from_file(char *path, size_t *configs_count, config_row *config
         if (graph == NULL || grammar == NULL || valid_result_str == NULL)
             break;
 
-        size_t valid_result = atoi(valid_result_str);
+        size_t valid_result;
+        if (parse_size_token(valid_result_str, &valid_result) != 0) {
+            fprintf(stderr, "Invalid expected result in config: %s\n", valid_result_str);
+            exit(EXIT_FAILURE);
+        }
 
         configs[(*configs_count)++] = (config_row){
             .grammar = grammar,
