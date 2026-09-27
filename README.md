@@ -65,15 +65,46 @@ Example:
     Run `./build/cfg_bench -h` to print the CLI help message with descriptions of all available options.
 4. _(Optional)_ To use different graphs and grammars, upload the required files to the `data` folder.
 
-## CFPQ_Data Python environment
+## Downloading CFPQ_Data graphs
 
-With [uv](https://docs.astral.sh/uv/) installed, set up CFPQ_Data and its Python dependencies:
+With [uv](https://docs.astral.sh/uv/) installed, prepare the Python environment:
 
 ```bash
 uv run --locked python -c "import cfpq_data; print(cfpq_data.__version__)"
 ```
 
-This prepares the local `.venv` environment; it does not download graphs.
+This prepares the local `.venv` environment without downloading graphs.
+
+To download one graph and its grammars:
+
+```bash
+uv run --locked python tools/download_graph.py --out-dir data --graph bzip
+```
+
+This writes `data/graphs/c_alias/bzip.txt` and copies the grammars to
+`data/grammars/c_alias/bzip/`.
+
+To download a dataset into `out/`:
+
+```bash
+uv run --locked python tools/download_graph.py --out-dir out --dataset java
+```
+
+To download RDF into `data/`, run
+`uv run --locked python tools/download_graph.py --out-dir data --dataset rdf`.
+
+Available datasets: `c_alias`, `rdf`, `java`, `field_sensitive_alias`,
+`context_sensitive_data_flow`, `data_provenance`, `name_resolution`, `uniprot`,
+and `all` (every dataset).
+
+Graphs and grammars are grouped by dataset, for example
+`out/graphs/java/gson.txt` and `out/grammars/java/gson/`. The downloader copies
+all grammars for each graph; `DEFAULT_GRAMMARS` in the script only records
+preferred choices.
+
+Downloaded `.txt` files use `<source> <label> <target>`. The benchmark expects
+`<source> <target> <label> [index]` as described below, so these files need
+conversion before use in a benchmark config.
 
 ## Benchmark Configuration
 
