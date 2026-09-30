@@ -19,3 +19,11 @@ AdapterMethods adapter_CFL_adv_get_methods(void);
  */
 GrB_Info adapter_CFL_adv_get_reachable_pairs(GrB_Index **sources, GrB_Index **destinations,
                                               GrB_Index *pair_count);
+
+/**
+ * Count vertices reachable from any of the given sources in the start-symbol
+ * result matrix, the same result the multiple-source algorithms return.
+ *
+ * If sources is NULL, all vertices are used as sources.
+ */
+GrB_Info adapter_CFL_adv_count_reachable(const GrB_Index *sources, size_t sources_count, size_t *result);
