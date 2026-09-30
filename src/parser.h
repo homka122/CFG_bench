@@ -142,4 +142,6 @@ ParserResult parser_result_copy(const ParserResult *result);
 void free_parser_result(ParserResult *result);
 
 void grammar_print(Grammar grammar, SymbolList list);
-void get_configs_from_file(char *path, size_t *configs_count, config_row *configs, char **text_p);
+// reads config rows from "path"; blank lines are skipped
+// caller owns the returned array and "*text_p" (rows point into it) and must free both
+config_row *get_configs_from_file(char *path, size_t *configs_count, char **text_p);

@@ -247,9 +247,8 @@ int main(int argc, char **argv) {
     }
 
     size_t configs_count = 0;
-    config_row *configs = calloc(1000, sizeof(config_row));
     char *config_text;
-    get_configs_from_file(input_config, &configs_count, configs, &config_text);
+    config_row *configs = get_configs_from_file(input_config, &configs_count, &config_text);
 
     printf("Start bench\n");
     fflush(stdout);
