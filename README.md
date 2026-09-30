@@ -22,7 +22,8 @@ Optimization flags:
   -b                Enable block optimization
 
 Other:
-  -t                Enable test mode
+  -t                Enable test mode: run each config once and check the result
+                    (-r and --hot are ignored)
   -h                Print this help message
 
 Example:
