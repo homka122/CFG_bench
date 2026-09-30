@@ -217,6 +217,40 @@ GrB_Info adapter_CFL_adv_get_reachable_pairs(GrB_Index **sources, GrB_Index **de
     return GrB_SUCCESS;
 }
 
+GrB_Info adapter_CFL_adv_count_reachable(const GrB_Index *sources, size_t sources_count, size_t *result) {
+    if (result == NULL) {
+        return GrB_NULL_POINTER;
+    }
+
+    if (state.outputs == NULL || state.outputs[0] == NULL) {
+        return GrB_UNINITIALIZED_OBJECT;
+    }
+
+    GrB_Vector src = NULL;
+    GrB_Vector reachable = NULL;
+    TRY(GrB_Vector_new(&src, GrB_BOOL, state.graph_size));
+    TRY(GrB_Vector_new(&reachable, GrB_BOOL, state.graph_size));
+
+    if (sources == NULL) {
+        TRY(GrB_Vector_assign_BOOL(src, NULL, NULL, true, GrB_ALL, state.graph_size, NULL));
+    } else {
+        for (size_t i = 0; i < sources_count; i++) {
+            TRY(GrB_Vector_setElement_BOOL(src, true, sources[i]));
+        }
+    }
+
+    // reachable(v) = true <=> S(s, v) for some source s
+    TRY(GrB_vxm(reachable, NULL, NULL, GrB_LOR_LAND_SEMIRING_BOOL, src, state.outputs[0], NULL));
+
+    GrB_Index count = 0;
+    TRY(GrB_Vector_nvals(&count, reachable));
+    *result = count;
+
+    TRY(GrB_free(&src));
+    TRY(GrB_free(&reachable));
+    return GrB_SUCCESS;
+}
+
 
 // free output matrices
 //

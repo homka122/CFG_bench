@@ -99,7 +99,13 @@ void print_list(SymbolList list, size_t *map) {
 #define OPT_LAZY (1 << 2)
 #define OPT_BLOCK (1 << 3)
 
-enum { HOT_OPTION = 1000, BENCH_PARSE_OPTION = 1001, CFL_ALL_PATH_USE_CFPQ = 1002, USE_START_NODES_OPTION = 1003};
+enum {
+    HOT_OPTION = 1000,
+    BENCH_PARSE_OPTION = 1001,
+    CFL_ALL_PATH_USE_CFPQ = 1002,
+    USE_START_NODES_OPTION = 1003,
+    COMPUTE_RESULTS_OPTION = 1004
+};
 
 static void print_usage(const char *program_name) {
     fprintf(stderr,
@@ -126,12 +132,42 @@ static void print_usage(const char *program_name) {
             "Other:\n"
             "  -t                Enable test mode: run each config once and check the result\n"
             "                    (-r and --hot are ignored)\n"
+            "  --compute-results Check the result against CFL_adv -efbl on the same data instead of\n"
+            "                    the config value (only with -t)\n"
             "  -h                Print this help message\n"
             "  --CFL-all-path-use-CFPQ-Core      Use CFPQ_Core in CFL_all_path algorithm\n"
             "\n"
             "Example:\n"
             "  %s -c configs/configs_my.csv -r 10 --hot\n",
             program_name, program_name);
+}
+
+// runs CFL_adv with all optimizations on the same data and returns the result "algo" must have
+static GrB_Info compute_expected_result(const ParserResult *parser_result, const char *algo, bool use_start_nodes,
+                                        size_t *expected) {
+    AdapterMethods reference = adapter_CFL_adv_get_methods();
+    TRY(reference.prepare(parser_result,
+                          &(CFL_adv_PrepareData){.optimizations = OPT_EMPTY | OPT_FORMAT | OPT_LAZY | OPT_BLOCK}));
+    TRY(reference.init_outputs());
+    TRY(reference.run());
+
+    if (strcmp(algo, "CFL_multsrc") == 0 || strcmp(algo, "CFL_CFPQ_RSM") == 0) {
+        // multiple-source algorithms return the vertices reachable from any start vertex
+        if (!use_start_nodes) {
+            TRY(adapter_CFL_adv_count_reachable(NULL, 0, expected));
+        } else if (parser_result->start_nodes_count == 0) {
+            *expected = 0;
+        } else {
+            TRY(adapter_CFL_adv_count_reachable(parser_result->start_nodes, parser_result->start_nodes_count,
+                                                expected));
+        }
+    } else {
+        *expected = reference.get_result();
+    }
+
+    TRY(reference.free_outputs());
+    TRY(reference.cleanup());
+    return GrB_SUCCESS;
 }
 
 int main(int argc, char **argv) {
@@ -143,6 +179,7 @@ int main(int argc, char **argv) {
     bool is_hot_enabled = false;
     bool is_bench_parse_enabled = false;
     bool use_start_nodes = false;
+    bool compute_results = false;
     bool is_config = false;
     char *algo = NULL;
     bool is_algo_chosen = false;
@@ -157,6 +194,7 @@ int main(int argc, char **argv) {
         {"bench-parse", no_argument, 0, BENCH_PARSE_OPTION},
         {"use-start-nodes", no_argument, 0, USE_START_NODES_OPTION},
         {"CFL-all-path-use-CFPQ-Core", no_argument, 0, CFL_ALL_PATH_USE_CFPQ},
+        {"compute-results", no_argument, 0, COMPUTE_RESULTS_OPTION},
         {0, 0, 0, 0}};
 
     while ((opt = getopt_long(argc, argv, "eflbthr:c:a:", long_options, NULL)) != -1) {
@@ -184,6 +222,9 @@ int main(int argc, char **argv) {
             break;
         case USE_START_NODES_OPTION:
             use_start_nodes = true;
+            break;
+        case COMPUTE_RESULTS_OPTION:
+            compute_results = true;
             break;
         case 't':
             is_test = true;
@@ -234,6 +275,11 @@ int main(int argc, char **argv) {
         }
     }
 
+    if (compute_results && !is_test) {
+        fprintf(stderr, "--compute-results works only with -t\n");
+        exit(EXIT_FAILURE);
+    }
+
     if (!is_algo_chosen) {
         adapter = adapter_CFL_adv_get_methods();
         algo = "CFL_adv";
@@ -273,7 +319,14 @@ int main(int argc, char **argv) {
             free(end);
             exit(EXIT_FAILURE);
         }
-        
+
+        // computed before the tested algorithm: parser_result is freed after prepare and
+        // the CFL_adv adapter state can't be shared with a tested CFL_adv run
+        size_t expected_result = config.valid_result;
+        if (compute_results) {
+            TRY(compute_expected_result(&parser_result, algo, use_start_nodes, &expected_result));
+        }
+
         if (strcmp(algo, "CFL_multsrc") == 0) {
             adapter.prepare(&parser_result, &(CFL_multsrc_PrepareData){.use_start_nodes = use_start_nodes});
         } else if (strcmp(algo, "CFL_CFPQ_RSM") == 0) {
@@ -315,15 +368,20 @@ int main(int argc, char **argv) {
                     snprintf(status, sizeof(status), RED "[Failed]" RESET);
                 } else {
                     result = adapter.get_result();
-                    ResultType result_type = adapter.is_result_valid(config.valid_result);
+                    ResultType result_type = RESULT_UNKNOWN;
+                    if (compute_results) {
+                        result_type = result == expected_result ? RESULT_OK : RESULT_ERROR;
+                    } else {
+                        result_type = adapter.is_result_valid(config.valid_result);
+                    }
                     switch (result_type) {
                     case RESULT_OK:
                         snprintf(status, sizeof(status), GREEN "[OK]" RESET);
                         break;
                     case RESULT_ERROR:
                         has_test_failure = true;
-                        snprintf(status, sizeof(status), RED "[Wrong] (Result must be %ld)" RESET,
-                                 config.valid_result);
+                        snprintf(status, sizeof(status), RED "[Wrong] (Result must be %zu)" RESET,
+                                 expected_result);
                         break;
                     case RESULT_UNKNOWN:
                         snprintf(status, sizeof(status), YELLOW "[Unknown]" RESET);
@@ -335,6 +393,10 @@ int main(int argc, char **argv) {
                 }
 
                 printf("\tResult: %ld (Return code: %d) %s", result, retval, status);
+
+                if (compute_results) {
+                    printf(" (Computed: %zu)", expected_result);
+                }
 
                 if (retval != 0) {
                     printf("\t(MSG: %s)", msg);
