@@ -5,6 +5,7 @@
 #include "adapter_CFL_all_path_adv.h"
 #include "adapter_CFL_multsrc.h"
 #include "adapter_CFL_single_path.h"
+#include "computed_cache.h"
 #include "memory.h"
 #include "parser.h"
 #include "result_manager.h"
@@ -133,13 +134,20 @@ static void print_usage(const char *program_name) {
             "  -t                Enable test mode: run each config once and check the result\n"
             "                    (-r and --hot are ignored)\n"
             "  --compute-results Check the result against CFL_adv -efbl on the same data instead of\n"
-            "                    the config value (only with -t)\n"
+            "                    the config value (only with -t); CFL_multsrc and CFL_CFPQ_RSM need it,\n"
+            "                    values are cached in .cache when run from the project root\n"
             "  -h                Print this help message\n"
             "  --CFL-all-path-use-CFPQ-Core      Use CFPQ_Core in CFL_all_path algorithm\n"
             "\n"
             "Example:\n"
             "  %s -c configs/configs_my.csv -r 10 --hot\n",
             program_name, program_name);
+}
+
+// multiple-source algorithms return the vertices reachable from any start vertex
+// instead of reachable pairs, so the expected result from the config doesn't fit them
+static bool is_multiple_source(const char *algo) {
+    return strcmp(algo, "CFL_multsrc") == 0 || strcmp(algo, "CFL_CFPQ_RSM") == 0;
 }
 
 // runs CFL_adv with all optimizations on the same data and returns the result "algo" must have
@@ -151,8 +159,7 @@ static GrB_Info compute_expected_result(const ParserResult *parser_result, const
     TRY(reference.init_outputs());
     TRY(reference.run());
 
-    if (strcmp(algo, "CFL_multsrc") == 0 || strcmp(algo, "CFL_CFPQ_RSM") == 0) {
-        // multiple-source algorithms return the vertices reachable from any start vertex
+    if (is_multiple_source(algo)) {
         if (!use_start_nodes) {
             TRY(adapter_CFL_adv_count_reachable(NULL, 0, expected));
         } else if (parser_result->start_nodes_count == 0) {
@@ -286,6 +293,13 @@ int main(int argc, char **argv) {
         printf("No algorithm chosen, using CFL_adv by default\n");
     }
 
+    if (is_test && !compute_results && is_multiple_source(algo)) {
+        fprintf(stderr,
+                YELLOW "Warning: %s ignores the expected result from the config, "
+                       "use --compute-results to check the result" RESET "\n",
+                algo);
+    }
+
     TRY(adapter.setup());
 
     if (!is_config) {
@@ -323,8 +337,20 @@ int main(int argc, char **argv) {
         // computed before the tested algorithm: parser_result is freed after prepare and
         // the CFL_adv adapter state can't be shared with a tested CFL_adv run
         size_t expected_result = config.valid_result;
+        bool is_cached = false;
         if (compute_results) {
-            TRY(compute_expected_result(&parser_result, algo, use_start_nodes, &expected_result));
+            const char *kind = "pairs";
+            const char *start_nodes = NULL;
+            if (is_multiple_source(algo)) {
+                kind = use_start_nodes ? "start_vertices" : "vertices";
+                start_nodes = use_start_nodes ? config.start_nodes_path : NULL;
+            }
+
+            is_cached = computed_cache_get(kind, config.graph, config.grammar, start_nodes, &expected_result);
+            if (!is_cached) {
+                TRY(compute_expected_result(&parser_result, algo, use_start_nodes, &expected_result));
+                computed_cache_put(kind, config.graph, config.grammar, start_nodes, expected_result);
+            }
         }
 
         if (strcmp(algo, "CFL_multsrc") == 0) {
@@ -395,7 +421,7 @@ int main(int argc, char **argv) {
                 printf("\tResult: %ld (Return code: %d) %s", result, retval, status);
 
                 if (compute_results) {
-                    printf(" (Computed: %zu)", expected_result);
+                    printf(" (%s: %zu)", is_cached ? "Cached" : "Computed", expected_result);
                 }
 
                 if (retval != 0) {
