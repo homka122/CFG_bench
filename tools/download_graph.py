@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -199,7 +200,15 @@ REACHABLE_PAIR_COUNTS = {
 }
 
 
-def mtx_dir_to_g(source_dir: Path, destination: Path) -> None:
+def indexed_bases(grammar_dir: Path) -> set[str]:
+    """Terminal bases the grammars use as indexed (`<base>_i`)."""
+    bases = set()
+    for cnf in grammar_dir.glob("*.cnf"):
+        bases.update(re.findall(r"\b(\w+)_i\b", cnf.read_text()))
+    return bases
+
+
+def mtx_dir_to_g(source_dir: Path, destination: Path, indexed_labels: set[str]) -> None:
     """Stream MatrixMarket edges into the benchmark's graph format."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary_name = tempfile.mkstemp(dir=destination.parent, prefix=f".{destination.name}.")
@@ -212,7 +221,7 @@ def mtx_dir_to_g(source_dir: Path, destination: Path) -> None:
             for mtx_file in mtx_files:
                 label = mtx_file.stem
                 base, separator, suffix = label.rpartition("_")
-                indexed = bool(separator and suffix.isdecimal())
+                indexed = bool(separator and suffix.isdecimal() and base in indexed_labels)
                 label_base = base if indexed else label
                 reverse_base = (label_base[:-2] if label_base.endswith("_r")
                                 else f"{label_base}_r")
@@ -267,7 +276,8 @@ def download_graph(directory: Path, graph_name: str, progress: str = "", verbose
     graph_dir.mkdir(parents=True, exist_ok=True)
 
     show("saving graph")
-    mtx_dir_to_g(source / "graph", graph_dir / f"{graph_name}.g")
+    mtx_dir_to_g(source / "graph", graph_dir / f"{graph_name}.g",
+                 indexed_bases(source / "grammar"))
     if (source / "grammar").is_dir():
         show("copying grammar")
         shutil.copytree(source / "grammar", grammar_dir, dirs_exist_ok=True)
