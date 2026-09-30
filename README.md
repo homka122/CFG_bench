@@ -22,7 +22,8 @@ Optimization flags:
   -b                Enable block optimization
 
 Other:
-  -t                Enable test mode
+  -t                Enable test mode: run each config once and check the result
+                    (-r and --hot are ignored)
   -h                Print this help message
 
 Example:
@@ -52,18 +53,67 @@ Example:
     ```bash
     git clone https://github.com/homka122/CFG_bench.git
     cd CFG_bench
-    gdown 12Qhc6XNXYbpPbZGp-lo30NsywFELAFhu
-    unzip CFPQ_eval.zip -d .
     make
-    ./build/cfg_bench -c configs/configs_my.csv -r 10 --hot
+    ./build/cfg_bench -c configs/configs_my.csv -efbl -a CFL_adv
     ```
-    If `gdown` hangs or fails to download the archive, use the direct Google Drive link instead:
-    ```bash
-    curl -L "https://drive.usercontent.google.com/download?id=12Qhc6XNXYbpPbZGp-lo30NsywFELAFhu&export=download&confirm=t" -o CFPQ_eval.zip
-    ```
-    After unpacking, the benchmark data will be available in the `data` folder.
     Run `./build/cfg_bench -h` to print the CLI help message with descriptions of all available options.
-4. _(Optional)_ To use different graphs and grammars, upload the required files to the `data` folder.
+
+## Downloading new graphs
+
+With [uv](https://docs.astral.sh/uv/) installed, download a dataset and run the
+benchmark with the generated config:
+
+```bash
+uv run --locked python tools/download_graph.py --out-dir data --dataset c_alias
+./build/cfg_bench -c data/configs/c_alias.csv -efbl -a CFL_adv
+```
+
+To download just one graph and its grammars:
+
+```bash
+uv run --locked python tools/download_graph.py --out-dir data --graph bzip
+```
+
+Dataset choices are `c_alias`, `rdf`, `java`, `field_sensitive_alias`,
+`context_sensitive_data_flow`, `data_provenance`, `name_resolution`, `uniprot`,
+or `all` (every dataset).
+
+Graphs are saved to `<out-dir>/graphs/<dataset>/<graph>.g`; all grammars for
+each graph are copied to `<out-dir>/grammars/<dataset>/<graph>/`. For example,
+`--graph bzip --out-dir data` creates `data/graphs/c_alias/bzip.g` and
+`data/grammars/c_alias/bzip/`.
+
+With `--dataset`, the downloader also writes a headerless config to
+`<out-dir>/configs/<dataset>.csv`. It uses the default grammar for the dataset
+and published reachable-pair counts, omitting graphs without a published count.
+`--graph` does not generate a config.
+
+The converter adds missing reverse edges. Indexed labels are written with an
+`_i` suffix and a separate index, as described in [Graph Format](#graph-format).
+
+The selected Java grammar uses indexed labels (`_i`), while the grammars
+bundled with 14 Java graphs use unindexed labels. Their published counts have
+not been verified against the selected grammar.
+
+### Legacy dataset archive
+
+As a second way to obtain benchmark data, download and unpack the existing
+`CFPQ_eval` archive into the repository root:
+
+```bash
+gdown 12Qhc6XNXYbpPbZGp-lo30NsywFELAFhu
+unzip CFPQ_eval.zip -d .
+```
+
+If `gdown` fails, download the same archive directly:
+
+```bash
+curl -L "https://drive.usercontent.google.com/download?id=12Qhc6XNXYbpPbZGp-lo30NsywFELAFhu&export=download&confirm=t" -o CFPQ_eval.zip
+unzip CFPQ_eval.zip -d .
+```
+
+The archive places its benchmark data in `data/`. It is not needed to run the
+included `configs/configs_my.csv` example.
 
 ## Benchmark Configuration
 
@@ -99,7 +149,7 @@ Each row in the config file has this format:
 Example from `configs/configs_my.csv`:
 
 ```text
-data/graphs/c_alias/init.g,data/grammars/c_alias.cnf,3783769
+data/graphs/vf/xz.g,data/grammars/vf.cnf,358834
 ```
 
 ## Grammar Format

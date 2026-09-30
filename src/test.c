@@ -124,7 +124,8 @@ static void print_usage(const char *program_name) {
             "  -b                Enable block optimization\n"
             "\n"
             "Other:\n"
-            "  -t                Enable test mode\n"
+            "  -t                Enable test mode: run each config once and check the result\n"
+            "                    (-r and --hot are ignored)\n"
             "  -h                Print this help message\n"
             "  --CFL-all-path-use-CFPQ-Core      Use CFPQ_Core in CFL_all_path algorithm\n"
             "\n"
@@ -247,9 +248,8 @@ int main(int argc, char **argv) {
     }
 
     size_t configs_count = 0;
-    config_row *configs = calloc(1000, sizeof(config_row));
     char *config_text;
-    get_configs_from_file(input_config, &configs_count, configs, &config_text);
+    config_row *configs = get_configs_from_file(input_config, &configs_count, &config_text);
 
     printf("Start bench\n");
     fflush(stdout);
@@ -307,23 +307,31 @@ int main(int argc, char **argv) {
             max_memory_kb = mem_get_peak_kb();
 
             if (is_test) {
-                size_t result = adapter.get_result();
-                ResultType result_type = adapter.is_result_valid(config.valid_result);
+                size_t result = 0;
                 char status[256];
-                switch (result_type) {
-                case RESULT_OK:
-                    snprintf(status, sizeof(status), GREEN "[OK]" RESET);
-                    break;
-                case RESULT_ERROR:
+                if (retval != GrB_SUCCESS) {
+                    // outputs are not valid after a failed run, so the result is not checked
                     has_test_failure = true;
-                    snprintf(status, sizeof(status), RED "[Wrong] (Result must be %ld)" RESET, config.valid_result);
-                    break;
-                case RESULT_UNKNOWN:
-                    snprintf(status, sizeof(status), YELLOW "[Unknown]" RESET);
-                    break;
-                default:
-                    fprintf(stderr, "Unknown result type: %d\n", result_type);
-                    abort();
+                    snprintf(status, sizeof(status), RED "[Failed]" RESET);
+                } else {
+                    result = adapter.get_result();
+                    ResultType result_type = adapter.is_result_valid(config.valid_result);
+                    switch (result_type) {
+                    case RESULT_OK:
+                        snprintf(status, sizeof(status), GREEN "[OK]" RESET);
+                        break;
+                    case RESULT_ERROR:
+                        has_test_failure = true;
+                        snprintf(status, sizeof(status), RED "[Wrong] (Result must be %ld)" RESET,
+                                 config.valid_result);
+                        break;
+                    case RESULT_UNKNOWN:
+                        snprintf(status, sizeof(status), YELLOW "[Unknown]" RESET);
+                        break;
+                    default:
+                        fprintf(stderr, "Unknown result type: %d\n", result_type);
+                        abort();
+                    }
                 }
 
                 printf("\tResult: %ld (Return code: %d) %s", result, retval, status);

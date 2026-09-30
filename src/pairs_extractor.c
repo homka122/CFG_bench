@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
     GrB_Index *sources = NULL;
     GrB_Index *destinations = NULL;
     GrB_Index pair_count = 0;
-    config_row *configs = calloc(1000, sizeof(*configs));
+    config_row *configs = NULL;
     char *config_text = NULL;
     size_t configs_count = 0;
     FILE *output = NULL;
@@ -162,12 +162,7 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
 
-    if (configs == NULL) {
-        fprintf(stderr, "Failed to allocate config storage\n");
-        goto cleanup;
-    }
-
-    get_configs_from_file(config_path, &configs_count, configs, &config_text);
+    configs = get_configs_from_file(config_path, &configs_count, &config_text);
     if (configs_count == 0) {
         fprintf(stderr, "Config does not contain any rows\n");
         goto cleanup;

@@ -595,35 +595,56 @@ ParserResult parser_result_copy(const ParserResult *result) {
     return copy;
 }
 
-void get_configs_from_file(char *path, size_t *configs_count, config_row *configs, char **text_p) {
+config_row *get_configs_from_file(char *path, size_t *configs_count, char **text_p) {
     *configs_count = 0;
     char *config_text = read_entire_file(path);
     *text_p = config_text;
 
+    size_t capacity = 16;
+    config_row *configs = malloc(capacity * sizeof(*configs));
+
     char *line = config_text;
+    size_t line_number = 0;
     bool last = false;
     while (!last) {
         char *end = strchrnul(line, '\n');
         if (*end == '\0')
             last = true;
         *end = '\0';
+        line_number++;
+
+        // accept CRLF line endings
+        if (end > line && end[-1] == '\r') {
+            end[-1] = '\0';
+        }
+
+        char *next_line = end + 1;
+        if (is_blank_line(line)) {
+            line = next_line;
+            continue;
+        }
 
         char *graph = strtok(line, ",");
         char *grammar = strtok(NULL, ",");
         char *valid_result_str = strtok(NULL, ",");
         char *start_nodes_path = strtok(NULL, ",");
 
-        if (start_nodes_path != NULL) {
-            start_nodes_path[strcspn(start_nodes_path, "\r")] = '\0';
-            if (start_nodes_path[0] == '\0') {
-                start_nodes_path = NULL;
-            }
+        if (graph == NULL || grammar == NULL || valid_result_str == NULL) {
+            fprintf(stderr, "Invalid config line %zu in %s: expected <graph>,<grammar>,<expected result>\n",
+                    line_number, path);
+            exit(EXIT_FAILURE);
         }
 
-        if (graph == NULL || grammar == NULL || valid_result_str == NULL)
-            break;
+        size_t valid_result;
+        if (parse_size_token(valid_result_str, &valid_result) != 0) {
+            fprintf(stderr, "Invalid expected result in config line %zu: %s\n", line_number, valid_result_str);
+            exit(EXIT_FAILURE);
+        }
 
-        size_t valid_result = atoi(valid_result_str);
+        if (*configs_count == capacity) {
+            capacity *= 2;
+            configs = realloc(configs, capacity * sizeof(*configs));
+        }
 
         configs[(*configs_count)++] = (config_row){
             .grammar = grammar,
@@ -631,6 +652,8 @@ void get_configs_from_file(char *path, size_t *configs_count, config_row *config
             .valid_result = valid_result,
             .start_nodes_path = start_nodes_path,
         };
-        line = end + 1;
+        line = next_line;
     }
+
+    return configs;
 }
