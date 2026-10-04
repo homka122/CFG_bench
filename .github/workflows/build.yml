@@ -7,6 +7,21 @@ on:
         branches: [main]
 
 jobs:
+    lint:
+        runs-on: ubuntu-24.04
+        timeout-minutes: 5
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Install uv
+              uses: astral-sh/setup-uv@v10
+              with:
+                  enable-cache: true
+
+            - name: Run linters
+              run: make lint
+
     build:
         runs-on: ubuntu-24.04
         timeout-minutes: 10
