@@ -1,0 +1,33 @@
+name: Install dependencies
+description: Restore GraphBLAS and LAGraph builds made by the deps job and install them
+
+inputs:
+    graphblas-ref:
+        description: GraphBLAS commit
+        required: true
+    lagraph-rev:
+        description: LAGraph commit
+        required: true
+
+runs:
+    using: composite
+    steps:
+        - name: Restore GraphBLAS build
+          uses: actions/cache/restore@v4
+          with:
+              path: GraphBLAS
+              key: ${{ runner.os }}-${{ runner.arch }}-graphblas-compact-${{ inputs.graphblas-ref }}
+              fail-on-cache-miss: true
+
+        - name: Restore LAGraph build
+          uses: actions/cache/restore@v4
+          with:
+              path: LAGraph
+              key: ${{ runner.os }}-${{ runner.arch }}-lagraph-${{ inputs.graphblas-ref }}-${{ inputs.lagraph-rev }}
+              fail-on-cache-miss: true
+
+        - name: Install GraphBLAS and LAGraph
+          shell: bash
+          run: |
+              sudo make -C GraphBLAS install
+              sudo make -C LAGraph install
