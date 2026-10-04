@@ -48,10 +48,10 @@ CI: $(TARGET)
 	run $(CI_RUN) -a CFL_all_path; \
 	run $(CI_RUN) -a CFL_all_path --CFL-all-path-use-CFPQ-Core; \
 	run_advanced CFL_all_path_adv; \
-	run $(CI_RUN) -a CFL_CFPQ_RSM; \
-	run $(CI_RUN) -a CFL_CFPQ_RSM --use-start-nodes; \
-	run $(CI_RUN) -a CFL_multsrc; \
-	run $(CI_RUN) -a CFL_multsrc --use-start-nodes; \
+	run $(CI_RUN) -a CFL_CFPQ_RSM --compute-results; \
+	run $(CI_RUN) -a CFL_CFPQ_RSM --use-start-nodes --compute-results; \
+	run $(CI_RUN) -a CFL_multsrc --compute-results; \
+	run $(CI_RUN) -a CFL_multsrc --use-start-nodes --compute-results; \
 	exit $$status
 
 $(BUILD_DIR)/test_explode_indices: tests/test_explode_indices.c $(LIB_SRCS)

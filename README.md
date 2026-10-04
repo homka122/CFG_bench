@@ -13,6 +13,7 @@ Required:
 Benchmark options:
   -r <rounds>       Number of benchmark rounds (default: 10)
   --hot             Enable HOT launch (warm-up run before measurements)
+  --use-start-nodes Use start vertices from the path specified in the config
   -a <algorithm>    Algorithm to use (default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_CFPQ_RSM, CFL_multsrc)
 
 Optimization flags:
@@ -24,6 +25,9 @@ Optimization flags:
 Other:
   -t                Enable test mode: run each config once and check the result
                     (-r and --hot are ignored)
+  --compute-results Check the result against CFL_adv -efbl on the same data instead of
+                    the config value (only with -t); CFL_multsrc and CFL_CFPQ_RSM need it,
+                    values are cached in .cache when run from the project root
   -h                Print this help message
 
 Example:
@@ -143,7 +147,7 @@ These flags can be combined. For example, to enable all optimizations, run:
 Each row in the config file has this format:
 
 ```text
-<graph path>,<grammar path>,<expected result>
+<graph path>,<grammar path>,<expected result>[,<start vertices path>]
 ```
 
 Example from `configs/configs_my.csv`:
@@ -151,6 +155,10 @@ Example from `configs/configs_my.csv`:
 ```text
 data/graphs/vf/xz.g,data/grammars/vf.cnf,358834
 ```
+
+The expected result is the number of reachable pairs. `CFL_multsrc` and
+`CFL_CFPQ_RSM` ignore it, see
+[Multiple-Source Algorithms](#multiple-source-algorithms).
 
 ## Grammar Format
 
@@ -225,6 +233,50 @@ To add a custom benchmark configuration:
    ```
 
 No source code changes are required.
+
+## Multiple-Source Algorithms
+
+`CFL_multsrc` and `CFL_CFPQ_RSM` search paths only from the start vertices.
+Their result is the number of vertices reachable from at least one start
+vertex, not the number of reachable pairs, so they ignore the expected result
+from the config and `-t` prints a warning and `[Unknown]`.
+
+1. **Add the start vertices file as the fourth column**  
+   The file contains one vertex per line. It can be produced with
+   `pairs_extractor --start-only`, see
+   [Reachable Pair Extraction](#reachable-pair-extraction). The same config
+   works for `CFL_adv`.
+
+   ```text
+   data/graphs/c_alias/wc.g,data/grammars/c_alias.cnf,156,data/start_nodes/c_alias_wc_start.result
+   ```
+
+   Without `--use-start-nodes` the fourth column is ignored and every vertex is
+   a start vertex. `CFL_CFPQ_RSM` also needs an RSM template for the grammar.
+
+2. **Check the result**  
+   `--compute-results` runs `CFL_adv -efbl` on the same data, counts the
+   vertices reachable from the start vertices and checks the algorithm against
+   this count:
+
+   ```bash
+   ./build/cfg_bench -t -c configs/your_config.csv -a CFL_multsrc --use-start-nodes --compute-results
+   ```
+
+   ```text
+   	Result: 156 (Return code: 0) [OK] (Computed: 156) (0.0033 sec)
+   ```
+
+   When the benchmark runs from the project root, computed values are cached
+   in `.cache/computed_results.csv`, and the next runs print `Cached` instead
+   of running `CFL_adv` again. A value is recomputed after the graph, grammar
+   or start vertices file changes. Delete the file to clear the cache.
+
+3. **Run the benchmark**
+
+   ```bash
+   ./build/cfg_bench -c configs/your_config.csv -a CFL_multsrc --use-start-nodes -r 10 --hot
+   ```
 
 ## Reachable Pair Extraction
 
