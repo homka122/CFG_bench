@@ -11,6 +11,7 @@ from pathlib import Path
 
 import cfpq_data
 
+# fmt: off
 DATASETS = {
     "c_alias": (
         "wc", "bzip", "pr", "ls", "gzip", "apache", "init", "mm", "ipc", "lib",
@@ -51,6 +52,7 @@ DATASETS = {
     ),
     "uniprot": tuple(f"unigraph_{i}" for i in range(1, 11)),
 }
+# fmt: on
 
 # Paths are relative to grammars/<dataset>/.
 DEFAULT_GRAMMARS = {
@@ -223,8 +225,7 @@ def mtx_dir_to_g(source_dir: Path, destination: Path, indexed_labels: set[str]) 
                 base, separator, suffix = label.rpartition("_")
                 indexed = bool(separator and suffix.isdecimal() and base in indexed_labels)
                 label_base = base if indexed else label
-                reverse_base = (label_base[:-2] if label_base.endswith("_r")
-                                else f"{label_base}_r")
+                reverse_base = label_base[:-2] if label_base.endswith("_r") else f"{label_base}_r"
                 terminal = f"{label_base}_i" if indexed else label_base
                 reverse_terminal = f"{reverse_base}_i" if indexed else reverse_base
                 reverse_label = f"{reverse_base}_{suffix}" if indexed else reverse_base
@@ -251,9 +252,7 @@ def mtx_dir_to_g(source_dir: Path, destination: Path, indexed_labels: set[str]) 
                             output.write(f"{v}\t{u}\t{reverse_terminal}{index}\n")
                         count += 1
                     if count != expected:
-                        raise ValueError(
-                            f"{mtx_file} declares {expected} entries but has {count}"
-                        )
+                        raise ValueError(f"{mtx_file} declares {expected} entries but has {count}")
         os.replace(temporary_name, destination)
     finally:
         Path(temporary_name).unlink(missing_ok=True)
@@ -266,8 +265,7 @@ def download_graph(directory: Path, graph_name: str, progress: str = "", verbose
 
     def show(stage: str, done: bool = False) -> None:
         message = f"{progress}{graph_name}: {stage}"
-        print(f"\r{message:<72}" if interactive else message,
-              end="\n" if done or not interactive else "", flush=True)
+        print(f"\r{message:<72}" if interactive else message, end="\n" if done or not interactive else "", flush=True)
 
     show("downloading")
     source = cfpq_data.download(graph_name)
@@ -276,8 +274,7 @@ def download_graph(directory: Path, graph_name: str, progress: str = "", verbose
     graph_dir.mkdir(parents=True, exist_ok=True)
 
     show("saving graph")
-    mtx_dir_to_g(source / "graph", graph_dir / f"{graph_name}.g",
-                 indexed_bases(source / "grammar"))
+    mtx_dir_to_g(source / "graph", graph_dir / f"{graph_name}.g", indexed_bases(source / "grammar"))
     if (source / "grammar").is_dir():
         show("copying grammar")
         shutil.copytree(source / "grammar", grammar_dir, dirs_exist_ok=True)
@@ -313,14 +310,10 @@ def main() -> None:
     """Download one graph or a dataset category from CLI arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
     dataset_names = (*DATASETS, "all")
-    parser.add_argument("--out-dir", required=True, type=Path,
-                        help="output directory")
-    parser.add_argument("--graph", choices=cfpq_data.DATASET,
-                        metavar="graph", help="graph name, e.g. bzip")
-    parser.add_argument("--dataset", nargs="?", const="", metavar="dataset",
-                        help=f"one of: {', '.join(dataset_names)}")
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="show all log messages, including DEBUG")
+    parser.add_argument("--out-dir", required=True, type=Path, help="output directory")
+    parser.add_argument("--graph", choices=cfpq_data.DATASET, metavar="graph", help="graph name, e.g. bzip")
+    parser.add_argument("--dataset", nargs="?", const="", metavar="dataset", help=f"one of: {', '.join(dataset_names)}")
+    parser.add_argument("-v", "--verbose", action="store_true", help="show all log messages, including DEBUG")
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.DEBUG if args.verbose else logging.WARNING)
     if args.dataset == "":

@@ -10,9 +10,7 @@
 #define KEY_SIZE 4096
 
 // config paths are relative to the project root, so the cache is used only there
-static bool is_project_root(void) {
-    return access("src/test.c", F_OK) == 0;
-}
+static bool is_project_root(void) { return access("src/test.c", F_OK) == 0; }
 
 static long long file_mtime(const char *path) {
     struct stat st;
@@ -23,8 +21,8 @@ static long long file_mtime(const char *path) {
 }
 
 static void make_key(char *key, const char *kind, const char *graph, const char *grammar, const char *start_nodes) {
-    snprintf(key, KEY_SIZE, "%s,%s,%lld,%s,%lld,%s,%lld", kind, graph, file_mtime(graph), grammar,
-             file_mtime(grammar), start_nodes == NULL ? "-" : start_nodes, file_mtime(start_nodes));
+    snprintf(key, KEY_SIZE, "%s,%s,%lld,%s,%lld,%s,%lld", kind, graph, file_mtime(graph), grammar, file_mtime(grammar),
+             start_nodes == NULL ? "-" : start_nodes, file_mtime(start_nodes));
 }
 
 bool computed_cache_get(const char *kind, const char *graph, const char *grammar, const char *start_nodes,

@@ -18,7 +18,7 @@ SRCS := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/adapters/*.c)
 MAIN_SRCS := $(SRC_DIR)/test.c $(SRC_DIR)/pairs_extractor.c
 LIB_SRCS := $(filter-out $(MAIN_SRCS),$(SRCS))
 
-.PHONY: all clean bench CI debug pairs-extractor test-explode-indices test-explode-indices-leaks
+.PHONY: all clean bench CI debug format lint pairs-extractor test-explode-indices test-explode-indices-leaks
 
 all: $(TARGET) $(PAIRS_EXTRACTOR_TARGET)
 
@@ -68,11 +68,19 @@ debug: clean
 	$(MAKE) BUILD_DIR=build \
 		CFLAGS="-g -O0 -Wall -Wextra -Wpedantic -Wno-sign-compare"
 
-# Code formatting with clang-format
+# Code formatting with clang-format and ruff, versions are pinned in the uv "lint" group
 FORMAT_SOURCES = src/*.c src/*.h src/adapters/*.c src/adapters/*.h tests/*.c
+PYTHON_SOURCES = $(shell git ls-files '*.py')
+LINT_RUN = uv run --locked --only-group lint
 
 format:
-	clang-format -i $(FORMAT_SOURCES)
+	$(LINT_RUN) clang-format -i $(FORMAT_SOURCES)
+	$(LINT_RUN) ruff format $(PYTHON_SOURCES)
+
+lint:
+	$(LINT_RUN) clang-format --dry-run --Werror $(FORMAT_SOURCES)
+	$(LINT_RUN) ruff check $(PYTHON_SOURCES)
+	$(LINT_RUN) ruff format --check $(PYTHON_SOURCES)
 
 clean:
 	rm -rf build/*

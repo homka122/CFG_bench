@@ -202,7 +202,8 @@ int main(int argc, char **argv) {
         {"use-start-nodes", no_argument, 0, USE_START_NODES_OPTION},
         {"CFL-all-path-use-CFPQ-Core", no_argument, 0, CFL_ALL_PATH_USE_CFPQ},
         {"compute-results", no_argument, 0, COMPUTE_RESULTS_OPTION},
-        {0, 0, 0, 0}};
+        {0, 0, 0, 0},
+    };
 
     while ((opt = getopt_long(argc, argv, "eflbthr:c:a:", long_options, NULL)) != -1) {
         switch (opt) {
@@ -406,8 +407,7 @@ int main(int argc, char **argv) {
                         break;
                     case RESULT_ERROR:
                         has_test_failure = true;
-                        snprintf(status, sizeof(status), RED "[Wrong] (Result must be %zu)" RESET,
-                                 expected_result);
+                        snprintf(status, sizeof(status), RED "[Wrong] (Result must be %zu)" RESET, expected_result);
                         break;
                     case RESULT_UNKNOWN:
                         snprintf(status, sizeof(status), YELLOW "[Unknown]" RESET);

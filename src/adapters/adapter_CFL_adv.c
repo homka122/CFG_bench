@@ -176,8 +176,7 @@ static size_t adapter_CFL_adv_get_result(void) {
     return result;
 }
 
-GrB_Info adapter_CFL_adv_get_reachable_pairs(GrB_Index **sources, GrB_Index **destinations,
-                                              GrB_Index *pair_count) {
+GrB_Info adapter_CFL_adv_get_reachable_pairs(GrB_Index **sources, GrB_Index **destinations, GrB_Index *pair_count) {
     if (sources == NULL || destinations == NULL || pair_count == NULL) {
         return GrB_NULL_POINTER;
     }
@@ -250,7 +249,6 @@ GrB_Info adapter_CFL_adv_count_reachable(const GrB_Index *sources, size_t source
     TRY(GrB_free(&reachable));
     return GrB_SUCCESS;
 }
-
 
 // free output matrices
 //

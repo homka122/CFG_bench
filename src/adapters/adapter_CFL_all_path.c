@@ -1,11 +1,11 @@
 // code from DanyaLitva's CFG_Bench fork
 // https://github.com/DanyaLitva/CFG_bench/blob/main/testAP.c
 
+#include "adapter_CFL_all_path.h"
 #include "GraphBLAS.h"
 #include "LAGraph.h"
 #include "adapter_CFL_common.h"
 #include "parser.h"
-#include "adapter_CFL_all_path.h"
 
 #define TRY(GrB_method)                                                                                                \
     {                                                                                                                  \
@@ -49,9 +49,8 @@ typedef CFL_all_path_PrepareData PrepareData;
 static GrB_Info adapter_CFL_prepare(const ParserResult *parser_result, void *prepare_data) {
     CFL_all_path_PrepareData *data = (CFL_all_path_PrepareData *)prepare_data;
     state.use_cfpq = data->use_cfpq;
-    TRY(adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count,
-                                   &state.nonterms_count, &state.rules, &state.rules_count,
-                                   &state.graph_size));
+    TRY(adapter_CFL_prepare_common(parser_result, &state.adj_matrices, &state.terms_count, &state.nonterms_count,
+                                   &state.rules, &state.rules_count, &state.graph_size));
 
     return GrB_SUCCESS;
 }
