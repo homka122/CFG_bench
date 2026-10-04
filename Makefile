@@ -22,7 +22,7 @@ SRCS := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/adapters/*.c)
 MAIN_SRCS := $(SRC_DIR)/test.c $(SRC_DIR)/pairs_extractor.c
 LIB_SRCS := $(filter-out $(MAIN_SRCS),$(SRCS))
 
-.PHONY: all clean bench CI debug format lint pairs-extractor test-explode-indices test-explode-indices-leaks
+.PHONY: all clean bench CI debug format lint tidy pairs-extractor test-explode-indices test-explode-indices-leaks
 
 all: $(TARGET) $(PAIRS_EXTRACTOR_TARGET)
 
@@ -85,6 +85,10 @@ lint:
 	$(LINT_RUN) clang-format --dry-run --Werror $(FORMAT_SOURCES)
 	$(LINT_RUN) ruff check $(PYTHON_SOURCES)
 	$(LINT_RUN) ruff format --check $(PYTHON_SOURCES)
+
+# needs GraphBLAS and LAGraph headers, checks are configured in .clang-tidy
+tidy:
+	$(LINT_RUN) clang-tidy --quiet $(SRCS) tests/test_explode_indices.c -- $(CFLAGS) $(INCLUDES)
 
 clean:
 	rm -rf build/*

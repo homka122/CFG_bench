@@ -1,0 +1,37 @@
+# Disabled as noise for this C code base:
+#   bugprone-easily-swappable-parameters, bugprone-multi-level-implicit-pointer-conversion,
+#   clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling, portability-avoid-pragma-once
+#
+# TODO: fix the existing findings and enable again:
+#   bugprone-branch-clone, bugprone-macro-parentheses, bugprone-narrowing-conversions,
+#   bugprone-reserved-identifier, bugprone-suspicious-realloc-usage,
+#   bugprone-unchecked-string-to-number-conversion, clang-analyzer-core.NullDereference,
+#   clang-analyzer-core.UndefinedBinaryOperatorResult, clang-analyzer-optin.portability.UnixAPI,
+#   clang-analyzer-security.ArrayBound, clang-analyzer-security.insecureAPI.strcpy,
+#   clang-analyzer-unix.Malloc, clang-analyzer-unix.MallocSizeof, clang-analyzer-unix.StdCLibraryFunctions
+Checks: >
+    -*,
+    bugprone-*,
+    clang-analyzer-*,
+    performance-*,
+    portability-*,
+    -bugprone-easily-swappable-parameters,
+    -bugprone-multi-level-implicit-pointer-conversion,
+    -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+    -portability-avoid-pragma-once,
+    -bugprone-branch-clone,
+    -bugprone-macro-parentheses,
+    -bugprone-narrowing-conversions,
+    -bugprone-reserved-identifier,
+    -bugprone-suspicious-realloc-usage,
+    -bugprone-unchecked-string-to-number-conversion,
+    -clang-analyzer-core.NullDereference,
+    -clang-analyzer-core.UndefinedBinaryOperatorResult,
+    -clang-analyzer-optin.portability.UnixAPI,
+    -clang-analyzer-security.ArrayBound,
+    -clang-analyzer-security.insecureAPI.strcpy,
+    -clang-analyzer-unix.Malloc,
+    -clang-analyzer-unix.MallocSizeof,
+    -clang-analyzer-unix.StdCLibraryFunctions
+WarningsAsErrors: "*"
+HeaderFilterRegex: "/src/"
