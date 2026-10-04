@@ -1,0 +1,18 @@
+repos:
+    - repo: local
+      hooks:
+          - id: clang-format
+            name: clang-format
+            entry: uv run --locked --only-group lint clang-format -i
+            language: system
+            types: [c]
+          - id: ruff-check
+            name: ruff check
+            entry: uv run --locked --only-group lint ruff check --fix
+            language: system
+            types: [python]
+          - id: ruff-format
+            name: ruff format
+            entry: uv run --locked --only-group lint ruff format
+            language: system
+            types: [python]

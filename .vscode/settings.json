@@ -1,0 +1,8 @@
+{
+    "makefile.configureOnOpen": true,
+    "editor.formatOnSave": true,
+    "C_Cpp.clang_format_path": "${workspaceFolder}/.venv/bin/clang-format",
+    "[c]": { "editor.defaultFormatter": "ms-vscode.cpptools" },
+    "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" },
+    "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"]
+}
