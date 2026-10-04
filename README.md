@@ -1,5 +1,8 @@
 # CFG_bench
 
+[![Build](https://github.com/homka122/CFG_bench/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/homka122/CFG_bench/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **CFG_bench** is a tool for benchmarking the CFL algorithm from LAGraph.
 
 ## CLI Help
