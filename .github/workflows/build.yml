@@ -99,6 +99,32 @@ jobs:
                   path: build/cfg_bench
                   retention-days: 1
 
+    sanitizers:
+        needs: deps
+        runs-on: ubuntu-24.04
+        timeout-minutes: 15
+        env:
+            LD_LIBRARY_PATH: /usr/local/lib
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Install dependencies
+              uses: ./.github/actions/install-deps
+              with:
+                  graphblas-ref: ${{ env.GRAPHBLAS_REF }}
+                  lagraph-rev: ${{ needs.deps.outputs.lagraph }}
+
+            - name: Run tests with AddressSanitizer and UndefinedBehaviorSanitizer
+              run: make CI CFLAGS="-O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=undefined"
+
+            - name: Run tests under Valgrind
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y valgrind
+                  make clean
+                  make CI CFLAGS="-O0 -g" CI_RUN="valgrind --error-exitcode=1 --leak-check=full ./build/cfg_bench -t -c configs/for_test.csv"
+
     test:
         needs: [deps, build]
         runs-on: ubuntu-24.04
