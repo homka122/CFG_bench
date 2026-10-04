@@ -342,3 +342,5 @@ In this mode, files are named `<grammar>_<graph>_start.result`.
 - `make CI` builds the benchmark and runs every algorithm on `configs/for_test.csv`, as CI does
 - `make lint` checks the formatting with clang-format and ruff, `make format` fixes it
 - `make hooks` installs pre-commit hooks that run the same tools on every commit
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to report bugs and contribute.
