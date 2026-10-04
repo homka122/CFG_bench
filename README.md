@@ -3,7 +3,29 @@
 [![Build](https://github.com/homka122/CFG_bench/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/homka122/CFG_bench/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**CFG_bench** is a tool for benchmarking the CFL algorithm from LAGraph.
+**CFG_bench** is a benchmark for the context-free language (CFL) reachability
+algorithms implemented in [LAGraph](https://github.com/SparseLinearAlgebra/LAGraph).
+
+CFL reachability asks which pairs of graph vertices are connected by a path whose
+edge labels form a word of a given context-free grammar. It is the core of many
+static analyses, such as alias and points-to analysis of C and Java programs and
+value-flow analysis, and of path queries over RDF graphs. LAGraph solves it with
+sparse linear algebra on top of SuiteSparse:GraphBLAS: the graph and the grammar
+nonterminals become sparse Boolean matrices, and the algorithm multiplies them
+until no new paths appear.
+
+CFG_bench runs these algorithms on real graphs and grammars, measures the running
+time and the peak memory, checks the result against the expected number of
+reachable pairs and saves the measurements to CSV files in `results/`. It supports:
+
+- `CFL` and `CFL_adv`, which find all reachable pairs; `CFL_adv` adds four optional optimizations
+- `CFL_single_path`, `CFL_all_path` and `CFL_all_path_adv`, which also keep the paths:
+  one path or all paths for every reachable pair
+- `CFL_multsrc` and `CFL_CFPQ_RSM`, which search only from given start vertices;
+  `CFL_CFPQ_RSM` takes the grammar as a recursive state machine
+
+The graphs and grammars come from the [CFPQ_Data](https://github.com/FormalLanguageConstrainedPathQuerying/CFPQ_Data)
+collection.
 
 ## CLI Help
 
@@ -16,8 +38,9 @@ Required:
 Benchmark options:
   -r <rounds>       Number of benchmark rounds (default: 10)
   --hot             Enable HOT launch (warm-up run before measurements)
+  --bench-parse     Print grammar and graph parsing times only
   --use-start-nodes Use start vertices from the path specified in the config
-  -a <algorithm>    Algorithm to use (default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_CFPQ_RSM, CFL_multsrc)
+  -a <algorithm>    Algorithm to use (default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc)
 
 Optimization flags:
   -e                Enable empty optimization
@@ -32,10 +55,19 @@ Other:
                     the config value (only with -t); CFL_multsrc and CFL_CFPQ_RSM need it,
                     values are cached in .cache when run from the project root
   -h                Print this help message
+  --CFL-all-path-use-CFPQ-Core      Use CFPQ_Core in CFL_all_path algorithm
 
 Example:
   ./build/cfg_bench -c configs/configs_my.csv -r 10 --hot
 ```
+
+## Requirements
+
+- Linux: the benchmark reads peak memory from `/proc/self/status` and uses `malloc_trim`
+- GCC 13 or newer, GNU Make and CMake 3.20 or newer (CI uses Ubuntu 24.04)
+- [SuiteSparse:GraphBLAS](https://github.com/DrTimothyAldenDavis/GraphBLAS) v10.5.1
+- [LAGraph](https://github.com/SparseLinearAlgebra/LAGraph) from the `homka122/all_algorithms_benchmark` branch
+- [uv](https://docs.astral.sh/uv/) with Python 3.11 or newer, to download graphs and run the linters
 
 ## Usage
 
@@ -43,6 +75,7 @@ Example:
     ```bash
     git clone https://github.com/DrTimothyAldenDavis/GraphBLAS.git
     cd GraphBLAS
+    git checkout v10.5.1
     make
     sudo make install
     cd ..
@@ -134,12 +167,12 @@ Use `-r` to set the number of benchmark rounds and `--hot` to enable the HOT lau
 
 The `CFL_adv` algorithm also supports optimization flags:
 
-| Flag | Optimization |
-| ---- | ------------ |
-| `-e` | empty |
-| `-f` | format |
-| `-l` | lazy |
-| `-b` | block |
+| Flag | Optimization | What it does |
+| ---- | ------------ | ------------ |
+| `-e` | empty  | skips operations on empty matrices |
+| `-f` | format | stores each matrix by rows or by columns, whichever suits the operation |
+| `-l` | lazy   | keeps a nonterminal matrix as a sum of parts and merges only parts of similar size |
+| `-b` | block  | multiplies the matrices of all indices of an indexed symbol at once |
 
 These flags can be combined. For example, to enable all optimizations, run:
 
@@ -303,3 +336,9 @@ reachable pairs, one vertex per line:
     ./build/pairs_extractor -c configs/configs_my.csv -o results --start-only
 
 In this mode, files are named `<grammar>_<graph>_start.result`.
+
+## Development
+
+- `make CI` builds the benchmark and runs every algorithm on `configs/for_test.csv`, as CI does
+- `make lint` checks the formatting with clang-format and ruff, `make format` fixes it
+- `make hooks` installs pre-commit hooks that run the same tools on every commit
