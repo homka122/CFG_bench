@@ -1,6 +1,6 @@
 # Disabled as noise for this C code base:
 #   bugprone-easily-swappable-parameters, bugprone-multi-level-implicit-pointer-conversion,
-#   clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling, portability-avoid-pragma-once
+#   clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
 #
 # TODO: fix the existing findings and enable again:
 #   bugprone-branch-clone, bugprone-macro-parentheses, bugprone-narrowing-conversions,
@@ -13,12 +13,11 @@ Checks: >
     -*,
     bugprone-*,
     clang-analyzer-*,
-    performance-*,
-    portability-*,
+    performance-no-int-to-ptr,
+    performance-type-promotion-in-math-fn,
     -bugprone-easily-swappable-parameters,
     -bugprone-multi-level-implicit-pointer-conversion,
     -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
-    -portability-avoid-pragma-once,
     -bugprone-branch-clone,
     -bugprone-macro-parentheses,
     -bugprone-narrowing-conversions,
