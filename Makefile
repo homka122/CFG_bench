@@ -6,6 +6,10 @@ TARGET := $(BUILD_DIR)/cfg_bench
 PAIRS_EXTRACTOR_TARGET := $(BUILD_DIR)/pairs_extractor
 
 CFLAGS ?= -O2 -Wall -Wextra -Wpedantic -Wno-sign-compare
+# CI builds with WERROR=1 to fail on compiler warnings
+ifeq ($(WERROR),1)
+CFLAGS += -Werror
+endif
 INCLUDES := -I/usr/local/include/suitesparse -I$(SRC_DIR) -I$(SRC_DIR)/adapters
 LDLIBS := -lgraphblas -llagraph -llagraphx
 VALGRIND ?= valgrind
