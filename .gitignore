@@ -18,4 +18,6 @@ __pycache__/
 !/data/graphs/c_alias/wc.g
 !/data/graphs/vf/xz.g
 
-.vscode/
+/.vscode/*
+!/.vscode/extensions.json
+!/.vscode/settings.json
