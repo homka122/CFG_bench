@@ -1,15 +1,21 @@
-data/grammars/*
-data/graphs/*
-data
-.vscode
-*.out
-convert
-test
-*.csv
-log.txt
-convert.c
-data.back
-data.old
-build
-.cache
+# build outputs
+/build/*
+!/build/.gitkeep
+__pycache__/
 .venv/
+.cache/
+.ruff_cache/
+
+# benchmark results, only the example is tracked
+/results/*
+!/results/results_2026-04-11_17-37-29_example.csv
+
+# datasets from tools/download_graph.py and the CFPQ_eval archive, the test data is tracked
+/data/configs/
+/data/grammars/*/
+!/data/grammars/RSM_figures/
+/data/graphs/*/*
+!/data/graphs/c_alias/wc.g
+!/data/graphs/vf/xz.g
+
+.vscode/
