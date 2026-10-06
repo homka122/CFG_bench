@@ -35,7 +35,11 @@ Each algorithm is wrapped in an adapter in `src/adapters/`:
 
 1. Create `adapter_<name>.h` and `adapter_<name>.c` that implement `AdapterMethods`
    and provide `adapter_<name>_get_methods()`.
-2. Add the algorithm name to the `-a` option in `src/test.c` and to the help text.
+2. Add a row to the `algorithms` table in `src/adapters/registry.c`: the name for `-a`,
+   the getter, a prepare function and whether the algorithm is multiple-source.
+   The prepare function builds the adapter's `PrepareData` from `AlgorithmOptions`;
+   use `prepare_no_data` if the adapter has none. The `-a` option and the help text
+   take the name from the table, so `src/test.c` doesn't change.
 3. Add a run of the algorithm to the `CI` target in the `Makefile`.
 
 ## Technical documentation
