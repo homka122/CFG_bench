@@ -1,13 +1,8 @@
-#include "adapter_CFL.h"
-#include "adapter_CFL_CFPQ_RSM.h"
 #include "adapter_CFL_adv.h"
-#include "adapter_CFL_all_path.h"
-#include "adapter_CFL_all_path_adv.h"
-#include "adapter_CFL_multsrc.h"
-#include "adapter_CFL_single_path.h"
 #include "computed_cache.h"
 #include "memory.h"
 #include "parser.h"
+#include "registry.h"
 #include "result_manager.h"
 #include <GraphBLAS.h>
 #include <LAGraph.h>
@@ -120,9 +115,11 @@ static void print_usage(const char *program_name) {
             "  --hot             Enable HOT launch (warm-up run before measurements)\n"
             "  --bench-parse     Print grammar and graph parsing times only\n"
             "  --use-start-nodes Use start vertices from the path specified in the config\n"
-            "  -a <algorithm>    Algorithm to use "
-            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, "
-            "CFL_multsrc)\n"
+            "  -a <algorithm>    Algorithm to use (default: " DEFAULT_ALGORITHM "; options: ",
+            program_name);
+    registry_print_names(stderr);
+    fprintf(stderr,
+            ")\n"
             "\n"
             "Optimization flags:\n"
             "  -e                Enable empty optimization\n"
@@ -141,25 +138,19 @@ static void print_usage(const char *program_name) {
             "\n"
             "Example:\n"
             "  %s -c configs/configs_my.csv -r 10 --hot\n",
-            program_name, program_name);
-}
-
-// multiple-source algorithms return the vertices reachable from any start vertex
-// instead of reachable pairs, so the expected result from the config doesn't fit them
-static bool is_multiple_source(const char *algo) {
-    return strcmp(algo, "CFL_multsrc") == 0 || strcmp(algo, "CFL_CFPQ_RSM") == 0;
+            program_name);
 }
 
 // runs CFL_adv with all optimizations on the same data and returns the result "algo" must have
-static GrB_Info compute_expected_result(const ParserResult *parser_result, const char *algo, bool use_start_nodes,
-                                        size_t *expected) {
+static GrB_Info compute_expected_result(const ParserResult *parser_result, const AlgorithmEntry *algo,
+                                        bool use_start_nodes, size_t *expected) {
     AdapterMethods reference = adapter_CFL_adv_get_methods();
     TRY(reference.prepare(parser_result,
                           &(CFL_adv_PrepareData){.optimizations = OPT_EMPTY | OPT_FORMAT | OPT_LAZY | OPT_BLOCK}));
     TRY(reference.init_outputs());
     TRY(reference.run());
 
-    if (is_multiple_source(algo)) {
+    if (algo->is_multiple_source) {
         if (!use_start_nodes) {
             TRY(adapter_CFL_adv_count_reachable(NULL, 0, expected));
         } else if (parser_result->start_nodes_count == 0) {
@@ -188,8 +179,7 @@ int main(int argc, char **argv) {
     bool use_start_nodes = false;
     bool compute_results = false;
     bool is_config = false;
-    char *algo = NULL;
-    bool is_algo_chosen = false;
+    const AlgorithmEntry *algo = NULL;
     char *input_config = NULL;
     size_t rounds_count = 10;
     bool use_cfpq = false;
@@ -251,28 +241,14 @@ int main(int argc, char **argv) {
             printf("Choosen config: %s\n", input_config);
             break;
         case 'a':
-            is_algo_chosen = true;
-            algo = optarg;
-            printf("Choosen algorithm: %s\n", algo);
+            printf("Choosen algorithm: %s\n", optarg);
 
-            if (strcmp(algo, "CFL_adv") == 0) {
-                adapter = adapter_CFL_adv_get_methods();
-            } else if (strcmp(algo, "CFL") == 0) {
-                adapter = adapter_CFL_get_methods();
-            } else if (strcmp(algo, "CFL_single_path") == 0) {
-                adapter = adapter_CFL_single_path_get_methods();
-            } else if (strcmp(algo, "CFL_all_path") == 0) {
-                adapter = adapter_CFL_all_paths_get_methods();
-            } else if (strcmp(algo, "CFL_CFPQ_RSM") == 0) {
-                adapter = adapter_CFL_CFPQ_RSM_get_methods();
-            } else if (strcmp(algo, "CFL_multsrc") == 0) {
-                adapter = adapter_CFL_multsrc_get_methods();
-            } else if (strcmp(algo, "CFL_all_path_adv") == 0) {
-                adapter = adapter_CFL_all_path_adv_get_methods();
-            } else {
-                fprintf(stderr, "Unknown algorithm: %s\n", algo);
+            algo = registry_find(optarg);
+            if (algo == NULL) {
+                fprintf(stderr, "Unknown algorithm: %s\n", optarg);
                 exit(EXIT_FAILURE);
             }
+            adapter = algo->get_methods();
             break;
         case CFL_ALL_PATH_USE_CFPQ:
             use_cfpq = true;
@@ -288,17 +264,23 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    if (!is_algo_chosen) {
-        adapter = adapter_CFL_adv_get_methods();
-        algo = "CFL_adv";
-        printf("No algorithm chosen, using CFL_adv by default\n");
+    if (algo == NULL) {
+        algo = registry_find(DEFAULT_ALGORITHM);
+        adapter = algo->get_methods();
+        printf("No algorithm chosen, using " DEFAULT_ALGORITHM " by default\n");
     }
 
-    if (is_test && !compute_results && is_multiple_source(algo)) {
+    AlgorithmOptions algo_options = {
+        .optimizations = optimizations,
+        .use_start_nodes = use_start_nodes,
+        .use_cfpq = use_cfpq,
+    };
+
+    if (is_test && !compute_results && algo->is_multiple_source) {
         fprintf(stderr,
                 YELLOW "Warning: %s ignores the expected result from the config, "
                        "use --compute-results to check the result" RESET "\n",
-                algo);
+                algo->name);
     }
 
     TRY(adapter.setup());
@@ -342,7 +324,7 @@ int main(int argc, char **argv) {
         if (compute_results) {
             const char *kind = "pairs";
             const char *start_nodes = NULL;
-            if (is_multiple_source(algo)) {
+            if (algo->is_multiple_source) {
                 kind = use_start_nodes ? "start_vertices" : "vertices";
                 start_nodes = use_start_nodes ? config.start_nodes_path : NULL;
             }
@@ -354,15 +336,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        if (strcmp(algo, "CFL_multsrc") == 0) {
-            adapter.prepare(&parser_result, &(CFL_multsrc_PrepareData){.use_start_nodes = use_start_nodes});
-        } else if (strcmp(algo, "CFL_CFPQ_RSM") == 0) {
-            adapter.prepare(&parser_result, &(CFL_CFPQ_RSM_PrepareData){.use_start_nodes = use_start_nodes});
-        } else if (strcmp(algo, "CFL_all_path") == 0) {
-            adapter.prepare(&parser_result, &(CFL_all_path_PrepareData){.use_cfpq = use_cfpq});
-        } else {
-            adapter.prepare(&parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
-        }
+        algo->prepare(&adapter, &parser_result, &algo_options);
         free_parser_result(&parser_result);
 
         bool is_hot = is_hot_enabled;
@@ -445,7 +419,7 @@ int main(int argc, char **argv) {
 
             result = adapter.get_result();
             TRY(adapter.free_outputs());
-            save_result(algo, config.grammar, config.graph, result, max_memory_kb,
+            save_result(algo->name, config.grammar, config.graph, result, max_memory_kb,
                         (size_t)((end[j] - start[j]) * 1000));
             // in some cases free don't change memory usage, so we need to reset it manually
             malloc_trim(0);
