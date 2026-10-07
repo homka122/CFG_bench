@@ -1,13 +1,8 @@
-#include "adapter_CFL.h"
-#include "adapter_CFL_CFPQ_RSM.h"
 #include "adapter_CFL_adv.h"
-#include "adapter_CFL_all_path.h"
-#include "adapter_CFL_multsrc.h"
-#include "adapter_CFL_single_path.h"
-#include "adapter_CFL_all_path_adv.h"
-#include "adapter_CFL_Kron.h"
+#include "computed_cache.h"
 #include "memory.h"
 #include "parser.h"
+#include "registry.h"
 #include "result_manager.h"
 #include <GraphBLAS.h>
 #include <LAGraph.h>
@@ -100,7 +95,13 @@ void print_list(SymbolList list, size_t *map) {
 #define OPT_LAZY (1 << 2)
 #define OPT_BLOCK (1 << 3)
 
-enum { HOT_OPTION = 1000 };
+enum {
+    HOT_OPTION = 1000,
+    BENCH_PARSE_OPTION = 1001,
+    CFL_ALL_PATH_USE_CFPQ = 1002,
+    USE_START_NODES_OPTION = 1003,
+    COMPUTE_RESULTS_OPTION = 1004
+};
 
 static void print_usage(const char *program_name) {
     fprintf(stderr,
@@ -112,8 +113,13 @@ static void print_usage(const char *program_name) {
             "Benchmark options:\n"
             "  -r <rounds>       Number of benchmark rounds (default: 10)\n"
             "  --hot             Enable HOT launch (warm-up run before measurements)\n"
-            "  -a <algorithm>    Algorithm to use "
-            "(default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc)\n"
+            "  --bench-parse     Print grammar and graph parsing times only\n"
+            "  --use-start-nodes Use start vertices from the path specified in the config\n"
+            "  -a <algorithm>    Algorithm to use (default: " DEFAULT_ALGORITHM "; options: ",
+            program_name);
+    registry_print_names(stderr);
+    fprintf(stderr,
+            ")\n"
             "\n"
             "Optimization flags:\n"
             "  -e                Enable empty optimization\n"
@@ -122,12 +128,44 @@ static void print_usage(const char *program_name) {
             "  -b                Enable block optimization\n"
             "\n"
             "Other:\n"
-            "  -t                Enable test mode\n"
+            "  -t                Enable test mode: run each config once and check the result\n"
+            "                    (-r and --hot are ignored)\n"
+            "  --compute-results Check the result against CFL_adv -efbl on the same data instead of\n"
+            "                    the config value (only with -t); CFL_multsrc and CFL_CFPQ_RSM need it,\n"
+            "                    values are cached in .cache when run from the project root\n"
             "  -h                Print this help message\n"
+            "  --CFL-all-path-use-CFPQ-Core      Use CFPQ_Core in CFL_all_path algorithm\n"
             "\n"
             "Example:\n"
             "  %s -c configs/configs_my.csv -r 10 --hot\n",
-            program_name, program_name);
+            program_name);
+}
+
+// runs CFL_adv with all optimizations on the same data and returns the result "algo" must have
+static GrB_Info compute_expected_result(const ParserResult *parser_result, const AlgorithmEntry *algo,
+                                        bool use_start_nodes, size_t *expected) {
+    AdapterMethods reference = adapter_CFL_adv_get_methods();
+    TRY(reference.prepare(parser_result,
+                          &(CFL_adv_PrepareData){.optimizations = OPT_EMPTY | OPT_FORMAT | OPT_LAZY | OPT_BLOCK}));
+    TRY(reference.init_outputs());
+    TRY(reference.run());
+
+    if (algo->is_multiple_source) {
+        if (!use_start_nodes) {
+            TRY(adapter_CFL_adv_count_reachable(NULL, 0, expected));
+        } else if (parser_result->start_nodes_count == 0) {
+            *expected = 0;
+        } else {
+            TRY(adapter_CFL_adv_count_reachable(parser_result->start_nodes, parser_result->start_nodes_count,
+                                                expected));
+        }
+    } else {
+        *expected = reference.get_result();
+    }
+
+    TRY(reference.free_outputs());
+    TRY(reference.cleanup());
+    return GrB_SUCCESS;
 }
 
 int main(int argc, char **argv) {
@@ -135,16 +173,27 @@ int main(int argc, char **argv) {
     int8_t optimizations = 0;
     int opt;
     bool is_test = false;
+    bool has_test_failure = false;
     bool is_hot_enabled = false;
+    bool is_bench_parse_enabled = false;
+    bool use_start_nodes = false;
+    bool compute_results = false;
     bool is_config = false;
-    char *algo = NULL;
-    bool is_algo_chosen = false;
+    const AlgorithmEntry *algo = NULL;
     char *input_config = NULL;
     size_t rounds_count = 10;
+    bool use_cfpq = false;
 
     AdapterMethods adapter = {0};
 
-    static struct option long_options[] = {{"hot", no_argument, 0, HOT_OPTION}, {0, 0, 0, 0}};
+    static struct option long_options[] = {
+        {"hot", no_argument, 0, HOT_OPTION},
+        {"bench-parse", no_argument, 0, BENCH_PARSE_OPTION},
+        {"use-start-nodes", no_argument, 0, USE_START_NODES_OPTION},
+        {"CFL-all-path-use-CFPQ-Core", no_argument, 0, CFL_ALL_PATH_USE_CFPQ},
+        {"compute-results", no_argument, 0, COMPUTE_RESULTS_OPTION},
+        {0, 0, 0, 0},
+    };
 
     while ((opt = getopt_long(argc, argv, "eflbthr:c:a:", long_options, NULL)) != -1) {
         switch (opt) {
@@ -166,6 +215,15 @@ int main(int argc, char **argv) {
         case HOT_OPTION:
             is_hot_enabled = true;
             break;
+        case BENCH_PARSE_OPTION:
+            is_bench_parse_enabled = true;
+            break;
+        case USE_START_NODES_OPTION:
+            use_start_nodes = true;
+            break;
+        case COMPUTE_RESULTS_OPTION:
+            compute_results = true;
+            break;
         case 't':
             is_test = true;
             break;
@@ -183,30 +241,17 @@ int main(int argc, char **argv) {
             printf("Choosen config: %s\n", input_config);
             break;
         case 'a':
-            is_algo_chosen = true;
-            algo = optarg;
-            printf("Choosen algorithm: %s\n", algo);
+            printf("Choosen algorithm: %s\n", optarg);
 
-            if (strcmp(algo, "CFL_adv") == 0) {
-                adapter = adapter_CFL_adv_get_methods();
-            } else if (strcmp(algo, "CFL") == 0) {
-                adapter = adapter_CFL_get_methods();
-            } else if (strcmp(algo, "CFL_single_path") == 0) {
-                adapter = adapter_CFL_single_path_get_methods();
-            } else if (strcmp(algo, "CFL_all_path") == 0) {
-                adapter = adapter_CFL_all_paths_get_methods();
-            } else if (strcmp(algo, "CFL_CFPQ_RSM") == 0) {
-                adapter = adapter_CFL_CFPQ_RSM_get_methods();
-            } else if (strcmp(algo, "CFL_multsrc") == 0) {
-                adapter = adapter_CFL_multsrc_get_methods();
-            } else if (strcmp(algo, "CFL_all_path_adv") == 0) {
-                adapter = adapter_CFL_all_path_adv_get_methods();
-            } else if (strcmp(algo, "CFL_Kron") == 0) {
-                adapter = adapter_CFL_Kron_get_methods();
-            } else {
-                fprintf(stderr, "Unknown algorithm: %s\n", algo);
+            algo = registry_find(optarg);
+            if (algo == NULL) {
+                fprintf(stderr, "Unknown algorithm: %s\n", optarg);
                 exit(EXIT_FAILURE);
             }
+            adapter = algo->get_methods();
+            break;
+        case CFL_ALL_PATH_USE_CFPQ:
+            use_cfpq = true;
             break;
         default:
             print_usage(argv[0]);
@@ -214,10 +259,28 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (!is_algo_chosen) {
-        adapter = adapter_CFL_adv_get_methods();
-        algo = "CFL_adv";
-        printf("No algorithm chosen, using CFL_adv by default\n");
+    if (compute_results && !is_test) {
+        fprintf(stderr, "--compute-results works only with -t\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (algo == NULL) {
+        algo = registry_find(DEFAULT_ALGORITHM);
+        adapter = algo->get_methods();
+        printf("No algorithm chosen, using " DEFAULT_ALGORITHM " by default\n");
+    }
+
+    AlgorithmOptions algo_options = {
+        .optimizations = optimizations,
+        .use_start_nodes = use_start_nodes,
+        .use_cfpq = use_cfpq,
+    };
+
+    if (is_test && !compute_results && algo->is_multiple_source) {
+        fprintf(stderr,
+                YELLOW "Warning: %s ignores the expected result from the config, "
+                       "use --compute-results to check the result" RESET "\n",
+                algo->name);
     }
 
     TRY(adapter.setup());
@@ -228,14 +291,23 @@ int main(int argc, char **argv) {
     }
 
     size_t configs_count = 0;
-    config_row *configs = calloc(1000, sizeof(config_row));
     char *config_text;
-    get_configs_from_file(input_config, &configs_count, configs, &config_text);
+    config_row *configs = get_configs_from_file(input_config, &configs_count, &config_text);
 
     printf("Start bench\n");
     fflush(stdout);
 
     for (size_t i = 0; i < configs_count; i++) {
+        config_row config = configs[i];
+        printf("CONFIG: grammar: %s, graph: %s\n", config.grammar, config.graph);
+        fflush(stdout);
+
+        ParserResult parser_result = parser(config, is_bench_parse_enabled);
+        if (is_bench_parse_enabled) {
+            free_parser_result(&parser_result);
+            continue;
+        }
+
         double *start = calloc(rounds_count, sizeof(double));
         double *end = calloc(rounds_count, sizeof(double));
         if (start == NULL || end == NULL) {
@@ -245,18 +317,33 @@ int main(int argc, char **argv) {
             exit(EXIT_FAILURE);
         }
 
-        config_row config = configs[i];
-        printf("CONFIG: grammar: %s, graph: %s\n", config.grammar, config.graph);
-        fflush(stdout);
+        // computed before the tested algorithm: parser_result is freed after prepare and
+        // the CFL_adv adapter state can't be shared with a tested CFL_adv run
+        size_t expected_result = config.valid_result;
+        bool is_cached = false;
+        if (compute_results) {
+            const char *kind = "pairs";
+            const char *start_nodes = NULL;
+            if (algo->is_multiple_source) {
+                kind = use_start_nodes ? "start_vertices" : "vertices";
+                start_nodes = use_start_nodes ? config.start_nodes_path : NULL;
+            }
 
-        ParserResult parser_result = parser(config);
-        adapter.prepare(parser_result, &(CFL_adv_PrepareData){.optimizations = optimizations});
+            is_cached = computed_cache_get(kind, config.graph, config.grammar, start_nodes, &expected_result);
+            if (!is_cached) {
+                TRY(compute_expected_result(&parser_result, algo, use_start_nodes, &expected_result));
+                computed_cache_put(kind, config.graph, config.grammar, start_nodes, expected_result);
+            }
+        }
+
+        algo->prepare(&adapter, &parser_result, &algo_options);
+        free_parser_result(&parser_result);
 
         bool is_hot = is_hot_enabled;
 
         size_t result = 0;
         ssize_t max_memory_kb = 0;
-        for (size_t i = 0; i < rounds_count; i++) {
+        for (size_t j = 0; j < rounds_count; j++) {
             TRY(adapter.init_outputs());
 
             // in some cases free don't change memory usage, so we need to reset it manually
@@ -266,38 +353,55 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
 
-            start[i] = LAGraph_WallClockTime();
+            start[j] = LAGraph_WallClockTime();
 #ifndef CI
             retval = adapter.run();
 #endif
-            end[i] = LAGraph_WallClockTime();
+            end[j] = LAGraph_WallClockTime();
             max_memory_kb = mem_get_peak_kb();
 
             if (is_test) {
-                size_t result = adapter.get_result();
-                ResultType result_type = adapter.is_result_valid(config.valid_result);
+                size_t result = 0;
                 char status[256];
-                switch (result_type) {
-                case RESULT_OK:
-                    snprintf(status, sizeof(status), GREEN "[OK]" RESET);
-                    break;
-                case RESULT_ERROR:
-                    snprintf(status, sizeof(status), RED "[Wrong] (Result must be %ld)" RESET, config.valid_result);
-                    break;
-                case RESULT_UNKNOWN:
-                    snprintf(status, sizeof(status), YELLOW "[Unknown]" RESET);
-                    break;
-                default:
-                    fprintf(stderr, "Unknown result type: %d\n", result_type);
-                    abort();
+                if (retval != GrB_SUCCESS) {
+                    // outputs are not valid after a failed run, so the result is not checked
+                    has_test_failure = true;
+                    snprintf(status, sizeof(status), RED "[Failed]" RESET);
+                } else {
+                    result = adapter.get_result();
+                    ResultType result_type = RESULT_UNKNOWN;
+                    if (compute_results) {
+                        result_type = result == expected_result ? RESULT_OK : RESULT_ERROR;
+                    } else {
+                        result_type = adapter.is_result_valid(config.valid_result);
+                    }
+                    switch (result_type) {
+                    case RESULT_OK:
+                        snprintf(status, sizeof(status), GREEN "[OK]" RESET);
+                        break;
+                    case RESULT_ERROR:
+                        has_test_failure = true;
+                        snprintf(status, sizeof(status), RED "[Wrong] (Result must be %zu)" RESET, expected_result);
+                        break;
+                    case RESULT_UNKNOWN:
+                        snprintf(status, sizeof(status), YELLOW "[Unknown]" RESET);
+                        break;
+                    default:
+                        fprintf(stderr, "Unknown result type: %d\n", result_type);
+                        abort();
+                    }
                 }
 
                 printf("\tResult: %ld (Return code: %d) %s", result, retval, status);
 
+                if (compute_results) {
+                    printf(" (%s: %zu)", is_cached ? "Cached" : "Computed", expected_result);
+                }
+
                 if (retval != 0) {
                     printf("\t(MSG: %s)", msg);
                 }
-                printf(" (%.4f sec)", end[i] - start[i]);
+                printf(" (%.4f sec)", end[j] - start[j]);
 
                 TRY(adapter.free_outputs());
                 break;
@@ -305,18 +409,18 @@ int main(int argc, char **argv) {
 
             if (is_hot) {
                 is_hot = false;
-                i--;
+                j--;
                 TRY(adapter.free_outputs());
                 continue;
             }
 
-            printf("\t%.3fs", end[i] - start[i]);
+            printf("\t%.3fs", end[j] - start[j]);
             fflush(stdout);
 
             result = adapter.get_result();
             TRY(adapter.free_outputs());
-            save_result(algo, config.grammar, config.graph, result, max_memory_kb,
-                        (size_t)((end[i] - start[i]) * 1000));
+            save_result(algo->name, config.grammar, config.graph, result, max_memory_kb,
+                        (size_t)((end[j] - start[j]) * 1000));
             // in some cases free don't change memory usage, so we need to reset it manually
             malloc_trim(0);
         }
@@ -332,8 +436,8 @@ int main(int argc, char **argv) {
         }
 
         double sum = 0;
-        for (size_t i = 0; i < rounds_count; i++) {
-            sum += end[i] - start[i];
+        for (size_t j = 0; j < rounds_count; j++) {
+            sum += end[j] - start[j];
         }
         printf("\tTime elapsed (avg): %.6f seconds. %zd KB max memory. Result: %ld (return code "
                "%d) (%s)\n\n",
@@ -350,5 +454,5 @@ int main(int argc, char **argv) {
     free(configs);
     free(config_text);
     TRY(adapter.teardown());
-    return 0;
+    return has_test_failure ? EXIT_FAILURE : EXIT_SUCCESS;
 }
