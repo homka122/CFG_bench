@@ -94,8 +94,6 @@ typedef struct {
 typedef struct {
     size_t node_count;
     size_t block_count;
-    GrB_Index *start_nodes;
-    size_t start_nodes_count;
     Grammar grammar;
     SymbolList symbols;
     Graph graph;
@@ -106,7 +104,6 @@ typedef struct {
     char *grammar;
     char *graph;
     size_t valid_result;
-    char *start_nodes_path;
 } config_row;
 
 // parse graph via "graph_file" desctriptor
@@ -118,8 +115,6 @@ typedef struct {
 //
 // output is Graph structure and modified symbol_list
 Graph process_graph(FILE *graph_file, SymbolList *symbol_list);
-Graph graph_copy(const Graph *graph);
-void graph_free(Graph *graph);
 
 // returns adjacency matrices and metadata that maps each matrix back to the original symbol and block index
 // does not mutate graph or list, and does not encode block indices into symbol labels
@@ -137,11 +132,7 @@ void *minimize_graph(Graph *graph);
 ExplodedIndices explode_indices(const SymbolList *list, size_t block_count);
 void exploded_indices_free(ExplodedIndices *indices);
 
-ParserResult parser(config_row config_i, bool is_bench_parse_enabled);
-ParserResult parser_result_copy(const ParserResult *result);
-void free_parser_result(ParserResult *result);
+ParserResult parser(config_row config_i);
 
 void grammar_print(Grammar grammar, SymbolList list);
-// reads config rows from "path"; blank lines are skipped
-// caller owns the returned array and "*text_p" (rows point into it) and must free both
-config_row *get_configs_from_file(char *path, size_t *configs_count, char **text_p);
+void get_configs_from_file(char *path, size_t *configs_count, config_row *configs, char **text_p);
