@@ -1,25 +1,19 @@
 #include "parser.h"
-#include "symbol_list.h"
 #include <LAGraph.h>
 #include <LAGraphX.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <stdint.h>
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-static double now_sec(void) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts.tv_sec + ts.tv_nsec * 1e-9;
+static int is_blank_line(const char *line) {
+    return line[strspn(line, " \t\r\n")] == '\0';
 }
-
-static int is_blank_line(const char *line) { return line[strspn(line, " \t\r\n")] == '\0'; }
 
 static int parse_size_token(const char *token, size_t *out) {
     char *end = NULL;
@@ -77,46 +71,6 @@ static FILE *open_parser_file(const char *path, const char *kind) {
     }
 
     return file;
-}
-
-static GrB_Index *process_start_nodes(FILE *start_nodes_file, size_t *start_nodes_count) {
-    size_t capacity = 128;
-    size_t line_number = 0;
-    GrB_Index *start_nodes = malloc(capacity * sizeof(*start_nodes));
-
-    *start_nodes_count = 0;
-
-    char line[1024];
-    while (fgets(line, sizeof(line), start_nodes_file)) {
-        line_number++;
-        if (is_blank_line(line)) {
-            continue;
-        }
-
-        char *saveptr;
-        char *node_str = strtok_r(line, " \t\r\n", &saveptr);
-        char *extra = strtok_r(NULL, " \t\r\n", &saveptr);
-        size_t node;
-
-        if (extra != NULL || parse_size_token(node_str, &node) != 0 || (size_t)(GrB_Index)node != node) {
-            fprintf(stderr, "\x1B[31m[ERROR]\033[0m wrong start nodes format at line %zu\n", line_number);
-            exit(EXIT_FAILURE);
-        }
-
-        if (*start_nodes_count == capacity) {
-            capacity *= 2;
-            start_nodes = realloc(start_nodes, capacity * sizeof(*start_nodes));
-        }
-
-        start_nodes[(*start_nodes_count)++] = (GrB_Index)node;
-    }
-
-    if (*start_nodes_count == 0) {
-        free(start_nodes);
-        return NULL;
-    }
-
-    return realloc(start_nodes, *start_nodes_count * sizeof(*start_nodes));
 }
 
 size_t get_text_lines(char *text, char ***lines_arg) {
@@ -200,41 +154,6 @@ Graph process_graph(FILE *graph_file, SymbolList *symbol_list) {
     }
 
     return result;
-}
-
-Graph graph_copy(const Graph *graph) {
-    if (graph == NULL) {
-        fprintf(stderr, "\x1B[31m[ERROR]\033[0m graph is NULL\n");
-        abort();
-    }
-
-    Graph copy = {
-        .edge_count = graph->edge_count,
-        .node_count = graph->node_count,
-        .block_count = graph->block_count,
-    };
-
-    if (copy.edge_count > 0) {
-        copy.edges = malloc(copy.edge_count * sizeof(GraphEdge));
-        memcpy(copy.edges, graph->edges, copy.edge_count * sizeof(GraphEdge));
-    }
-
-    return copy;
-}
-
-void graph_free(Graph *graph) {
-    if (graph == NULL) {
-        fprintf(stderr, "\x1B[31m[ERROR]\033[0m graph is NULL\n");
-        abort();
-    }
-
-    free(graph->edges);
-    graph->edges = NULL;
-    graph->edge_count = 0;
-    graph->node_count = 0;
-    graph->block_count = 0;
-
-    return;
 }
 
 /*
@@ -436,7 +355,7 @@ void graph_matrices_free(GraphMatrices *result) {
     result->count = 0;
 }
 
-static const char *basename(const char *path) {
+static const char *path_basename(const char *path) {
     const char *last_slash = strrchr(path, '/');
 
     if (last_slash == NULL) {
@@ -451,7 +370,7 @@ bool rsm_template_from_string(const char *name, RSM_Template *out) {
         return false;
     }
 
-    const char *base = basename(name);
+    const char *base = path_basename(name);
 
     if (strcmp(base, "aa.cnf") == 0) {
         *out = RSM_TEMPLATE_AA;
@@ -483,7 +402,7 @@ bool rsm_template_from_string(const char *name, RSM_Template *out) {
     return false;
 }
 
-ParserResult parser(config_row config_i, bool is_bench_parse_enabled) {
+ParserResult parser(config_row config_i) {
     char *config_graph = strdup(config_i.graph);
     char *config_grammar = strdup(config_i.grammar);
 
@@ -498,29 +417,17 @@ ParserResult parser(config_row config_i, bool is_bench_parse_enabled) {
     SymbolList list = symbol_list_create();
 
     // printf("Process grammar...");
-    double grammar_start = now_sec();
     FILE *grammar_file = open_parser_file(config_grammar, "grammar");
     Grammar _grammar = process_grammar(grammar_file, &list);
     grammar_swap_symbols(&_grammar, 0, _grammar.start_nonterm);
     symbol_list_swap(&list, 0, _grammar.start_nonterm);
     _grammar.start_nonterm = 0;
-    double grammar_end = now_sec();
     // printf("OK\n");
 
     // printf("Process graph...");
-    double graph_start = now_sec();
     FILE *graph_file = open_parser_file(config_graph, "graph");
     Graph graph = process_graph(graph_file, &list);
-    double graph_end = now_sec();
     // printf("OK\n");
-
-    GrB_Index *start_nodes = NULL;
-    size_t start_nodes_count = 0;
-    if (config_i.start_nodes_path != NULL) {
-        FILE *start_nodes_file = open_parser_file(config_i.start_nodes_path, "start nodes");
-        start_nodes = process_start_nodes(start_nodes_file, &start_nodes_count);
-        fclose(start_nodes_file);
-    }
 
 #if false
     symbol_list_print(list);
@@ -537,15 +444,9 @@ ParserResult parser(config_row config_i, bool is_bench_parse_enabled) {
     free(config_grammar);
     free(config_graph);
 
-    if (is_bench_parse_enabled) {
-        printf("\tgrammar: %.6f, graph: %.6f\n", grammar_end - grammar_start, graph_end - graph_start);
-    }
-
     return (ParserResult){
         .block_count = graph.block_count,
         .node_count = graph.node_count,
-        .start_nodes = start_nodes,
-        .start_nodes_count = start_nodes_count,
         .grammar = _grammar,
         .symbols = list,
         .graph = graph,
@@ -553,107 +454,29 @@ ParserResult parser(config_row config_i, bool is_bench_parse_enabled) {
     };
 }
 
-void free_parser_result(ParserResult *result) {
-    if (result == NULL) {
-        fprintf(stderr, "\x1B[31m[ERROR]\033[0m Parser result is NULL\n");
-        abort();
-    }
-
-    grammar_free(&result->grammar);
-    symbol_list_free(&result->symbols);
-    graph_free(&result->graph);
-    free(result->start_nodes);
-    result->start_nodes = NULL;
-    result->start_nodes_count = 0;
-
-    return;
-}
-
-ParserResult parser_result_copy(const ParserResult *result) {
-    if (result == NULL) {
-        fprintf(stderr, "\x1B[31m[ERROR]\033[0m Parser result is NULL\n");
-        abort();
-    }
-
-    GrB_Index *start_nodes = NULL;
-    if (result->start_nodes_count > 0) {
-        start_nodes = malloc(result->start_nodes_count * sizeof(*start_nodes));
-        memcpy(start_nodes, result->start_nodes, result->start_nodes_count * sizeof(*start_nodes));
-    }
-
-    ParserResult copy = {
-        .node_count = result->node_count,
-        .block_count = result->block_count,
-        .start_nodes = start_nodes,
-        .start_nodes_count = result->start_nodes_count,
-        .grammar = grammar_copy(&result->grammar),
-        .symbols = symbol_list_copy(&result->symbols),
-        .graph = graph_copy(&result->graph),
-        .rsm_template = result->rsm_template,
-    };
-
-    return copy;
-}
-
-config_row *get_configs_from_file(char *path, size_t *configs_count, char **text_p) {
+void get_configs_from_file(char *path, size_t *configs_count, config_row *configs, char **text_p) {
     *configs_count = 0;
     char *config_text = read_entire_file(path);
     *text_p = config_text;
 
-    size_t capacity = 16;
-    config_row *configs = malloc(capacity * sizeof(*configs));
-
     char *line = config_text;
-    size_t line_number = 0;
     bool last = false;
     while (!last) {
         char *end = strchrnul(line, '\n');
         if (*end == '\0')
             last = true;
         *end = '\0';
-        line_number++;
-
-        // accept CRLF line endings
-        if (end > line && end[-1] == '\r') {
-            end[-1] = '\0';
-        }
-
-        char *next_line = end + 1;
-        if (is_blank_line(line)) {
-            line = next_line;
-            continue;
-        }
 
         char *graph = strtok(line, ",");
         char *grammar = strtok(NULL, ",");
         char *valid_result_str = strtok(NULL, ",");
-        char *start_nodes_path = strtok(NULL, ",");
 
-        if (graph == NULL || grammar == NULL || valid_result_str == NULL) {
-            fprintf(stderr, "Invalid config line %zu in %s: expected <graph>,<grammar>,<expected result>\n",
-                    line_number, path);
-            exit(EXIT_FAILURE);
-        }
+        if (graph == NULL || grammar == NULL || valid_result_str == NULL)
+            break;
 
-        size_t valid_result;
-        if (parse_size_token(valid_result_str, &valid_result) != 0) {
-            fprintf(stderr, "Invalid expected result in config line %zu: %s\n", line_number, valid_result_str);
-            exit(EXIT_FAILURE);
-        }
+        size_t valid_result = atoi(valid_result_str);
 
-        if (*configs_count == capacity) {
-            capacity *= 2;
-            configs = realloc(configs, capacity * sizeof(*configs));
-        }
-
-        configs[(*configs_count)++] = (config_row){
-            .grammar = grammar,
-            .graph = graph,
-            .valid_result = valid_result,
-            .start_nodes_path = start_nodes_path,
-        };
-        line = next_line;
+        configs[(*configs_count)++] = (config_row){.grammar = grammar, .graph = graph, .valid_result = valid_result};
+        line = end + 1;
     }
-
-    return configs;
 }

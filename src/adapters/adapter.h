@@ -46,7 +46,6 @@
  * 2. Define a prepare data struct if needed (passed via prepare()'s prepare_data)
  * 3. Implement all AdapterMethods functions
  * 4. Provide a getter function: AdapterMethods adapter_<name>_get_methods(void)
- * 5. Register the algorithm in the algorithms table in registry.c
  *
  * Required function implementations:
  *
@@ -140,7 +139,7 @@ typedef GrB_Info (*AdapterRun)(void);
  * @param prepare_data Optional adapter-specific configuration data
  * @return GrB_SUCCESS on success, error code otherwise
  */
-typedef GrB_Info (*AdapterPrepare)(const ParserResult *parser_result, void *prepare_data);
+typedef GrB_Info (*AdapterPrepare)(ParserResult parser_result, void *prepare_data);
 
 /**
  * @brief Function pointer type for resource cleanup.
