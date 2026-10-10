@@ -1,0 +1,22 @@
+start: PointsTo
+[box PointsTo]
+start: 0
+final: 1
+0 --assign--> 0
+0 --alloc--> 1
+0 --load_i--> p_i
+p_i --Alias--> q_i
+q_i --store_i--> 0
+[box FlowsTo]
+start: 0
+final: 1
+0 --alloc_r--> 1
+1 --store_r_i--> p_i
+p_i --Alias--> q_i
+q_i --load_r_i--> 1
+1 --assign_r--> 1
+[box Alias]
+start: 0
+final: 2
+0 --PointsTo--> 1
+1 --FlowsTo--> 2

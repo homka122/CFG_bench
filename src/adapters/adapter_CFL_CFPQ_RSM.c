@@ -7,6 +7,7 @@
 #include "adapter_CFL_common.h"
 #include "adapter_CFL_multsrc_common.h"
 #include "parser.h"
+#include "rsm_file.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -65,12 +66,13 @@ static GrB_Info adapter_CFL_prepare(const ParserResult *parser_result, void *pre
 
     explode_indices_CFL(grammar, graph, &nonterms, &terms);
 
-    if (parser_result->rsm_template == RSM_NO_TEMPLATE) {
-        fprintf(stderr, "RSM template not found\n");
-        abort();
+    // the RSM takes over "terms" even when it fails to parse
+    CFG_RSM *rsm = rsm_from_file(parser_result->rsm_path, parser_result->block_count, &terms);
+    if (rsm == NULL) {
+        symbol_list_free(&nonterms);
+        free_parser_result(&working_copy);
+        return GrB_INVALID_VALUE;
     }
-
-    CFG_RSM *rsm = rsm_create_template(parser_result->rsm_template, true, parser_result->block_count, &terms);
 
     GrB_Matrix *prepared_adj_matrices = calloc(rsm->terms.count, sizeof(GrB_Matrix));
     for (size_t i = 0; i < rsm->terms.count; i++) {

@@ -18,7 +18,7 @@ SRCS := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/adapters/*.c)
 MAIN_SRCS := $(SRC_DIR)/test.c $(SRC_DIR)/pairs_extractor.c
 LIB_SRCS := $(filter-out $(MAIN_SRCS),$(SRCS))
 
-.PHONY: all clean bench CI debug format hooks lint pairs-extractor test-explode-indices test-explode-indices-leaks
+.PHONY: all clean bench CI debug format hooks lint pairs-extractor test-explode-indices test-explode-indices-leaks test-rsm-file
 
 all: $(TARGET) $(PAIRS_EXTRACTOR_TARGET)
 
@@ -63,6 +63,13 @@ test-explode-indices: $(BUILD_DIR)/test_explode_indices
 
 test-explode-indices-leaks: $(BUILD_DIR)/test_explode_indices
 	$(VALGRIND) $(VALGRIND_OPTS) ./$(BUILD_DIR)/test_explode_indices
+
+$(BUILD_DIR)/test_rsm_file: tests/test_rsm_file.c $(LIB_SRCS)
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) $^ $(LDLIBS) -o $(BUILD_DIR)/test_rsm_file
+
+test-rsm-file: $(BUILD_DIR)/test_rsm_file
+	./$(BUILD_DIR)/test_rsm_file
 
 debug: clean
 	$(MAKE) BUILD_DIR=build \

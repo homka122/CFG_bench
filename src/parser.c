@@ -436,59 +436,26 @@ void graph_matrices_free(GraphMatrices *result) {
     result->count = 0;
 }
 
-static const char *basename(const char *path) {
-    const char *last_slash = strrchr(path, '/');
-
-    if (last_slash == NULL) {
-        return path;
+// path of the RSM next to the grammar: the grammar extension is replaced with .rsm
+static char *rsm_path_from_grammar(const char *grammar) {
+    const char *slash = strrchr(grammar, '/');
+    const char *dot = strrchr(slash == NULL ? grammar : slash, '.');
+    size_t base_len = dot == NULL ? strlen(grammar) : (size_t)(dot - grammar);
+    char *path = malloc(base_len + sizeof(".rsm"));
+    if (path == NULL) {
+        fprintf(stderr, "out of memory\n");
+        abort();
     }
-
-    return last_slash + 1;
-}
-
-bool rsm_template_from_string(const char *name, RSM_Template *out) {
-    if (name == NULL || out == NULL) {
-        return false;
-    }
-
-    const char *base = basename(name);
-
-    if (strcmp(base, "aa.cnf") == 0) {
-        *out = RSM_TEMPLATE_AA;
-        return true;
-    }
-
-    if (strcmp(base, "c_alias.cnf") == 0) {
-        *out = RSM_TEMPLATE_C_ALIAS;
-        return true;
-    }
-
-    if (strcmp(base, "java_points_to.cnf") == 0) {
-        *out = RSM_TEMPLATE_JAVA_POINTS_TO;
-        return true;
-    }
-
-    if (strcmp(base, "vf.cnf") == 0) {
-        *out = RSM_TEMPLATE_VF;
-        return true;
-    }
-
-    if (strcmp(base, "nested_parentheses_subClassOf_type.cnf") == 0 || strcmp(base, "rdf_hierarchy.dot") == 0) {
-        *out = RSM_TEMPLATE_RDF_HIERARCHY;
-        return true;
-    }
-
-    *out = RSM_NO_TEMPLATE;
-
-    return false;
+    memcpy(path, grammar, base_len);
+    strcpy(path + base_len, ".rsm");
+    return path;
 }
 
 ParserResult parser(config_row config_i, bool is_bench_parse_enabled) {
     char *config_graph = strdup(config_i.graph);
     char *config_grammar = strdup(config_i.grammar);
 
-    RSM_Template template = RSM_NO_TEMPLATE;
-    rsm_template_from_string(config_grammar, &template);
+    char *rsm_path = rsm_path_from_grammar(config_grammar);
 
     // printf("Reading graph file...");
     // char *graph_buf = read_entire_file(config_graph);
@@ -549,7 +516,7 @@ ParserResult parser(config_row config_i, bool is_bench_parse_enabled) {
         .grammar = _grammar,
         .symbols = list,
         .graph = graph,
-        .rsm_template = template,
+        .rsm_path = rsm_path,
     };
 }
 
@@ -565,6 +532,8 @@ void free_parser_result(ParserResult *result) {
     free(result->start_nodes);
     result->start_nodes = NULL;
     result->start_nodes_count = 0;
+    free(result->rsm_path);
+    result->rsm_path = NULL;
 
     return;
 }
@@ -589,7 +558,7 @@ ParserResult parser_result_copy(const ParserResult *result) {
         .grammar = grammar_copy(&result->grammar),
         .symbols = symbol_list_copy(&result->symbols),
         .graph = graph_copy(&result->graph),
-        .rsm_template = result->rsm_template,
+        .rsm_path = strdup(result->rsm_path),
     };
 
     return copy;

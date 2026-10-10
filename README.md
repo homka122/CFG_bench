@@ -22,7 +22,9 @@ reachable pairs and saves the measurements to CSV files in `results/`. It suppor
 - `CFL_single_path`, `CFL_all_path` and `CFL_all_path_adv`, which also keep the paths:
   one path or all paths for every reachable pair
 - `CFL_multsrc` and `CFL_CFPQ_RSM`, which search only from given start vertices;
-  `CFL_CFPQ_RSM` takes the grammar as a recursive state machine
+  `CFL_CFPQ_RSM` takes the grammar as a recursive state machine read from the
+  `.rsm` file next to the grammar (`data/grammars/c_alias.rsm` for
+  `data/grammars/c_alias.cnf`), in the FLPQ_Data format
 
 The graphs and grammars come from the [CFPQ_Data](https://github.com/FormalLanguageConstrainedPathQuerying/CFPQ_Data)
 collection.
@@ -288,7 +290,9 @@ from the config and `-t` prints a warning and `[Unknown]`.
    ```
 
    Without `--use-start-nodes` the fourth column is ignored and every vertex is
-   a start vertex. `CFL_CFPQ_RSM` also needs an RSM template for the grammar.
+   a start vertex. `CFL_CFPQ_RSM` also needs the `.rsm` file next to the grammar;
+   labels and states ending with `_i` are expanded per block like the indexed
+   grammar terminals.
 
 2. **Check the result**  
    `--compute-results` runs `CFL_adv -efbl` on the same data, counts the
