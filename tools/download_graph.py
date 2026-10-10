@@ -67,7 +67,7 @@ def download_graph(directory: Path, graph_name: str, progress: str, verbose: boo
 
 
 def write_category_config(directory: Path, category: str) -> Path:
-    """Write a benchmark config with the FLPQ_Data reachable-pair counts (0 when not published yet)."""
+    """Write a benchmark config with the FLPQ_Data reachable-pair counts (-1 when not published yet)."""
     query = category_query(category)
     lines = []
     for graph_name in flpq_data.categories()[category]:
@@ -78,7 +78,7 @@ def write_category_config(directory: Path, category: str) -> Path:
                 raise FileNotFoundError(path)
         rows = flpq_data.reachable_pairs(graph=graph_name, grammar=grammar.name, query_class="cfpq")
         count = rows[0]["num_reachable_pairs"] if rows else None
-        lines.append(f"{graph},{grammar},{count or 0}\n")
+        lines.append(f"{graph},{grammar},{-1 if count is None else count}\n")
     destination = directory / "configs" / f"{category}.csv"
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text("".join(lines))

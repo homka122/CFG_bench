@@ -256,7 +256,9 @@ GrB_Info adapter_CFL_is_result_valid_common(GrB_Matrix output, size_t valid_resu
     size_t result = 0;
     TRY(adapter_CFL_get_result_common(output, &result));
 
-    if (result == valid_result) {
+    if (valid_result == CONFIG_RESULT_UNKNOWN) {
+        *is_valid = RESULT_UNKNOWN;
+    } else if (result == valid_result) {
         *is_valid = RESULT_OK;
     } else {
         *is_valid = RESULT_ERROR;

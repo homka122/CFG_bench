@@ -131,7 +131,7 @@ With `--category`, the downloader also writes a headerless config to
 `<out-dir>/configs/<category>.csv`: one line per graph with the graph's own copy
 of the category grammar (`nested_parentheses_subClassOf_type` for `rdf`, the
 only query otherwise) and the reachable-pair count from the FLPQ_Data
-`reachable_pairs` table, or `0` when the table has no count yet. `--graph` does
+`reachable_pairs` table, or `-1` when the table has no count yet. `--graph` does
 not generate a config.
 
 The converter adds reverse edges. Indexed labels are written with an `_i` suffix
@@ -194,8 +194,9 @@ Example from `configs/configs_my.csv`:
 data/graphs/vf/xz.g,data/grammars/vf.cnf,358834
 ```
 
-The expected result is the number of reachable pairs. `CFL_multsrc` and
-`CFL_CFPQ_RSM` ignore it, see
+The expected result is the number of reachable pairs, or `-1` when it is unknown:
+in test mode such rows are reported as `[Unknown]` and do not fail the run.
+`CFL_multsrc` and `CFL_CFPQ_RSM` ignore it, see
 [Multiple-Source Algorithms](#multiple-source-algorithms).
 
 ## Grammar Format
