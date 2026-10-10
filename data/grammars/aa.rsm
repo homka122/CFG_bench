@@ -1,20 +1,8 @@
-start: V
-[box M]
+start: A
+[box A]
 start: 0
-final: 3
-0 --dbar--> 1
-1 --V--> 2
-2 --d--> 3
-[box V]
-start: 0
-final: 0, 1, 2, 3, 4
-0 --V--> 1
-0 --M--> 4
-0 --abar--> 5
-4 --abar--> 5
-5 --V--> 1
-1 --a--> 2
-2 --M--> 3
-0 --fbar_i--> p_i
-p_i --V--> q_i
-q_i --f_i--> 3
+final: 0
+0 --a--> 0
+0 --call_i--> p_i
+p_i --A--> q_i
+q_i --ret_i--> 0
