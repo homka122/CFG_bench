@@ -24,7 +24,7 @@ reachable pairs and saves the measurements to CSV files in `results/`. It suppor
 - `CFL_multsrc` and `CFL_CFPQ_RSM`, which search only from given start vertices;
   `CFL_CFPQ_RSM` takes the grammar as a recursive state machine
 
-The graphs and grammars come from the [CFPQ_Data](https://github.com/FormalLanguageConstrainedPathQuerying/CFPQ_Data)
+The graphs and grammars come from the [FLPQ_Data](https://github.com/FormalLanguageConstrainedPathQuerying/FLPQ_Data)
 collection.
 
 ## CLI Help
@@ -67,7 +67,7 @@ Example:
 - GCC 13 or newer, GNU Make and CMake 3.20 or newer (CI uses Ubuntu 24.04)
 - [SuiteSparse:GraphBLAS](https://github.com/DrTimothyAldenDavis/GraphBLAS) v10.5.1
 - [LAGraph](https://github.com/SparseLinearAlgebra/LAGraph) from the `homka122/all_algorithms_benchmark` branch
-- [uv](https://docs.astral.sh/uv/) with Python 3.11 or newer, to download graphs and run the linters
+- [uv](https://docs.astral.sh/uv/) with Python 3.11 to 3.13, to download graphs and run the linters
 
 ## Usage
 
@@ -100,12 +100,12 @@ Example:
 
 ## Downloading new graphs
 
-With [uv](https://docs.astral.sh/uv/) installed, download a dataset and run the
-benchmark with the generated config:
+With [uv](https://docs.astral.sh/uv/) installed, download a graph category and run
+the benchmark with the generated config:
 
 ```bash
-uv run --locked python tools/download_graph.py --out-dir data --dataset c_alias
-./build/cfg_bench -c data/configs/c_alias.csv -efbl -a CFL_adv
+uv run --locked python tools/download_graph.py --out-dir data --category c_alias_analysis
+./build/cfg_bench -c data/configs/c_alias_analysis.csv -efbl -a CFL_adv
 ```
 
 To download just one graph and its grammars:
@@ -114,26 +114,28 @@ To download just one graph and its grammars:
 uv run --locked python tools/download_graph.py --out-dir data --graph bzip
 ```
 
-Dataset choices are `c_alias`, `rdf`, `java`, `field_sensitive_alias`,
-`context_sensitive_data_flow`, `data_provenance`, `name_resolution`, `uniprot`,
-or `all` (every dataset).
+Category and graph names are those of FLPQ_Data: `c_alias_analysis`, `rdf`,
+`java_points_to`, `field_sensitive_alias`, `context_sensitive_data_flow`,
+`data_provenance`, `name_resolution`, `biological_uniprot`, or `all` (every
+category). FLPQ_Data keeps the downloaded archives in a per-user cache
+(`FLPQ_DATA_CACHE` or the OS cache directory), so repeated runs do not download
+again.
 
-Graphs are saved to `<out-dir>/graphs/<dataset>/<graph>.g`; all grammars for
-each graph are copied to `<out-dir>/grammars/<dataset>/<graph>/`. For example,
-`--graph bzip --out-dir data` creates `data/graphs/c_alias/bzip.g` and
-`data/grammars/c_alias/bzip/`.
+Graphs are saved to `<out-dir>/graphs/<category>/<graph>.g`; the grammars (`.cnf`)
+and recursive state machines (`.rsm`) of all queries of each graph are copied to
+`<out-dir>/grammars/<category>/<graph>/`. For example, `--graph bzip --out-dir data`
+creates `data/graphs/c_alias_analysis/bzip.g` and
+`data/grammars/c_alias_analysis/bzip/`.
 
-With `--dataset`, the downloader also writes a headerless config to
-`<out-dir>/configs/<dataset>.csv`. It uses the default grammar for the dataset
-and published reachable-pair counts, omitting graphs without a published count.
-`--graph` does not generate a config.
+With `--category`, the downloader also writes a headerless config to
+`<out-dir>/configs/<category>.csv`: one line per graph with the graph's own copy
+of the category grammar (`nested_parentheses_subClassOf_type` for `rdf`, the
+only query otherwise) and the reachable-pair count from the FLPQ_Data
+`reachable_pairs` table, or `0` when the table has no count yet. `--graph` does
+not generate a config.
 
-The converter adds missing reverse edges. Indexed labels are written with an
-`_i` suffix and a separate index, as described in [Graph Format](#graph-format).
-
-The selected Java grammar uses indexed labels (`_i`), while the grammars
-bundled with 14 Java graphs use unindexed labels. Their published counts have
-not been verified against the selected grammar.
+The converter adds reverse edges. Indexed labels are written with an `_i` suffix
+and a separate index, as described in [Graph Format](#graph-format).
 
 ### Legacy dataset archive
 
