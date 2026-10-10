@@ -22,7 +22,9 @@ reachable pairs and saves the measurements to CSV files in `results/`. It suppor
 - `CFL_single_path`, `CFL_all_path` and `CFL_all_path_adv`, which also keep the paths:
   one path or all paths for every reachable pair
 - `CFL_multsrc` and `CFL_CFPQ_RSM`, which search only from given start vertices;
-  `CFL_CFPQ_RSM` takes the grammar as a recursive state machine
+  `CFL_CFPQ_RSM` takes the grammar as a recursive state machine read from the
+  `.rsm` file next to the grammar (`data/grammars/c_alias.rsm` for
+  `data/grammars/c_alias.cnf`), in the FLPQ_Data format
 
 The graphs and grammars come from the [CFPQ_Data](https://github.com/FormalLanguageConstrainedPathQuerying/CFPQ_Data)
 collection.
@@ -189,7 +191,7 @@ Each row in the config file has this format:
 Example from `configs/configs_my.csv`:
 
 ```text
-data/graphs/vf/xz.g,data/grammars/vf.cnf,358834
+data/graphs/context_sensitive_data_flow/xz.g,data/grammars/aa.cnf,358834
 ```
 
 The expected result is the number of reachable pairs. `CFL_multsrc` and
@@ -252,7 +254,7 @@ To add a custom benchmark configuration:
    Put the required files into the `data` directory (or use existing files there).
 
 2. **Create a config file in `configs/` or extend an existing one**  
-   Use the existing files in `configs/` as examples, such as `configs/configs_my.csv` or `configs/configs_java.csv`.
+   Use `configs/configs_my.csv` or a config written by `tools/download_graph.py` (`data/configs/<category>.csv`) as an example.
 
 3. **Add one row per benchmark case**  
    Each row must contain the graph path, grammar path, and expected result separated by commas.
@@ -284,11 +286,13 @@ from the config and `-t` prints a warning and `[Unknown]`.
    works for `CFL_adv`.
 
    ```text
-   data/graphs/c_alias/wc.g,data/grammars/c_alias.cnf,156,data/start_nodes/c_alias_wc_start.result
+   data/graphs/c_alias_analysis/wc.g,data/grammars/c_alias.cnf,156,data/start_nodes/c_alias_wc_start.result
    ```
 
    Without `--use-start-nodes` the fourth column is ignored and every vertex is
-   a start vertex. `CFL_CFPQ_RSM` also needs an RSM template for the grammar.
+   a start vertex. `CFL_CFPQ_RSM` also needs the `.rsm` file next to the grammar;
+   labels and states ending with `_i` are expanded per block like the indexed
+   grammar terminals.
 
 2. **Check the result**  
    `--compute-results` runs `CFL_adv -efbl` on the same data, counts the

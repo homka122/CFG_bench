@@ -1,0 +1,8 @@
+start: A
+[box A]
+start: 0
+final: 0
+0 --a--> 0
+0 --call_i--> p_i
+p_i --A--> q_i
+q_i --ret_i--> 0
