@@ -630,13 +630,13 @@ config_row *get_configs_from_file(char *path, size_t *configs_count, char **text
         char *start_nodes_path = strtok(NULL, ",");
 
         if (graph == NULL || grammar == NULL || valid_result_str == NULL) {
-            fprintf(stderr, "Invalid config line %zu in %s: expected <graph>,<grammar>,<expected result>\n",
+            fprintf(stderr, "Invalid config line %zu in %s: expected <graph>,<grammar>,<expected result or -1>\n",
                     line_number, path);
             exit(EXIT_FAILURE);
         }
 
-        size_t valid_result;
-        if (parse_size_token(valid_result_str, &valid_result) != 0) {
+        size_t valid_result = CONFIG_RESULT_UNKNOWN;
+        if (strcmp(valid_result_str, "-1") != 0 && parse_size_token(valid_result_str, &valid_result) != 0) {
             fprintf(stderr, "Invalid expected result in config line %zu: %s\n", line_number, valid_result_str);
             exit(EXIT_FAILURE);
         }
