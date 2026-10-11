@@ -1,0 +1,15 @@
+S	d_r	N1
+N1	V	d
+V	V1	N2
+N2	V2	V3
+V1
+V1	V2	N3
+N3	a_r	V1
+V2
+V2	S
+V3
+V3	a	N4
+N4	V2	V3
+
+Count:
+S

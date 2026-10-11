@@ -349,6 +349,9 @@ In this mode, files are named `<grammar>_<graph>_start.result`.
 ## Development
 
 - `make CI` builds the benchmark and runs every algorithm on `configs/for_test.csv`, as CI does
+- `tools/run_test_dataset.sh` runs every algorithm variant of `make CI` on each graph of the test dataset in
+  `tests/data` (small samples of FLPQ_Data graphs, rebuilt by `tools/make_test_dataset.py`); `-a <algorithm>`
+  runs one algorithm, `-t` and `-m` change the time and memory limits
 - `make lint` checks the formatting with clang-format and ruff, `make format` fixes it
 - `make hooks` installs pre-commit hooks that run the same tools on every commit
 

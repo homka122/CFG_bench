@@ -1,0 +1,3 @@
+tests/data/graphs/context_sensitive_data_flow/xz.g,tests/data/grammars/context_sensitive_data_flow/xz/aa.cnf,28156,tests/data/start_nodes/aa_xz_start.result
+tests/data/graphs/context_sensitive_data_flow/nab.g,tests/data/grammars/context_sensitive_data_flow/nab/aa.cnf,266875,tests/data/start_nodes/aa_nab_start.result
+tests/data/graphs/context_sensitive_data_flow/leela.g,tests/data/grammars/context_sensitive_data_flow/leela/aa.cnf,18828,tests/data/start_nodes/aa_leela_start.result

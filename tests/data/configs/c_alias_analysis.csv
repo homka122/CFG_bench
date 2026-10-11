@@ -1,0 +1,3 @@
+tests/data/graphs/c_alias_analysis/init.g,tests/data/grammars/c_alias_analysis/init/c_alias.cnf,58570,tests/data/start_nodes/c_alias_init_start.result
+tests/data/graphs/c_alias_analysis/mm.g,tests/data/grammars/c_alias_analysis/mm/c_alias.cnf,78606,tests/data/start_nodes/c_alias_mm_start.result
+tests/data/graphs/c_alias_analysis/block.g,tests/data/grammars/c_alias_analysis/block/c_alias.cnf,73886,tests/data/start_nodes/c_alias_block_start.result

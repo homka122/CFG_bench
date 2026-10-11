@@ -1,0 +1,3 @@
+tests/data/graphs/java_points_to/lusearch.g,tests/data/grammars/java_points_to/lusearch/java_points_to.cnf,362,tests/data/start_nodes/java_points_to_lusearch_start.result
+tests/data/graphs/java_points_to/eclipse.g,tests/data/grammars/java_points_to/eclipse/java_points_to.cnf,549,tests/data/start_nodes/java_points_to_eclipse_start.result
+tests/data/graphs/java_points_to/gson.g,tests/data/grammars/java_points_to/gson/java_points_to.cnf,808,tests/data/start_nodes/java_points_to_gson_start.result
