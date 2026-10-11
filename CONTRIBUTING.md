@@ -23,7 +23,9 @@ For questions you can also write to [@homka122](https://t.me/homka122) on Telegr
 4. Before opening a pull request, run:
    - `make lint` — formatting with clang-format and ruff (`make format` fixes it)
    - `make CI` — every algorithm on `configs/for_test.csv`
-5. Open a pull request to `main`. CI runs the same checks.
+   - `tools/run_test_dataset.sh` — every algorithm variant on each graph of the test dataset in `tests/data`,
+     with a 3 s time limit and a 10 GB memory limit per run
+5. Open a pull request to `main`. CI runs `make lint` and `make CI`.
 
 The algorithms themselves live in LAGraph. Changes to them go to the
 [LAGraph](https://github.com/SparseLinearAlgebra/LAGraph) repository, and CFG_bench
