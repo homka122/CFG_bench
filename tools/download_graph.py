@@ -2,29 +2,46 @@
 
 import argparse
 import logging
+import re
 import shutil
 import sys
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 
 import flpq_data
 
 # Query used in the config of a category whose graphs carry several queries.
 DEFAULT_QUERIES = {"rdf": "nested_parentheses_subClassOf_type"}
+INDEXED_LABEL = re.compile(r"^(.+)_(\d+)$")
 
 
-def category_query(category: str) -> str:
-    """The CFPQ query shared by every graph of the category."""
-    shared = set.intersection(
-        *(
-            {query.name for query in flpq_data.graph_info(name).queries if query.query_class == "cfpq"}
-            for name in flpq_data.categories()[category]
-        )
-    )
-    if len(shared) == 1:
-        return shared.pop()
-    if DEFAULT_QUERIES.get(category) in shared:
+def graph_query(category: str, graph_name: str) -> str:
+    """The CFPQ query of the graph used in the category config."""
+    queries = {query.name for query in flpq_data.graph_info(graph_name).queries if query.query_class == "cfpq"}
+    if len(queries) == 1:
+        return queries.pop()
+    if DEFAULT_QUERIES.get(category) in queries:
         return DEFAULT_QUERIES[category]
-    raise ValueError(f"{category} needs an entry in DEFAULT_QUERIES, shared queries: {sorted(shared)}")
+    raise ValueError(f"{graph_name} needs an entry in DEFAULT_QUERIES[{category!r}], queries: {sorted(queries)}")
+
+
+def indexed_bases(grammars: Path) -> set[str]:
+    """Terminal bases the grammars of a graph use as indexed (`<base>_i`)."""
+    bases = set()
+    for file in grammars.iterdir():
+        bases.update(re.findall(r"\b(\w+)_i\b", file.read_text()))
+    return bases
+
+
+def g_lines(edges: Iterable[tuple[int, str, int]], bases: set[str]) -> Iterator[str]:
+    """.g lines with reverse edges; `X_N` is written as indexed `X_i N` only when a grammar uses `X_i`."""
+    for u, label, v in edges:
+        match = INDEXED_LABEL.match(label)
+        if match and match[1] in bases:
+            base, index = match.groups()
+            yield f"{u} {v} {base}_i {index}\n{v} {u} {base}_r_i {index}\n"
+        else:
+            yield f"{u} {v} {label}\n{v} {u} {label}_r\n"
 
 
 def graph_path(directory: Path, category: str, graph_name: str) -> Path:
@@ -47,32 +64,32 @@ def download_graph(directory: Path, graph_name: str, progress: str, verbose: boo
     show("downloading")
     source = flpq_data.graph_dir(graph_name)
 
-    show("converting")
-    graph = graph_path(directory, category, graph_name)
-    graph.parent.mkdir(parents=True, exist_ok=True)
-    temporary = graph.with_name(f".{graph.name}.part")
-    try:
-        flpq_data.convert_graph(source / "graph", temporary, src_format="mtx", dst_format="g")
-        temporary.replace(graph)
-    finally:
-        temporary.unlink(missing_ok=True)
-
     show("copying grammars")
     grammars = grammar_dir(directory, category, graph_name)
     grammars.mkdir(parents=True, exist_ok=True)
     for file in (source / "queries" / "cfpq").glob("*/*"):
         if file.suffix in {".cnf", ".rsm"}:
             shutil.copy(file, grammars)
+
+    show("converting")
+    graph = graph_path(directory, category, graph_name)
+    graph.parent.mkdir(parents=True, exist_ok=True)
+    temporary = graph.with_name(f".{graph.name}.part")
+    try:
+        with temporary.open("w") as output:
+            output.writelines(g_lines(flpq_data.iter_edges_from_mtx_dir(source / "graph"), indexed_bases(grammars)))
+        temporary.replace(graph)
+    finally:
+        temporary.unlink(missing_ok=True)
     show("done")
 
 
 def write_category_config(directory: Path, category: str) -> Path:
     """Write a benchmark config with the FLPQ_Data reachable-pair counts (-1 when not published yet)."""
-    query = category_query(category)
     lines = []
     for graph_name in flpq_data.categories()[category]:
         graph = graph_path(directory, category, graph_name)
-        grammar = grammar_dir(directory, category, graph_name) / f"{query}.cnf"
+        grammar = grammar_dir(directory, category, graph_name) / f"{graph_query(category, graph_name)}.cnf"
         for path in (graph, grammar):
             if not path.is_file():
                 raise FileNotFoundError(path)

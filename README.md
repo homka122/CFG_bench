@@ -130,14 +130,16 @@ creates `data/graphs/c_alias_analysis/bzip.g` and
 `data/grammars/c_alias_analysis/bzip/`.
 
 With `--category`, the downloader also writes a headerless config to
-`<out-dir>/configs/<category>.csv`: one line per graph with the graph's own copy
-of the category grammar (`nested_parentheses_subClassOf_type` for `rdf`, the
-only query otherwise) and the reachable-pair count from the FLPQ_Data
+`<out-dir>/configs/<category>.csv`: one line per graph with the graph's only
+query (`nested_parentheses_subClassOf_type` for `rdf`, whose graphs carry
+several) and the reachable-pair count from the FLPQ_Data
 `reachable_pairs` table, or `-1` when the table has no count yet. `--graph` does
 not generate a config.
 
-The converter adds reverse edges. Indexed labels are written with an `_i` suffix
-and a separate index, as described in [Graph Format](#graph-format).
+The converter adds reverse edges. A label `X_N` is written as indexed (`X_i`
+with a separate index, see [Graph Format](#graph-format)) only when a grammar of
+the graph uses `X_i`; other numeric suffixes, like `IAO_0000115` in `go`, stay
+part of the label.
 
 ### Legacy dataset archive
 
