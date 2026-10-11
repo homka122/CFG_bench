@@ -1,0 +1,15 @@
+tests/data/graphs/c_alias_analysis/init.g,tests/data/grammars/c_alias_analysis/init/c_alias.cnf,58570,tests/data/start_nodes/c_alias_init_start.result
+tests/data/graphs/c_alias_analysis/mm.g,tests/data/grammars/c_alias_analysis/mm/c_alias.cnf,78606,tests/data/start_nodes/c_alias_mm_start.result
+tests/data/graphs/c_alias_analysis/block.g,tests/data/grammars/c_alias_analysis/block/c_alias.cnf,73886,tests/data/start_nodes/c_alias_block_start.result
+tests/data/graphs/rdf/taxonomy.g,tests/data/grammars/rdf/taxonomy/nested_parentheses_subClassOf_type.cnf,6375,tests/data/start_nodes/nested_parentheses_subClassOf_type_taxonomy_start.result
+tests/data/graphs/rdf/go.g,tests/data/grammars/rdf/go/nested_parentheses_subClassOf_type.cnf,177811,tests/data/start_nodes/nested_parentheses_subClassOf_type_go_start.result
+tests/data/graphs/rdf/eclass.g,tests/data/grammars/rdf/eclass/nested_parentheses_subClassOf_type.cnf,19016,tests/data/start_nodes/nested_parentheses_subClassOf_type_eclass_start.result
+tests/data/graphs/java_points_to/lusearch.g,tests/data/grammars/java_points_to/lusearch/java_points_to.cnf,362,tests/data/start_nodes/java_points_to_lusearch_start.result
+tests/data/graphs/java_points_to/eclipse.g,tests/data/grammars/java_points_to/eclipse/java_points_to.cnf,549,tests/data/start_nodes/java_points_to_eclipse_start.result
+tests/data/graphs/java_points_to/gson.g,tests/data/grammars/java_points_to/gson/java_points_to.cnf,808,tests/data/start_nodes/java_points_to_gson_start.result
+tests/data/graphs/context_sensitive_data_flow/xz.g,tests/data/grammars/context_sensitive_data_flow/xz/aa.cnf,28156,tests/data/start_nodes/aa_xz_start.result
+tests/data/graphs/context_sensitive_data_flow/nab.g,tests/data/grammars/context_sensitive_data_flow/nab/aa.cnf,266875,tests/data/start_nodes/aa_nab_start.result
+tests/data/graphs/context_sensitive_data_flow/leela.g,tests/data/grammars/context_sensitive_data_flow/leela/aa.cnf,18828,tests/data/start_nodes/aa_leela_start.result
+tests/data/graphs/field_sensitive_alias/xz_field_sensitive_alias.g,tests/data/grammars/field_sensitive_alias/xz_field_sensitive_alias/vf.cnf,205164,tests/data/start_nodes/vf_xz_field_sensitive_alias_start.result
+tests/data/graphs/field_sensitive_alias/nab_field_sensitive_alias.g,tests/data/grammars/field_sensitive_alias/nab_field_sensitive_alias/vf.cnf,62241,tests/data/start_nodes/vf_nab_field_sensitive_alias_start.result
+tests/data/graphs/field_sensitive_alias/leela_field_sensitive_alias.g,tests/data/grammars/field_sensitive_alias/leela_field_sensitive_alias/vf.cnf,113744,tests/data/start_nodes/vf_leela_field_sensitive_alias_start.result

@@ -1,0 +1,9 @@
+S	subClassOf_r	N1
+N1	S	subClassOf
+S	subClassOf_r	subClassOf
+S	type_r	N2
+N2	S	type
+S	type_r	type
+
+Count:
+S

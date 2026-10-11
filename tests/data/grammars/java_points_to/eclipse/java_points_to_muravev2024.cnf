@@ -1,0 +1,15 @@
+PT	alloc
+PT	assign	PT
+PT	LPFS_i	PT
+FT	alloc_r
+FT	FT	assign_r
+FT	FT	SPFL_i
+LPFS_i	LP_i	FS_i
+LP_i	load_i	PT
+FS_i	FT	store_i
+SPFL_i	SP_i	FL_i
+SP_i	store_r_i	PT
+FL_i	FT	load_r_i
+
+Count:
+PT
