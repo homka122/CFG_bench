@@ -1,7 +1,6 @@
 #pragma once
 
 #include "grammar.h"
-#include "rsm.h"
 #include "symbol_list.h"
 #include <LAGraph.h>
 #include <LAGraphX.h>
@@ -100,7 +99,7 @@ typedef struct {
     Grammar grammar;
     SymbolList symbols;
     Graph graph;
-    RSM_Template rsm_template;
+    char *rsm_path; // <grammar path with the .rsm extension>, read by the RSM algorithms
 } ParserResult;
 
 // expected result of a config row written as -1: the result is unknown and is not checked

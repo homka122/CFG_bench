@@ -46,4 +46,4 @@ Each algorithm is wrapped in an adapter in `src/adapters/`:
 
 - [README](README.md): CLI options, config, grammar and graph formats
 - [`src/adapters/adapter.h`](src/adapters/adapter.h): the adapter interface and its lifecycle
-- [`data/grammars/README.md`](data/grammars/README.md): RSM templates of the grammars
+- [`data/grammars/README.md`](data/grammars/README.md): RSM files of the grammars

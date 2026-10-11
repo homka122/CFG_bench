@@ -1,4 +1,8 @@
-# RSM templates
+# RSM files
+
+Every grammar `<name>.cnf` has its recursive state machine in `<name>.rsm`, in the
+FLPQ_Data `.rsm` format (transition-system style). `CFL_CFPQ_RSM` reads it instead
+of the grammar. The figures below show the same machines.
 
 We use **x_rev** to denote $\overline{x}$ (**x_i_rev** for $\overline{x_i}$ respectively).
 
