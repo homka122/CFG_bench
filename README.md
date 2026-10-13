@@ -21,7 +21,8 @@ reachable pairs and saves the measurements to CSV files in `results/`. It suppor
 - `CFL` and `CFL_adv`, which find all reachable pairs; `CFL_adv` adds four optional optimizations
 - `CFL_single_path`, `CFL_all_path` and `CFL_all_path_adv`, which also keep the paths:
   one path or all paths for every reachable pair
-- `CFL_multsrc` and `CFL_CFPQ_RSM`, which search only from given start vertices;
+- `CFL_multsrc`, `CFL_multsrc_adv` and `CFL_CFPQ_RSM`, which search only from given start vertices;
+  `CFL_multsrc_adv` takes the same optimizations as `CFL_adv`;
   `CFL_CFPQ_RSM` takes the grammar as a recursive state machine read from the
   `.rsm` file next to the grammar (`data/grammars/c_alias.rsm` for
   `data/grammars/c_alias.cnf`), in the FLPQ_Data format
@@ -42,7 +43,10 @@ Benchmark options:
   --hot             Enable HOT launch (warm-up run before measurements)
   --bench-parse     Print grammar and graph parsing times only
   --use-start-nodes Use start vertices from the path specified in the config
-  -a <algorithm>    Algorithm to use (default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc)
+  --use-random-percent <n>
+                    Use a random n% of the vertices as start vertices, the same
+                    ones for every run
+  -a <algorithm>    Algorithm to use (default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc, CFL_multsrc_adv)
 
 Optimization flags:
   -e                Enable empty optimization
@@ -54,8 +58,9 @@ Other:
   -t                Enable test mode: run each config once and check the result
                     (-r and --hot are ignored)
   --compute-results Check the result against CFL_adv -efbl on the same data instead of
-                    the config value (only with -t); CFL_multsrc and CFL_CFPQ_RSM need it,
-                    values are cached in .cache when run from the project root
+                    the config value (only with -t); CFL_multsrc, CFL_multsrc_adv and
+                    CFL_CFPQ_RSM need it, values are cached in .cache when run from the
+                    project root
   -h                Print this help message
   --CFL-all-path-use-CFPQ-Core      Use CFPQ_Core in CFL_all_path algorithm
 
@@ -171,7 +176,7 @@ The benchmark reads its input set from a CSV file passed with `-c`:
 
 Use `-r` to set the number of benchmark rounds and `--hot` to enable the HOT launch warm-up run.
 
-The `CFL_adv` algorithm also supports optimization flags:
+The `CFL_adv`, `CFL_all_path_adv` and `CFL_multsrc_adv` algorithms also support optimization flags:
 
 | Flag | Optimization | What it does |
 | ---- | ------------ | ------------ |
@@ -200,7 +205,7 @@ data/graphs/context_sensitive_data_flow/xz.g,data/grammars/aa.cnf,358834
 
 The expected result is the number of reachable pairs, or `-1` when it is unknown:
 in test mode such rows are reported as `[Unknown]` and do not fail the run.
-`CFL_multsrc` and `CFL_CFPQ_RSM` ignore it, see
+`CFL_multsrc`, `CFL_multsrc_adv` and `CFL_CFPQ_RSM` ignore it, see
 [Multiple-Source Algorithms](#multiple-source-algorithms).
 
 ## Grammar Format
@@ -279,7 +284,7 @@ No source code changes are required.
 
 ## Multiple-Source Algorithms
 
-`CFL_multsrc` and `CFL_CFPQ_RSM` search paths only from the start vertices.
+`CFL_multsrc`, `CFL_multsrc_adv` and `CFL_CFPQ_RSM` search paths only from the start vertices.
 Their result is the number of vertices reachable from at least one start
 vertex, not the number of reachable pairs, so they ignore the expected result
 from the config and `-t` prints a warning and `[Unknown]`.
@@ -295,7 +300,9 @@ from the config and `-t` prints a warning and `[Unknown]`.
    ```
 
    Without `--use-start-nodes` the fourth column is ignored and every vertex is
-   a start vertex. `CFL_CFPQ_RSM` also needs the `.rsm` file next to the grammar;
+   a start vertex. `--use-random-percent <n>` takes a random `n`% of the vertices
+   instead, the same ones for every run, so a big graph needs no start vertices
+   file. `CFL_CFPQ_RSM` also needs the `.rsm` file next to the grammar;
    labels and states ending with `_i` are expanded per block like the indexed
    grammar terminals.
 

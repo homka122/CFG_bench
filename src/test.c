@@ -100,8 +100,12 @@ enum {
     BENCH_PARSE_OPTION = 1001,
     CFL_ALL_PATH_USE_CFPQ = 1002,
     USE_START_NODES_OPTION = 1003,
-    COMPUTE_RESULTS_OPTION = 1004
+    COMPUTE_RESULTS_OPTION = 1004,
+    USE_RANDOM_PERCENT_OPTION = 1005
 };
+
+// the random start vertices are the same for every run
+#define RANDOM_START_NODES_SEED 2026
 
 static void print_usage(const char *program_name) {
     fprintf(stderr,
@@ -115,6 +119,9 @@ static void print_usage(const char *program_name) {
             "  --hot             Enable HOT launch (warm-up run before measurements)\n"
             "  --bench-parse     Print grammar and graph parsing times only\n"
             "  --use-start-nodes Use start vertices from the path specified in the config\n"
+            "  --use-random-percent <n>\n"
+            "                    Use a random n%% of the vertices as start vertices, the same\n"
+            "                    ones for every run\n"
             "  -a <algorithm>    Algorithm to use (default: " DEFAULT_ALGORITHM "; options: ",
             program_name);
     registry_print_names(stderr);
@@ -131,14 +138,46 @@ static void print_usage(const char *program_name) {
             "  -t                Enable test mode: run each config once and check the result\n"
             "                    (-r and --hot are ignored)\n"
             "  --compute-results Check the result against CFL_adv -efbl on the same data instead of\n"
-            "                    the config value (only with -t); CFL_multsrc and CFL_CFPQ_RSM need it,\n"
-            "                    values are cached in .cache when run from the project root\n"
+            "                    the config value (only with -t); CFL_multsrc, CFL_multsrc_adv and\n"
+            "                    CFL_CFPQ_RSM need it, values are cached in .cache when run from the\n"
+            "                    project root\n"
             "  -h                Print this help message\n"
             "  --CFL-all-path-use-CFPQ-Core      Use CFPQ_Core in CFL_all_path algorithm\n"
             "\n"
             "Example:\n"
             "  %s -c configs/configs_my.csv -r 10 --hot\n",
             program_name);
+}
+
+// replaces the start vertices with a random percent of all vertices
+static void choose_random_start_nodes(ParserResult *parser_result, size_t percent) {
+    size_t node_count = parser_result->graph.node_count;
+    size_t count = node_count * percent / 100;
+    if (count == 0 && node_count > 0) {
+        count = 1;
+    }
+
+    GrB_Index *nodes = malloc(node_count * sizeof(*nodes));
+    if (nodes == NULL) {
+        fprintf(stderr, "Failed to allocate memory for start vertices\n");
+        exit(EXIT_FAILURE);
+    }
+    for (size_t i = 0; i < node_count; i++) {
+        nodes[i] = i;
+    }
+
+    // the first "count" vertices of a partial Fisher-Yates shuffle
+    unsigned int seed = RANDOM_START_NODES_SEED;
+    for (size_t i = 0; i < count; i++) {
+        size_t j = i + (size_t)rand_r(&seed) % (node_count - i);
+        GrB_Index swap = nodes[i];
+        nodes[i] = nodes[j];
+        nodes[j] = swap;
+    }
+
+    free(parser_result->start_nodes);
+    parser_result->start_nodes = nodes;
+    parser_result->start_nodes_count = count;
 }
 
 // runs CFL_adv with all optimizations on the same data and returns the result "algo" must have
@@ -177,6 +216,7 @@ int main(int argc, char **argv) {
     bool is_hot_enabled = false;
     bool is_bench_parse_enabled = false;
     bool use_start_nodes = false;
+    size_t random_percent = 0; // 0 when --use-random-percent is not given
     bool compute_results = false;
     bool is_config = false;
     const AlgorithmEntry *algo = NULL;
@@ -192,6 +232,7 @@ int main(int argc, char **argv) {
         {"use-start-nodes", no_argument, 0, USE_START_NODES_OPTION},
         {"CFL-all-path-use-CFPQ-Core", no_argument, 0, CFL_ALL_PATH_USE_CFPQ},
         {"compute-results", no_argument, 0, COMPUTE_RESULTS_OPTION},
+        {"use-random-percent", required_argument, 0, USE_RANDOM_PERCENT_OPTION},
         {0, 0, 0, 0},
     };
 
@@ -223,6 +264,13 @@ int main(int argc, char **argv) {
             break;
         case COMPUTE_RESULTS_OPTION:
             compute_results = true;
+            break;
+        case USE_RANDOM_PERCENT_OPTION:
+            random_percent = strtoul(optarg, NULL, 10);
+            if (random_percent == 0 || random_percent > 100) {
+                fprintf(stderr, "--use-random-percent takes a number from 1 to 100\n");
+                exit(EXIT_FAILURE);
+            }
             break;
         case 't':
             is_test = true;
@@ -262,6 +310,15 @@ int main(int argc, char **argv) {
     if (compute_results && !is_test) {
         fprintf(stderr, "--compute-results works only with -t\n");
         exit(EXIT_FAILURE);
+    }
+
+    if (random_percent > 0 && use_start_nodes) {
+        fprintf(stderr, "--use-random-percent and --use-start-nodes can't be used together\n");
+        exit(EXIT_FAILURE);
+    }
+    // the random vertices replace the ones from the config file
+    if (random_percent > 0) {
+        use_start_nodes = true;
     }
 
     if (algo == NULL) {
@@ -307,6 +364,9 @@ int main(int argc, char **argv) {
             free_parser_result(&parser_result);
             continue;
         }
+        if (random_percent > 0) {
+            choose_random_start_nodes(&parser_result, random_percent);
+        }
 
         double *start = calloc(rounds_count, sizeof(double));
         double *end = calloc(rounds_count, sizeof(double));
@@ -323,8 +383,12 @@ int main(int argc, char **argv) {
         bool is_cached = false;
         if (compute_results) {
             const char *kind = "pairs";
+            char random_kind[64];
             const char *start_nodes = NULL;
-            if (algo->is_multiple_source) {
+            if (algo->is_multiple_source && random_percent > 0) {
+                snprintf(random_kind, sizeof(random_kind), "random_%zu_percent_vertices", random_percent);
+                kind = random_kind;
+            } else if (algo->is_multiple_source) {
                 kind = use_start_nodes ? "start_vertices" : "vertices";
                 start_nodes = use_start_nodes ? config.start_nodes_path : NULL;
             }
