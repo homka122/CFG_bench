@@ -43,6 +43,9 @@ Benchmark options:
   --hot             Enable HOT launch (warm-up run before measurements)
   --bench-parse     Print grammar and graph parsing times only
   --use-start-nodes Use start vertices from the path specified in the config
+  --use-random-percent <n>
+                    Use a random n% of the vertices as start vertices, the same
+                    ones for every run
   -a <algorithm>    Algorithm to use (default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc, CFL_multsrc_adv)
 
 Optimization flags:
@@ -297,7 +300,9 @@ from the config and `-t` prints a warning and `[Unknown]`.
    ```
 
    Without `--use-start-nodes` the fourth column is ignored and every vertex is
-   a start vertex. `CFL_CFPQ_RSM` also needs the `.rsm` file next to the grammar;
+   a start vertex. `--use-random-percent <n>` takes a random `n`% of the vertices
+   instead, the same ones for every run, so a big graph needs no start vertices
+   file. `CFL_CFPQ_RSM` also needs the `.rsm` file next to the grammar;
    labels and states ending with `_i` are expanded per block like the indexed
    grammar terminals.
 
