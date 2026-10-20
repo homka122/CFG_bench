@@ -1,8 +1,17 @@
+M	DV	d
+DV	d_r	V
+V	A_r	V
+V	V	A
+V	FV_i	f_i
+V	M
+V
+FV_i	f_r_i	V
+A	a	M
+A	a
 A
-A	A	B
-A	A	a
-B	call_i	AR_i
-AR_i	A	ret_i
+A_r	M	a_r
+A_r	a_r
+A_r
 
 Count:
-A
+V

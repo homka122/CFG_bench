@@ -1,0 +1,13 @@
+M	N1	N3
+M	N2	N3
+N1	d_r
+N1	N1	a_r
+N1	N2	a_r
+N2	N1	M
+N3	d
+N3	a	N3
+N3	AM	N3
+AM	a	M
+
+Count:
+M

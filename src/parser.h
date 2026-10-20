@@ -1,10 +1,10 @@
 #pragma once
 
 #include "grammar.h"
-#include "rsm.h"
 #include "symbol_list.h"
 #include <LAGraph.h>
 #include <LAGraphX.h>
+#include <stdint.h>
 
 #define LG_ERROR_MSG(...)                                                                                              \
     {                                                                                                                  \
@@ -99,13 +99,16 @@ typedef struct {
     Grammar grammar;
     SymbolList symbols;
     Graph graph;
-    RSM_Template rsm_template;
+    char *rsm_path; // <grammar path with the .rsm extension>, read by the RSM algorithms
 } ParserResult;
+
+// expected result of a config row written as -1: the result is unknown and is not checked
+#define CONFIG_RESULT_UNKNOWN SIZE_MAX
 
 typedef struct {
     char *grammar;
     char *graph;
-    size_t valid_result;
+    size_t valid_result; // number of reachable pairs or CONFIG_RESULT_UNKNOWN
     char *start_nodes_path;
 } config_row;
 

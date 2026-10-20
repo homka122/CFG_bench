@@ -5,6 +5,7 @@
 #include "adapter_CFL_all_path.h"
 #include "adapter_CFL_all_path_adv.h"
 #include "adapter_CFL_multsrc.h"
+#include "adapter_CFL_multsrc_adv.h"
 #include "adapter_CFL_single_path.h"
 #include <string.h>
 
@@ -45,6 +46,13 @@ static GrB_Info prepare_CFL_multsrc(const AdapterMethods *adapter, const ParserR
     return adapter->prepare(parser_result, &data);
 }
 
+static GrB_Info prepare_CFL_multsrc_adv(const AdapterMethods *adapter, const ParserResult *parser_result,
+                                        const AlgorithmOptions *options) {
+    CFL_multsrc_adv_PrepareData data = {.optimizations = options->optimizations,
+                                        .use_start_nodes = options->use_start_nodes};
+    return adapter->prepare(parser_result, &data);
+}
+
 // the order is used in the help message
 static const AlgorithmEntry algorithms[] = {
     {"CFL_adv", adapter_CFL_adv_get_methods, prepare_CFL_adv, false},
@@ -54,6 +62,7 @@ static const AlgorithmEntry algorithms[] = {
     {"CFL_all_path_adv", adapter_CFL_all_path_adv_get_methods, prepare_CFL_all_path_adv, false},
     {"CFL_CFPQ_RSM", adapter_CFL_CFPQ_RSM_get_methods, prepare_CFL_CFPQ_RSM, true},
     {"CFL_multsrc", adapter_CFL_multsrc_get_methods, prepare_CFL_multsrc, true},
+    {"CFL_multsrc_adv", adapter_CFL_multsrc_adv_get_methods, prepare_CFL_multsrc_adv, true},
 };
 
 #define ALGORITHMS_COUNT (sizeof(algorithms) / sizeof(algorithms[0]))

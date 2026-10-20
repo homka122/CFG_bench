@@ -1,0 +1,3 @@
+tests/data/graphs/field_sensitive_alias/xz_field_sensitive_alias.g,tests/data/grammars/field_sensitive_alias/xz_field_sensitive_alias/vf.cnf,205164,tests/data/start_nodes/vf_xz_field_sensitive_alias_start.result
+tests/data/graphs/field_sensitive_alias/nab_field_sensitive_alias.g,tests/data/grammars/field_sensitive_alias/nab_field_sensitive_alias/vf.cnf,62241,tests/data/start_nodes/vf_nab_field_sensitive_alias_start.result
+tests/data/graphs/field_sensitive_alias/leela_field_sensitive_alias.g,tests/data/grammars/field_sensitive_alias/leela_field_sensitive_alias/vf.cnf,113744,tests/data/start_nodes/vf_leela_field_sensitive_alias_start.result

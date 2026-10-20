@@ -21,10 +21,13 @@ reachable pairs and saves the measurements to CSV files in `results/`. It suppor
 - `CFL` and `CFL_adv`, which find all reachable pairs; `CFL_adv` adds four optional optimizations
 - `CFL_single_path`, `CFL_all_path` and `CFL_all_path_adv`, which also keep the paths:
   one path or all paths for every reachable pair
-- `CFL_multsrc` and `CFL_CFPQ_RSM`, which search only from given start vertices;
-  `CFL_CFPQ_RSM` takes the grammar as a recursive state machine
+- `CFL_multsrc`, `CFL_multsrc_adv` and `CFL_CFPQ_RSM`, which search only from given start vertices;
+  `CFL_multsrc_adv` takes the same optimizations as `CFL_adv`;
+  `CFL_CFPQ_RSM` takes the grammar as a recursive state machine read from the
+  `.rsm` file next to the grammar (`data/grammars/c_alias.rsm` for
+  `data/grammars/c_alias.cnf`), in the FLPQ_Data format
 
-The graphs and grammars come from the [CFPQ_Data](https://github.com/FormalLanguageConstrainedPathQuerying/CFPQ_Data)
+The graphs and grammars come from the [FLPQ_Data](https://github.com/FormalLanguageConstrainedPathQuerying/FLPQ_Data)
 collection.
 
 ## CLI Help
@@ -40,7 +43,10 @@ Benchmark options:
   --hot             Enable HOT launch (warm-up run before measurements)
   --bench-parse     Print grammar and graph parsing times only
   --use-start-nodes Use start vertices from the path specified in the config
-  -a <algorithm>    Algorithm to use (default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc)
+  --use-random-percent <n>
+                    Use a random n% of the vertices as start vertices, the same
+                    ones for every run
+  -a <algorithm>    Algorithm to use (default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc, CFL_multsrc_adv)
 
 Optimization flags:
   -e                Enable empty optimization
@@ -52,8 +58,9 @@ Other:
   -t                Enable test mode: run each config once and check the result
                     (-r and --hot are ignored)
   --compute-results Check the result against CFL_adv -efbl on the same data instead of
-                    the config value (only with -t); CFL_multsrc and CFL_CFPQ_RSM need it,
-                    values are cached in .cache when run from the project root
+                    the config value (only with -t); CFL_multsrc, CFL_multsrc_adv and
+                    CFL_CFPQ_RSM need it, values are cached in .cache when run from the
+                    project root
   -h                Print this help message
   --CFL-all-path-use-CFPQ-Core      Use CFPQ_Core in CFL_all_path algorithm
 
@@ -67,7 +74,7 @@ Example:
 - GCC 13 or newer, GNU Make and CMake 3.20 or newer (CI uses Ubuntu 24.04)
 - [SuiteSparse:GraphBLAS](https://github.com/DrTimothyAldenDavis/GraphBLAS) v10.5.1
 - [LAGraph](https://github.com/SparseLinearAlgebra/LAGraph) from the `homka122/all_algorithms_benchmark` branch
-- [uv](https://docs.astral.sh/uv/) with Python 3.11 or newer, to download graphs and run the linters
+- [uv](https://docs.astral.sh/uv/) with Python 3.11 to 3.13, to download graphs and run the linters
 
 ## Usage
 
@@ -100,12 +107,12 @@ Example:
 
 ## Downloading new graphs
 
-With [uv](https://docs.astral.sh/uv/) installed, download a dataset and run the
-benchmark with the generated config:
+With [uv](https://docs.astral.sh/uv/) installed, download a graph category and run
+the benchmark with the generated config:
 
 ```bash
-uv run --locked python tools/download_graph.py --out-dir data --dataset c_alias
-./build/cfg_bench -c data/configs/c_alias.csv -efbl -a CFL_adv
+uv run --locked python tools/download_graph.py --out-dir data --category c_alias_analysis
+./build/cfg_bench -c data/configs/c_alias_analysis.csv -efbl -a CFL_adv
 ```
 
 To download just one graph and its grammars:
@@ -114,26 +121,30 @@ To download just one graph and its grammars:
 uv run --locked python tools/download_graph.py --out-dir data --graph bzip
 ```
 
-Dataset choices are `c_alias`, `rdf`, `java`, `field_sensitive_alias`,
-`context_sensitive_data_flow`, `data_provenance`, `name_resolution`, `uniprot`,
-or `all` (every dataset).
+Category and graph names are those of FLPQ_Data: `c_alias_analysis`, `rdf`,
+`java_points_to`, `field_sensitive_alias`, `context_sensitive_data_flow`,
+`data_provenance`, `name_resolution`, `biological_uniprot`, or `all` (every
+category). FLPQ_Data keeps the downloaded archives in a per-user cache
+(`FLPQ_DATA_CACHE` or the OS cache directory), so repeated runs do not download
+again.
 
-Graphs are saved to `<out-dir>/graphs/<dataset>/<graph>.g`; all grammars for
-each graph are copied to `<out-dir>/grammars/<dataset>/<graph>/`. For example,
-`--graph bzip --out-dir data` creates `data/graphs/c_alias/bzip.g` and
-`data/grammars/c_alias/bzip/`.
+Graphs are saved to `<out-dir>/graphs/<category>/<graph>.g`; the grammars (`.cnf`)
+and recursive state machines (`.rsm`) of all queries of each graph are copied to
+`<out-dir>/grammars/<category>/<graph>/`. For example, `--graph bzip --out-dir data`
+creates `data/graphs/c_alias_analysis/bzip.g` and
+`data/grammars/c_alias_analysis/bzip/`.
 
-With `--dataset`, the downloader also writes a headerless config to
-`<out-dir>/configs/<dataset>.csv`. It uses the default grammar for the dataset
-and published reachable-pair counts, omitting graphs without a published count.
-`--graph` does not generate a config.
+With `--category`, the downloader also writes a headerless config to
+`<out-dir>/configs/<category>.csv`: one line per graph with the graph's only
+query (`nested_parentheses_subClassOf_type` for `rdf`, whose graphs carry
+several) and the reachable-pair count from the FLPQ_Data
+`reachable_pairs` table, or `-1` when the table has no count yet. `--graph` does
+not generate a config.
 
-The converter adds missing reverse edges. Indexed labels are written with an
-`_i` suffix and a separate index, as described in [Graph Format](#graph-format).
-
-The selected Java grammar uses indexed labels (`_i`), while the grammars
-bundled with 14 Java graphs use unindexed labels. Their published counts have
-not been verified against the selected grammar.
+The converter adds reverse edges. A label `X_N` is written as indexed (`X_i`
+with a separate index, see [Graph Format](#graph-format)) only when a grammar of
+the graph uses `X_i`; other numeric suffixes, like `IAO_0000115` in `go`, stay
+part of the label.
 
 ### Legacy dataset archive
 
@@ -165,7 +176,7 @@ The benchmark reads its input set from a CSV file passed with `-c`:
 
 Use `-r` to set the number of benchmark rounds and `--hot` to enable the HOT launch warm-up run.
 
-The `CFL_adv` algorithm also supports optimization flags:
+The `CFL_adv`, `CFL_all_path_adv` and `CFL_multsrc_adv` algorithms also support optimization flags:
 
 | Flag | Optimization | What it does |
 | ---- | ------------ | ------------ |
@@ -189,11 +200,12 @@ Each row in the config file has this format:
 Example from `configs/configs_my.csv`:
 
 ```text
-data/graphs/vf/xz.g,data/grammars/vf.cnf,358834
+data/graphs/context_sensitive_data_flow/xz.g,data/grammars/aa.cnf,358834
 ```
 
-The expected result is the number of reachable pairs. `CFL_multsrc` and
-`CFL_CFPQ_RSM` ignore it, see
+The expected result is the number of reachable pairs, or `-1` when it is unknown:
+in test mode such rows are reported as `[Unknown]` and do not fail the run.
+`CFL_multsrc`, `CFL_multsrc_adv` and `CFL_CFPQ_RSM` ignore it, see
 [Multiple-Source Algorithms](#multiple-source-algorithms).
 
 ## Grammar Format
@@ -252,7 +264,7 @@ To add a custom benchmark configuration:
    Put the required files into the `data` directory (or use existing files there).
 
 2. **Create a config file in `configs/` or extend an existing one**  
-   Use the existing files in `configs/` as examples, such as `configs/configs_my.csv` or `configs/configs_java.csv`.
+   Use `configs/configs_my.csv` or a config written by `tools/download_graph.py` (`data/configs/<category>.csv`) as an example.
 
 3. **Add one row per benchmark case**  
    Each row must contain the graph path, grammar path, and expected result separated by commas.
@@ -272,7 +284,7 @@ No source code changes are required.
 
 ## Multiple-Source Algorithms
 
-`CFL_multsrc` and `CFL_CFPQ_RSM` search paths only from the start vertices.
+`CFL_multsrc`, `CFL_multsrc_adv` and `CFL_CFPQ_RSM` search paths only from the start vertices.
 Their result is the number of vertices reachable from at least one start
 vertex, not the number of reachable pairs, so they ignore the expected result
 from the config and `-t` prints a warning and `[Unknown]`.
@@ -284,11 +296,15 @@ from the config and `-t` prints a warning and `[Unknown]`.
    works for `CFL_adv`.
 
    ```text
-   data/graphs/c_alias/wc.g,data/grammars/c_alias.cnf,156,data/start_nodes/c_alias_wc_start.result
+   data/graphs/c_alias_analysis/wc.g,data/grammars/c_alias.cnf,156,data/start_nodes/c_alias_wc_start.result
    ```
 
    Without `--use-start-nodes` the fourth column is ignored and every vertex is
-   a start vertex. `CFL_CFPQ_RSM` also needs an RSM template for the grammar.
+   a start vertex. `--use-random-percent <n>` takes a random `n`% of the vertices
+   instead, the same ones for every run, so a big graph needs no start vertices
+   file. `CFL_CFPQ_RSM` also needs the `.rsm` file next to the grammar;
+   labels and states ending with `_i` are expanded per block like the indexed
+   grammar terminals.
 
 2. **Check the result**  
    `--compute-results` runs `CFL_adv -efbl` on the same data, counts the
@@ -340,6 +356,9 @@ In this mode, files are named `<grammar>_<graph>_start.result`.
 ## Development
 
 - `make CI` builds the benchmark and runs every algorithm on `configs/for_test.csv`, as CI does
+- `tools/run_test_dataset.sh` runs every algorithm variant of `make CI` on each graph of the test dataset in
+  `tests/data` (small samples of FLPQ_Data graphs, rebuilt by `tools/make_test_dataset.py`); `-a <algorithm>`
+  runs one algorithm, `-t` and `-m` change the time and memory limits
 - `make lint` checks the formatting with clang-format and ruff, `make format` fixes it
 - `make hooks` installs pre-commit hooks that run the same tools on every commit
 

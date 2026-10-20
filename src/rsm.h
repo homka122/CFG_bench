@@ -3,15 +3,6 @@
 #include "LAGraphX.h"
 #include "symbol_list.h"
 
-typedef enum RSM_Template {
-    RSM_NO_TEMPLATE,
-    RSM_TEMPLATE_AA,
-    RSM_TEMPLATE_VF,
-    RSM_TEMPLATE_C_ALIAS,
-    RSM_TEMPLATE_JAVA_POINTS_TO,
-    RSM_TEMPLATE_RDF_HIERARCHY,
-} RSM_Template;
-
 typedef struct CFG_Edge {
     size_t start;
     size_t label;
@@ -54,8 +45,6 @@ typedef struct CFG_RSM {
     CFG_RSM_Boxes boxes;
     bool with_intial_terms;
 } CFG_RSM;
-
-CFG_RSM *rsm_create_template(RSM_Template template, bool exploded, size_t n, SymbolList *terms);
 
 CFG_RSM *rsm_init(SymbolList *terms);
 void rsm_add_nonterm(CFG_RSM *rsm, const char *nonterm);

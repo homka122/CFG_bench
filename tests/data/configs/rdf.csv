@@ -1,0 +1,3 @@
+tests/data/graphs/rdf/taxonomy.g,tests/data/grammars/rdf/taxonomy/nested_parentheses_subClassOf_type.cnf,6375,tests/data/start_nodes/nested_parentheses_subClassOf_type_taxonomy_start.result
+tests/data/graphs/rdf/go.g,tests/data/grammars/rdf/go/nested_parentheses_subClassOf_type.cnf,177811,tests/data/start_nodes/nested_parentheses_subClassOf_type_go_start.result
+tests/data/graphs/rdf/eclass.g,tests/data/grammars/rdf/eclass/nested_parentheses_subClassOf_type.cnf,19016,tests/data/start_nodes/nested_parentheses_subClassOf_type_eclass_start.result
