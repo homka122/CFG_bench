@@ -54,6 +54,7 @@ CI: $(TARGET)
 	run $(CI_RUN) -a CFL_multsrc --use-start-nodes --compute-results; \
 	run_advanced CFL_multsrc_adv --compute-results; \
 	run_advanced CFL_multsrc_adv --use-start-nodes --compute-results; \
+	run $(CI_RUN) -a CFL_Kron; \
 	exit $$status
 
 $(BUILD_DIR)/test_explode_indices: tests/test_explode_indices.c $(LIB_SRCS)

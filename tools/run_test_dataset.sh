@@ -65,6 +65,7 @@ for flags in "${optimizations[@]}"; do
     variants+=("CFL_multsrc_adv $flags --compute-results")
     variants+=("CFL_multsrc_adv $flags --use-start-nodes --compute-results")
 done
+variants+=("CFL_Kron")
 
 limiter=()
 if command -v systemd-run >/dev/null && systemd-run --user --scope -q true 2>/dev/null; then

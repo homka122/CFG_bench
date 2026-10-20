@@ -26,6 +26,8 @@ reachable pairs and saves the measurements to CSV files in `results/`. It suppor
   `CFL_CFPQ_RSM` takes the grammar as a recursive state machine read from the
   `.rsm` file next to the grammar (`data/grammars/c_alias.rsm` for
   `data/grammars/c_alias.cnf`), in the FLPQ_Data format
+- `CFL_Kron`, which finds all reachable pairs with the Kronecker product of the graph
+  and the same `.rsm` recursive state machine as `CFL_CFPQ_RSM`
 
 The graphs and grammars come from the [FLPQ_Data](https://github.com/FormalLanguageConstrainedPathQuerying/FLPQ_Data)
 collection.
@@ -46,7 +48,7 @@ Benchmark options:
   --use-random-percent <n>
                     Use a random n% of the vertices as start vertices, the same
                     ones for every run
-  -a <algorithm>    Algorithm to use (default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc, CFL_multsrc_adv)
+  -a <algorithm>    Algorithm to use (default: CFL_adv; options: CFL_adv, CFL, CFL_single_path, CFL_all_path, CFL_all_path_adv, CFL_CFPQ_RSM, CFL_multsrc, CFL_multsrc_adv, CFL_Kron)
 
 Optimization flags:
   -e                Enable empty optimization

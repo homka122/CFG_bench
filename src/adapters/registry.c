@@ -1,6 +1,7 @@
 #include "registry.h"
 #include "adapter_CFL.h"
 #include "adapter_CFL_CFPQ_RSM.h"
+#include "adapter_CFL_Kron.h"
 #include "adapter_CFL_adv.h"
 #include "adapter_CFL_all_path.h"
 #include "adapter_CFL_all_path_adv.h"
@@ -63,6 +64,7 @@ static const AlgorithmEntry algorithms[] = {
     {"CFL_CFPQ_RSM", adapter_CFL_CFPQ_RSM_get_methods, prepare_CFL_CFPQ_RSM, true},
     {"CFL_multsrc", adapter_CFL_multsrc_get_methods, prepare_CFL_multsrc, true},
     {"CFL_multsrc_adv", adapter_CFL_multsrc_adv_get_methods, prepare_CFL_multsrc_adv, true},
+    {"CFL_Kron", adapter_CFL_Kron_get_methods, prepare_no_data, false},
 };
 
 #define ALGORITHMS_COUNT (sizeof(algorithms) / sizeof(algorithms[0]))
