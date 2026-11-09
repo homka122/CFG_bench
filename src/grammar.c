@@ -185,7 +185,8 @@ void grammar_to_WCNF(Grammar *grammar, SymbolList *list) {
                 continue;
             }
 
-            if (terms_set_size == terms_set_capacity) {
+            // a rule with two terminals adds two of them
+            if (terms_set_size + 2 > terms_set_capacity) {
                 terms_set_capacity *= 2;
                 terms_set = realloc(terms_set, sizeof(int) * terms_set_capacity);
             }
