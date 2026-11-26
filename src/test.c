@@ -329,6 +329,7 @@ int main(int argc, char **argv) {
 
     AlgorithmOptions algo_options = {
         .optimizations = optimizations,
+        .batch_terminal_transitions = (optimizations & OPT_BLOCK) != 0,
         .use_start_nodes = use_start_nodes,
         .use_cfpq = use_cfpq,
     };

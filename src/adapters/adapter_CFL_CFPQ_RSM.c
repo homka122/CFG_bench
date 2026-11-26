@@ -29,6 +29,7 @@ typedef struct {
     GrB_Index *sources;
     size_t sources_num;
     GrB_Index V; // Graph size
+    bool batch_terminal_transitions;
     char msg[LAGRAPH_MSG_LEN];
 } state_t;
 
@@ -105,6 +106,7 @@ static GrB_Info adapter_CFL_prepare(const ParserResult *parser_result, void *pre
     state.rsm = rsm_convert_to_lagraph(rsm);
     state.adj_matrices = prepared_adj_matrices;
     state.V = graph->node_count;
+    state.batch_terminal_transitions = data->batch_terminal_transitions;
 
     if (data->use_start_nodes) {
         state.sources_num = parser_result->start_nodes_count;
@@ -147,7 +149,7 @@ static GrB_Info adapter_CFL_init_outputs(void) {
 // this should be called after adapter_CFL_adv_init_outputs
 static GrB_Info adapter_CFL_run(void) {
     TRY(LAGraph_CFPQ_RSM(state.reachable, &state.rsm, state.adj_matrices, state.sources, state.sources_num, state.V,
-                         state.msg));
+                         state.batch_terminal_transitions, state.msg));
 
     return GrB_SUCCESS;
 }

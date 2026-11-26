@@ -11,6 +11,7 @@
 // CLI options an algorithm may need in prepare
 typedef struct {
     int8_t optimizations;
+    bool batch_terminal_transitions;
     bool use_start_nodes;
     bool use_cfpq;
 } AlgorithmOptions;
