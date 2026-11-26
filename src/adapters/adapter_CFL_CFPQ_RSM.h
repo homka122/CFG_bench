@@ -7,6 +7,7 @@
 
 typedef struct {
     bool use_start_nodes;
+    bool batch_terminal_transitions;
 } CFL_CFPQ_RSM_PrepareData;
 
 AdapterMethods adapter_CFL_CFPQ_RSM_get_methods(void);
